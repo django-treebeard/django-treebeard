@@ -55,178 +55,9 @@ from numconv import int2str, str2int
 PATH_FIELD_LENGTH = 255
 BASE = 36
 ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-FIRST, PREV, NEXT, LAST, SORTED = 'first', 'prev', 'next', 'last', 'sorted'
-
-
-class Tree(models.Model):
-    """
-    Abstract model for the Tree objects.
-
-    The library needs that you define a related name of 'treebeard_nodes' from
-    your Node models. Read the docs of Node for more info.
-
-    By default it defines no data fields or variables.
-    """
-
-
-    def __init__(self, *args, **kwargs):
-        super(Tree, self).__init__(*args, **kwargs)
-        if not hasattr(self, 'treebeard_nodes'):
-            raise NeedOneNodeRelationPerTree('One shall be the number of node' \
-                ' models thou shalt relate to a tree, and the number of the' \
-                'relations shall be one.')
-            # Two shalt thou not relate, neither count thou zero, excepting that
-            # thou then proceed to one. Three is right out. Once the number
-            # one, being the first number, be reached, the instance will be
-            # created without this "pythonic" exception :)
-
-
-    @transaction.commit_on_success
-    def add_root(self, **kwargs):
-        """
-        Adds a root node to a tree. The new root node will be the new rightmost
-        root node. If you want to insert a root node at a specific position,
-        use the add_sibling method of an already existing root node instead.
-        
-        Returns the created node object. It will be save()d by this
-        method.
-
-
-        **kwargs: object creation data that will be passed to the inherited
-            Node model
-        """
-
-        # do we have a root node already?
-        last_root = self.get_last_root_node()
-
-        if last_root and last_root.node_order_by:
-            # there are root nodes and node_order_by has been set
-            # delegate sorted insertion to add_sibling
-            return last_root.add_sibling(SORTED, **kwargs)
-
-        # creating the new object
-        newobj = self.treebeard_nodes.model(**kwargs)
-        newobj.depth = 1
-        newobj.tree = self
-        if last_root:
-            # adding the new root node as the last one
-            newobj.path = Node._inc_path(last_root.path, newobj.steplen)
-        else:
-            # adding the first root node
-            newobj.path = Node._get_path(None, 1, 1, newobj.steplen)
-        # saving the instance before returning it
-        newobj.save()
-        return newobj
-
-
-    @transaction.commit_on_success
-    def load_bulk(self, bulk_data, parent=None):
-        """
-        Loads a list/dictionary structure to a tree.
-        Returns a list of the added node paths.
-
-
-        parent: the node that will receive the structure as children, if not
-            specified the first level of the structure will be loaded as root
-            nodes
-
-        bulk_data: the data that will be loaded, the structure is a list of
-            dictionaries with 2 keys:
-            - data: will store arguments that will be passed for object
-              creation, and
-            - children: a list of dictionaries, each one has it's own data and
-              children keys (a recursive structure)
-            Note that any internal data that you may have stored in your nodes'
-            data (tree, full path, depth) will be ignored.
-            The porpuse of this structure is to make it JSON friendly.
-
-
-        For instance, this structure:
-          [{'data':{'foo':'bar'}},
-           {'data':{'foo':'baz'}, 'children':[
-             {'data':{'foo':'qux'}},
-             {'data':{'foo':'quux'}},
-           ]},
-           {'data':{'foo':'quuux'}}
-          ]
-
-        Will create:
-
-             |------------|-----------|
-            bar          baz         quuux
-                          |
-                    |-----------|
-                   qux         quux
-        
-        Note that if your node model has "node_order_by enabled", it will
-        take precedence over the order in the structure.
-
-        """
-
-        if parent and self != parent.tree:
-            # You confused the library! now it doesn't know what you
-            # really want so it'll play safe and just fail
-            raise WrongTreeParm(
-                "The parent's tree doesn't match the tree.")
-
-        # tree, iterative preorder
-        added = []
-        # stack of nodes to analize
-        stack = [(parent, node) for node in bulk_data[::-1]]
-        while stack:
-            parent, node_struct = stack.pop()
-            node_data = node_struct['data']
-            node_data['tree'] = self
-            # this can break things, and it shouldn't be here anyway
-            if 'tree_id' in node_data:
-                del node_data['tree_id']
-            if parent:
-                node_obj = parent.add_child(**node_data)
-            else:
-                node_obj = self.add_root(**node_data)
-            added.append(node_obj.path)
-            if 'children' in node_struct:
-                # extending the stack with the current node as the parent of
-                # the new nodes
-                stack.extend([(node_obj, node) \
-                    for node in node_struct['children'][::-1]])
-        return added
-
-
-    def get_root_nodes(self):
-        """
-        Returns a queryset containing the root nodes in a tree.
-        """
-        return self.treebeard_nodes.filter(depth=1)
-    
-
-    def get_first_root_node(self):
-        """
-        Returns the first root node in a tree or None if the tree is empty
-        """
-        try:
-            return self.get_root_nodes()[0]
-        except IndexError:
-            return None
-
-
-    def get_last_root_node(self):
-        """
-        Returns the last root node in a tree or None if the tree is empty
-        """
-        try:
-            return self.get_root_nodes().reverse()[0]
-        except IndexError:
-            return None
-
-
-
-    class Meta:
-        """
-        Abstract model.
-        """
-        abstract = True
-
+FIRSTC, LASTC, FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDC, SORTEDS = ('first-child',
+    'last-child', 'first-sibling', 'left', 'right', 'last-sibling',
+    'sorted-child', 'sorted-sibling')
 
 
 class NodeQuerySet(models.query.QuerySet):
@@ -237,7 +68,6 @@ class NodeQuerySet(models.query.QuerySet):
     """
 
 
-    @transaction.commit_on_success
     def delete(self, known_children=False):
         """
         Custom delete method, will remove all descendant nodes to ensure a
@@ -250,10 +80,44 @@ class NodeQuerySet(models.query.QuerySet):
             super(NodeQuerySet, self).delete()
         else:
             # we'll have to manually run through all the nodes that are going
-            # to be deleted and make sure that we are removing the descendants
-            for node in self:
-                self.model.objects.filter(tree=node.tree,
-                    path__startswith=node.path).delete(known_children=True)
+            # to be deleted and remove nodes from the list if an ancestor is
+            # already getting removed, since that would be redundant
+            removed = {}
+            for node in self.order_by('depth', 'path'):
+                for depth in range(1, len(node.path)/node.steplen):
+                    path = node._get_basepath(node.path, depth)
+                    if path in removed:
+                        # we are already removing a parent of this node
+                        # skip
+                        continue
+                removed[node.path] = node
+
+            # ok, got the minimal list of nodes to remove...
+            # we must also remove their children
+            # and update every parent node's childnum attribute
+            # LOTS OF FUN HERE!
+            parents = {}
+            toremove = []
+            for path, node in removed.items():
+                parentpath = node._get_basepath(node.path, node.depth-1)
+                if parentpath:
+                    if parentpath not in parents:
+                        parents[parentpath] = node.get_parent(True)
+                    parent = parents[parentpath]
+                    if parent:
+                        parent.numchild -= 1
+                        parent.save()
+                if node.numchild:
+                    toremove.append(Q(path__startswith=node.path))
+                else:
+                    toremove.append(Q(path=node.path))
+            # uh, django will handle this as a SELECT and then a DELETE of
+            # ids..
+            # status: NOT SURE IF WANT, maybe add custom sql here
+            if toremove:
+                self.model.objects.filter(
+                    reduce(operator.or_, toremove)).delete(known_children=True)
+        transaction.commit_unless_managed()
 
 
 
@@ -267,6 +131,7 @@ class NodeManager(models.Manager):
         Sets the custom queryset as the default.
         """
         return NodeQuerySet(self.model)
+
 
 
 
@@ -294,20 +159,6 @@ class Node(models.Model):
         the max depth, increase the max_length attribute of the path field in
         your Node model.
 
-    *** YOU'LL HAVE TO ADD A FOREIGN KEY TO YOUR TREE MODEL ***
-    
-    For instance, the TestNode class in the unit tests is:
-
-        class TestNode(Node):
-            desc = models.CharField(max_length=255)
-            tree = models.ForeignKey(TestTree,
-                                     related_name='treebeard_nodes')
-         # where TestTree is an inherited model from Tree
-
-    tree is a mandatory field, if you don't add it, nothing will work.
-    Also, the field _MUST_ have a related_name attribute with the value of
-    'treebeard_nodes'. This way the Tree model will know how to access the
-    Node data, and a Tree model will be limited to one Node model.
     
     Note: django-treebeard uses numconv for path encoding:
           http://code.google.com/p/numconv/
@@ -316,10 +167,147 @@ class Node(models.Model):
     steplen = 4
     node_order_by = []
 
-    path = models.CharField(max_length=PATH_FIELD_LENGTH)
+    path = models.CharField(max_length=PATH_FIELD_LENGTH,
+                            unique=True,
+                            db_index=True)
     depth = models.PositiveIntegerField()
+    numchild = models.PositiveIntegerField(default=0)
 
     objects = NodeManager()
+
+
+    @classmethod
+    def add_root(cls, **kwargs):
+        """
+        Adds a root node to the tree. The new root node will be the new
+        rightmost root node. If you want to insert a root node at a specific
+        position, use the add_sibling method of an already existing root node
+        instead.
+        
+        Returns the created node object. It will be save()d by this
+        method.
+
+
+        **kwargs: object creation data that will be passed to the inherited
+            Node model
+        """
+
+        # do we have a root node already?
+        last_root = cls.get_last_root_node()
+
+        if last_root and last_root.node_order_by:
+            # there are root nodes and node_order_by has been set
+            # delegate sorted insertion to add_sibling
+            return last_root.add_sibling(SORTEDS, **kwargs)
+
+        # creating the new object
+        newobj = cls(**kwargs)
+        newobj.depth = 1
+        if last_root:
+            # adding the new root node as the last one
+            newobj.path = cls._inc_path(last_root.path)
+        else:
+            # adding the first root node
+            newobj.path = cls._get_path(None, 1, 1)
+        # saving the instance before returning it
+        newobj.save()
+        transaction.commit_unless_managed()
+        return newobj
+
+
+    @classmethod
+    def load_bulk(cls, bulk_data, parent=None):
+        """
+        Loads a list/dictionary structure to the tree.
+        Returns a list of the added node paths.
+
+
+        parent: the node that will receive the structure as children, if not
+            specified the first level of the structure will be loaded as root
+            nodes
+
+        bulk_data: the data that will be loaded, the structure is a list of
+            dictionaries with 2 keys:
+            - data: will store arguments that will be passed for object
+              creation, and
+            - children: a list of dictionaries, each one has it's own data and
+              children keys (a recursive structure)
+            Note that any internal data that you may have stored in your nodes'
+            data (full path, depth) will be ignored.
+            The porpuse of this structure is to make it JSON friendly.
+
+
+        For instance, this structure:
+          [{'data':{'foo':'bar'}},
+           {'data':{'foo':'baz'}, 'children':[
+             {'data':{'foo':'qux'}},
+             {'data':{'foo':'quux'}},
+           ]},
+           {'data':{'foo':'quuux'}}
+          ]
+
+        Will create:
+
+             |------------|-----------|
+            bar          baz         quuux
+                          |
+                    |-----------|
+                   qux         quux
+        
+        Note that if your node model has "node_order_by enabled", it will
+        take precedence over the order in the structure.
+
+        """
+
+        # tree, iterative preorder
+        added = []
+        # stack of nodes to analize
+        stack = [(parent, node) for node in bulk_data[::-1]]
+        while stack:
+            parent, node_struct = stack.pop()
+            node_data = node_struct['data']
+            if parent:
+                node_obj = parent.add_child(**node_data)
+            else:
+                node_obj = cls.add_root(**node_data)
+            added.append(node_obj.path)
+            if 'children' in node_struct:
+                # extending the stack with the current node as the parent of
+                # the new nodes
+                stack.extend([(node_obj, node) \
+                    for node in node_struct['children'][::-1]])
+        transaction.commit_unless_managed()
+        return added
+
+
+    @classmethod
+    def get_root_nodes(cls):
+        """
+        Returns a queryset containing the root nodes in the tree.
+        """
+        return cls.objects.filter(depth=1)
+    
+
+    @classmethod
+    def get_first_root_node(cls):
+        """
+        Returns the first root node in the tree or None if it is empty
+        """
+        try:
+            return cls.get_root_nodes()[0]
+        except IndexError:
+            return None
+
+
+    @classmethod
+    def get_last_root_node(cls):
+        """
+        Returns the last root node in the tree or None if it is empty
+        """
+        try:
+            return cls.get_root_nodes().reverse()[0]
+        except IndexError:
+            return None
 
 
     def get_siblings(self):
@@ -327,11 +315,11 @@ class Node(models.Model):
         Returns a queryset of all the node's siblings, including the node
         itself.
         """
-        qset = self.tree.treebeard_nodes.filter(depth=self.depth)
+        qset = self.__class__.objects.filter(depth=self.depth)
         if self.depth > 1:
             # making sure the non-root nodes share a parent
-            basepath = Node._get_basepath(self.path, self.depth, self.steplen)
-            qset = qset.filter(path__startswith=basepath)
+            parentpath = self._get_basepath(self.path, self.depth-1)
+            qset = qset.filter(path__startswith=parentpath)
         return qset
 
 
@@ -339,8 +327,10 @@ class Node(models.Model):
         """
         Returns a queryset of all the node's children
         """
-        return self.tree.treebeard_nodes.filter(path__startswith=self.path,
-                                   depth=self.depth+1)
+        if self.numchild:
+            return self.__class__.objects.filter(path__startswith=self.path,
+                                             depth=self.depth+1)
+        return self.__class__.objects.none()
 
 
     def get_descendants(self):
@@ -348,8 +338,10 @@ class Node(models.Model):
         Returns a queryset of all the node's descendants as DFS, doesn't
         include the node itself
         """
-        return self.tree.treebeard_nodes.filter(path__startswith=self.path,
-                                   depth__gt=self.depth)
+        if self.numchild:
+            return self.__class__.objects.filter(path__startswith=self.path,
+                                             depth__gt=self.depth)
+        return self.__class__.objects.none()
 
 
     def get_first_child(self):
@@ -417,11 +409,11 @@ class Node(models.Model):
 
         node: the node that will be checked as a sibling
         """
-        aux = self.tree_id == node.tree_id and self.depth == node.depth
+        aux = self.depth == node.depth
         if self.depth > 1:
             # making sure the non-root nodes share a parent
-            basepath = Node._get_basepath(self.path, self.depth, self.steplen)
-            return aux and node.path.startswith(basepath)
+            parentpath = self._get_basepath(self.path, self.depth-1)
+            return aux and node.path.startswith(parentpath)
         return aux
 
 
@@ -432,9 +424,7 @@ class Node(models.Model):
 
         node: the node that will be checked as a parent
         """
-        return self.tree_id == node.tree_id and \
-            self.path.startswith(node.path) and \
-            self.depth == node.depth+1
+        return self.path.startswith(node.path) and self.depth == node.depth+1
 
 
     def is_descendant_of(self, node):
@@ -444,9 +434,7 @@ class Node(models.Model):
 
         node: the node that will be checked as an ancestor
         """
-        return self.tree_id == node.tree_id and \
-            self.path.startswith(node.path) and \
-            self.depth > node.depth
+        return self.path.startswith(node.path) and self.depth > node.depth
 
 
     def add_child(self, **kwargs):
@@ -463,27 +451,25 @@ class Node(models.Model):
             Node model
         """
 
-        # does the node have children?
-        last_child = self.get_last_child()
-
-        if last_child and last_child.node_order_by:
-            # there are childs nodes and node_order_by has been set
+        if self.numchild and self.node_order_by:
+            # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
-            return last_child.add_sibling(SORTED, **kwargs)
+            return self.get_last_child().add_sibling(SORTEDS, **kwargs)
 
         # creating a new object
         newobj = self.__class__(**kwargs)
-        newobj.tree = self.tree
         newobj.depth = self.depth + 1
-        if last_child:
+        if self.numchild:
             # adding the new child as the last one
-            newobj.path = Node._inc_path(last_child.path, newobj.steplen)
+            newobj.path = self._inc_path(self.get_last_child().path)
         else:
             # the node had no children, adding the first child
-            newobj.path = Node._get_path(self.path, newobj.depth, 1,
-                                         newobj.steplen)
+            newobj.path = self._get_path(self.path, newobj.depth, 1)
         # saving the instance before returning it
         newobj.save()
+        newobj._parent_obj = self
+        self.numchild += 1
+        self.save()
         return newobj
 
 
@@ -506,15 +492,13 @@ class Node(models.Model):
             fields.append((field, value))
         siblings = siblings.filter(reduce(operator.or_, filters))
         try:
-            newpos = Node._get_lastpos_in_path(siblings.all()[0].path,
-                                               self.steplen)
+            newpos = self._get_lastpos_in_path(siblings.all()[0].path)
         except IndexError:
             newpos, siblings = None, []
         return newpos, siblings
 
 
-    @transaction.commit_on_success
-    def add_sibling(self, pos, **kwargs):
+    def add_sibling(self, pos=None, **kwargs):
         """
         Adds a new node as a sibling to the current node object.
         Returns the created node object. It will be saved by this method.
@@ -533,58 +517,66 @@ class Node(models.Model):
             Node model
         """
 
-        if pos not in (FIRST, PREV, NEXT, LAST, SORTED):
+        if pos is None:
+            if self.node_order_by:
+                pos = SORTEDS
+            else:
+                pos = LASTS
+        if pos not in (FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDS):
             raise InvalidPosition('Invalid relative position: %s' % (pos,))
-        if pos == SORTED and not self.node_order_by:
-            raise InvalidPosition('Must set node_order_by to use the sorted' \
-                                  ' pos in add_sibling')
+        if self.node_order_by and pos != SORTEDS:
+            raise InvalidPosition('Must use %s in add_sibling when'
+                                  ' node_order_by is enabled' % (SORTEDS,))
 
         # creating a new object
         newobj = self.__class__(**kwargs)
-        newobj.tree = self.tree
         newobj.depth = self.depth
-
+        
         newpos = None
         siblings = []
+        stmts = []
 
-        if pos == SORTED:
+        if pos == SORTEDS:
             newpos, siblings = self._get_sorted_pos_queryset(
                 self.get_siblings(), newobj)
             if newpos is None:
-                pos = LAST
+                pos = LASTS
 
-        if pos == LAST or (pos == NEXT and self == self.get_last_sibling()):
+        if pos == LASTS or (pos == RIGHTS and self == self.get_last_sibling()):
             # easy, the last node, nothing to move
             last = self.get_last_sibling()
-            newobj.path = Node._inc_path(last.path, newobj.steplen)
+            newobj.path = self._inc_path(last.path)
         else:
 
             # we must update the tree before inserting
 
-            cursor = connection.cursor()
-            sql_table = self.__class__._meta.db_table
-
             if newpos is None:
                 siblings = self.get_siblings()
-                siblings = {PREV:siblings.filter(path__gte=self.path),
-                            NEXT:siblings.filter(path__gt=self.path),
-                            FIRST:siblings}[pos]
-                basenum = Node._get_lastpos_in_path(self.path, self.steplen)
-                newpos = {FIRST:1, PREV:basenum, NEXT:basenum+1}[pos]
+                siblings = {LEFTS:siblings.filter(path__gte=self.path),
+                            RIGHTS:siblings.filter(path__gt=self.path),
+                            FIRSTS:siblings}[pos]
+                basenum = self._get_lastpos_in_path(self.path)
+                newpos = {FIRSTS:1, LEFTS:basenum, RIGHTS:basenum+1}[pos]
 
-            newobj.path = Node._get_path(self.path, self.depth, newpos,
-                                         self.steplen)
+            newobj.path = self._get_path(self.path, self.depth, newpos)
 
             for node in siblings.reverse():
                 # moving the siblings (and their branches) at the right of the
                 # inserted position one step to the right
-                sql, vals = Node._get_sql_inc_path_in_branches(
-                    sql_table, node.tree_id, node.path, self.steplen)
-                cursor.execute(sql, vals)
+                stmts.append(self._get_sql_inc_path_in_branches(node.path))
+
+        parentpath = self._get_basepath(newobj.path, newobj.depth-1)
+        if parentpath:
+            stmts.append(self._get_sql_update_numchild(parentpath, 'inc'))
+
+        cursor = connection.cursor()
+        for sql, vals in stmts:
+            cursor.execute(sql, vals)
 
         # saving the instance before returning it
         newobj.save()
-        transaction.commit()
+
+        transaction.commit_unless_managed()
         return newobj
 
 
@@ -592,7 +584,7 @@ class Node(models.Model):
         """
         Returns the root node for the current node object.
         """
-        return self.tree.treebeard_nodes.get(path=self.path[0:self.steplen])
+        return self.__class__.objects.get(path=self.path[0:self.steplen])
 
 
     def get_ancestors(self):
@@ -602,20 +594,39 @@ class Node(models.Model):
         """
         paths = [self.path[0:pos] 
             for pos in range(0, len(self.path), self.steplen)[1:]]
-        return self.tree.treebeard_nodes.filter(path__in=paths).order_by('depth')
+        return self.__class__.objects.filter(path__in=paths).order_by('depth')
 
 
-    @transaction.commit_on_success
-    def move(self, target, pos):
+    def get_parent(self, update=False):
+        """
+        Returns the parent node of the current node object.
+        Caches the result in the object itself to help in loops, the cache
+        can be invalidated (updated) by calling this function again with
+        update=True
+        """
+        if self.depth <= 1:
+            return
+        try:
+            if update:
+                del self._parent_obj
+            else:
+                return self._parent_obj
+        except AttributeError:
+            pass
+        parentpath = self._get_basepath(self.path, self.depth-1)
+        self._parent_obj = self.__class__.objects.get(path=parentpath)
+        return self._parent_obj
+
+
+
+    def move(self, target, pos=None):
         """
         Moves the current node and all it's descendants to a new position
         relative to another node.
-        The node can be moved to another tree.
+        The node can be moved under another root node.
 
 
-        target: the node that will be used for relative positioning, if the
-            target node is in another tree, the branch will be removed from the
-            original tree and moved to the target's tree
+        target: the node that will be used as a relative sibling when moving
         pos: the position, relative to the target node, where the
             current node object will be moved to, can be one of:
             - first: the node will be the new leftmost sibling of the target
@@ -625,76 +636,129 @@ class Node(models.Model):
             - next: the node will be moved to the right of the target node
             - last: the node will be the new rightmost sibling of the target
               node
+            - sorted: the new node will be at the right position according to
+              the value of node_order_by
         """
-        if pos not in (FIRST, PREV, NEXT, LAST):
+        if pos is None:
+            if self.node_order_by:
+                pos = SORTEDS
+            else:
+                pos = LASTS
+        if pos not in (FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDS,
+                       FIRSTC, LASTC, SORTEDC):
             raise InvalidPosition('Invalid relative position: %s' % (pos,))
+        child = pos in (FIRSTC, LASTC, SORTEDC, SORTEDC)
+        if self.node_order_by and pos not in (SORTEDC, SORTEDS):
+            raise InvalidPosition('Must use %s or %s in add_sibling when'
+                                  ' node_order_by is enabled' % (SORTEDS,
+                                  SORTEDC))
+        oldpath = self.path
+        newpos = None
+        newdepth = target.depth
+        siblings = []
+
+        if child:
+            parent = target
+            newdepth += 1
+            if target.numchild:
+                target = target.get_last_child()
+                child = False
+                pos = {FIRSTC:FIRSTS, LASTC:LASTS, SORTEDC:SORTEDS}[pos]
+            else:
+                # moving as a target's first child
+                newpos = 1
+                pos = FIRSTS
+                siblings = self.__class__.objects.none()
+            # this is not for save(), since if needed, will be handled with a
+            # custom UPDATE, this is only here to update django's object,
+            # should be useful in loops
+            parent.numchild += 1
+        else:
+            parent = None
+
         if target.is_descendant_of(self):
             raise InvalidMoveToDescendant("Can't move node to a descendant.")
 
-        oldpath = self.path
-        oldtree_id = self.tree_id
 
-        if target.tree_id == oldtree_id and oldpath == target.path:
+        if oldpath == target.path:
             # special cases, not actually moving the node so no need to UPDATE
-            if pos == PREV:
+            if pos == LEFTS:
                 return
-            if pos in (NEXT, LAST) and \
+            if pos in (RIGHTS, LASTS) and \
                     target.path == target.get_last_sibling().path:
                 return
-            if pos == FIRST and target.path == target.get_first_sibling().path:
+            if pos == FIRSTS and target.path == target.get_first_sibling().path:
                 return
+        
+        if pos == SORTEDS:
+            newpos, siblings = self._get_sorted_pos_queryset(
+                target.get_siblings(), self)
+            if newpos is None:
+                pos = LASTS
 
-        cursor = connection.cursor()
-        sql_table = self.__class__._meta.db_table
+        stmts = []
 
-        if pos == LAST or (pos == NEXT and target == target.get_last_sibling()):
+        if pos == LASTS or (pos == RIGHTS and
+                           target == target.get_last_sibling()):
+            # moving to last sibling
             # easy, just move the branch
             last = target.get_last_sibling()
-            newpath = Node._inc_path(last.path, self.steplen)
-            sql, vals = Node._get_sql_newpath_in_branches(sql_table,
-                              oldtree_id, target.tree_id, self.path, newpath,
-                              self.steplen)
-            cursor.execute(sql, vals)
+            newpath = self._inc_path(last.path)
+            stmts.append(self._get_sql_newpath_in_branches(self.path, newpath))
         else:
             # do the UPDATE dance
 
-            basenum = Node._get_lastpos_in_path(target.path, self.steplen)
+            if newpos is None:
+                siblings = target.get_siblings()
+                siblings = {LEFTS:siblings.filter(path__gte=target.path),
+                            RIGHTS:siblings.filter(path__gt=target.path),
+                            FIRSTS:siblings}[pos]
+                basenum = self._get_lastpos_in_path(target.path)
+                newpos = {FIRSTS:1, LEFTS:basenum, RIGHTS:basenum+1}[pos]
 
-            siblings = target.get_siblings().reverse()
-            siblings = {PREV:siblings.filter(path__gte=target.path),
-                        NEXT:siblings.filter(path__gt=target.path),
-                        FIRST:siblings}[pos]
+            newpath = self._get_path(target.path, newdepth, newpos)
 
-            for node in siblings:
-                # moving the siblings (and their branches) at the right of the
-                # relative position one step to the right
-                sql, vals = Node._get_sql_inc_path_in_branches(sql_table,
-                    target.tree_id, node.path, self.steplen)
-                cursor.execute(sql, vals)
+            for node in siblings.reverse():
+                # moving the siblings (and their branches) at the right
+                # of the relative position one step to the right
+                sql, vals = self._get_sql_inc_path_in_branches(node.path)
+                stmts.append((sql, vals))
 
-                if oldtree_id == target.tree_id and \
-                        oldpath.startswith(node.path):
+                if oldpath.startswith(node.path):
                     # if moving to a parent, update oldpath since we just
                     # increased the path of the entire branch
                     oldpath = vals[0] + oldpath[len(vals[0]):]
-
-            newpos = {FIRST:1, PREV:basenum, NEXT:basenum+1}[pos]
-            newpath = Node._get_path(target.path, target.depth, newpos,
-                                     self.steplen)
+                if target.path.startswith(node.path):
+                    # and if we moved the target, update the object django made
+                    # for us, since the update won't do it
+                    # maybe useful in loops
+                    target.path = vals[0] + target.path[len(vals[0]):]
 
             # node to move
-            sql, vals = Node._get_sql_newpath_in_branches(sql_table,
-                oldtree_id, target.tree_id, oldpath, newpath, self.steplen)
-            cursor.execute(sql, vals)
+            stmts.append(self._get_sql_newpath_in_branches(oldpath, newpath))
 
         if settings.DATABASE_ENGINE == 'mysql' and len(oldpath) != len(newpath):
             # no words can describe how dumb mysql is
             # we must update the depth of the branch in a different query
-            sql, vals = Node._get_sql_update_depth_in_branch(sql_table,
-                target.tree_id, newpath, self.steplen)
-            cursor.execute(sql, vals)
+            stmts.append(self._get_sql_update_depth_in_branch(newpath))
 
-        transaction.commit()
+        oldparentpath = self._get_parent_path_from_path(oldpath)
+        newparentpath = self._get_parent_path_from_path(newpath)
+        if (not oldparentpath and newparentpath) or \
+               (oldparentpath and not newparentpath) or \
+               (oldparentpath != newparentpath):
+            # node changed parent, updating count
+            if oldparentpath:
+                stmts.append(self._get_sql_update_numchild(oldparentpath,
+                                                           'dec'))
+            if newparentpath:
+                stmts.append(self._get_sql_update_numchild(newparentpath,
+                                                           'inc'))
+
+        cursor = connection.cursor()
+        for sql, vals in stmts:
+            cursor.execute(sql, vals)
+        transaction.commit_unless_managed()
 
 
 
@@ -702,66 +766,75 @@ class Node(models.Model):
         """
         Removes a node and all it's descendants.
         """
-        # the known_children parm is a message to the custom queryset to avoid
-        # the analysis of every row, since we already know they all belong to
-        # the same branch
-        self.tree.treebeard_nodes.filter(
-            path__startswith=self.path).delete(known_children=True)
+        # call our queryset's delete to handle children removal and updating
+        # the parent's numchild
+        self.__class__.objects.filter(
+            path=self.path).delete()
 
 
 
-    @staticmethod
-    def _get_basepath(path, depth, steplen):
+    @classmethod
+    def _get_basepath(cls, path, depth):
         """
         Returns the base path of another path up to a given depth
         """
         if path:
-            return path[0:(depth-1)*steplen]
+            return path[0:(depth)*cls.steplen]
         return ''
 
-    @staticmethod
-    def _get_path(path, depth, newstep, steplen):
+
+    @classmethod
+    def _get_path(cls, path, depth, newstep):
         """
         Builds a path given some values
-
 
         path: the base path
         depth: the depth of the parent node
         newstep: the value (integer) of the new step
-        steplen: the length of the step as defined by the model
         """
-        basepath = Node._get_basepath(path, depth, steplen)
+        parentpath = cls._get_basepath(path, depth-1)
         key = int2str(newstep, BASE, ALPHABET)
-        return '%s%s%s' % (basepath, '0'*(steplen-len(key)), key)
+        return '%s%s%s' % (parentpath, '0'*(cls.steplen-len(key)), key)
 
-    @staticmethod
-    def _inc_path(path, steplen):
+
+    @classmethod
+    def _inc_path(cls, path):
         """
         Returns the path of the next sibling of a given node path.
         """
-        key = int2str(str2int(path[-steplen:], BASE, ALPHABET)+1, BASE,
+        key = int2str(str2int(path[-cls.steplen:], BASE, ALPHABET)+1, BASE,
                       ALPHABET)
-        return '%s%s%s' % (path[:-steplen], '0'*(steplen-len(key)), key)
+        return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)), key)
 
 
-    @staticmethod
-    def _get_lastpos_in_path(path, steplen):
+    @classmethod
+    def _get_lastpos_in_path(cls, path):
         """
         Returns the integer value of the last step in a path.
         """
-        return str2int(path[-steplen:], BASE, ALPHABET)
+        return str2int(path[-cls.steplen:], BASE, ALPHABET)
 
 
-    @staticmethod
-    def _get_sql_newpath_in_branches(sql_table, oldtree_id, newtree_id,
-                                         oldpath, newpath, steplen):
+    @classmethod
+    def _get_parent_path_from_path(cls, path):
         """
-        Returns the sql needed to move a branch to another position. The new
-        position can be in another tree.
+        Returns the parent path for a given path
+        """
+        if path:
+            return path[0:len(path)-cls.steplen]
+        return ''
 
-        The generated sql will only update the tree_id/depth values if needed.
+
+    @classmethod
+    def _get_sql_newpath_in_branches(cls, oldpath, newpath):
+        """
+        Returns the sql needed to move a branch to another position.
+
+        The generated sql will only update the depth values if needed.
         """
         
+        sql1 = "UPDATE %s SET" % (cls._meta.db_table,)
+
         # <3 "standard" sql
         if settings.DATABASE_ENGINE == 'sqlite3':
             # I know that the third argument in SUBSTR (LENGTH(path)) is
@@ -779,49 +852,52 @@ class Node(models.Model):
         else:
             sqlpath = "%s||SUBSTR(path, %s)"
 
-        sql1 = "UPDATE %s SET" % (sql_table,)
         sql2 = ["path=%s" % (sqlpath,)]
         vals = [newpath, len(oldpath)+1]
-        if oldtree_id != newtree_id:
-            sql2.append("tree_id=%s")
-            vals.append(newtree_id)
         if len(oldpath) != len(newpath) and settings.DATABASE_ENGINE != 'mysql':
             # when using mysql, this won't update the depth and it has to be
             # done in another query
             # doesn't even work with sql_mode='ANSI,TRADITIONAL'
             # TODO: FIND OUT WHY?!?? right now I'm just blaming mysql
             sql2.append("depth=LENGTH(%s)/%%s" % (sqlpath,))
-            vals.extend([newpath, len(oldpath)+1, steplen])
-        sql3 = "WHERE tree_id=%s AND path LIKE %s"   
-        vals.extend([oldtree_id, oldpath+'%'])
+            vals.extend([newpath, len(oldpath)+1, cls.steplen])
+        sql3 = "WHERE path LIKE %s"   
+        vals.extend([oldpath+'%'])
         sql = '%s %s %s' % (sql1, ', '.join(sql2), sql3)
         return sql, vals
 
 
-    @staticmethod
-    def _get_sql_inc_path_in_branches(sql_table, tree_id, oldpath,
-                                           steplen):
+    @classmethod
+    def _get_sql_inc_path_in_branches(cls, oldpath):
         """
         Returns the sql needed to move a branch 1 position to the right.
         """
-        newpath = Node._inc_path(oldpath, steplen)
-        return Node._get_sql_newpath_in_branches(sql_table, tree_id, tree_id,
-                 oldpath, newpath, steplen)
+        newpath = cls._inc_path(oldpath)
+        return cls._get_sql_newpath_in_branches(oldpath, newpath)
 
 
-    @staticmethod
-    def _get_sql_update_depth_in_branch(sql_table, tree_id, path, steplen):
+    @classmethod
+    def _get_sql_update_depth_in_branch(cls, path):
         """
         Returns the sql needed to update the depth of all the nodes in a
         branch.
         """
 
         # Right now this is only used by *sigh* mysql.
-        sql = "UPDATE %s SET" \
-              " depth=LENGTH(path)/%%s" \
-              " WHERE tree_id=%%s AND path LIKE %%s" % (sql_table,)
-        vals = [steplen, tree_id, path+'%']
+        sql = "UPDATE %s SET depth=LENGTH(path)/%%s" \
+              " WHERE path LIKE %%s" % (cls._meta.db_table,)
+        vals = [cls.steplen, path+'%']
         return sql, vals
+
+    
+    @classmethod
+    def _get_sql_update_numchild(cls, path, incdec='inc'):
+        sql = "UPDATE %s SET numchild=numchild%s1" \
+              " WHERE path=%%s" % (cls._meta.db_table,
+                                   {'inc':'+', 'dec':'-'}[incdec])
+        vals = [path]
+        return sql, vals
+
 
 
 
@@ -830,7 +906,6 @@ class Node(models.Model):
         Abstract model.
         """
         abstract = True
-        unique_together = [('tree', 'path')]
         # By changing the ordering, assume that lots of things will break,
         # at least you'll want to check the first/last/prev/next methods.
         # This ordering assumes you want something... TREEISH
@@ -848,17 +923,6 @@ class InvalidMoveToDescendant(Exception):
     Raised when attemping to move a node to one of it's descendants.
     """
 
-class WrongTreeParm(Exception):
-    """
-    Raised when a tree argument doesn't match a the tree value of a node
-    agument
-    """
-
-class NeedOneNodeRelationPerTree(Exception):
-    """
-    Raised when a tree object is instanced and it has no related node models or
-    more than one related node model.
-    """
 
 
 #~
