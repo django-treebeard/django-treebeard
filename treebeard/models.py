@@ -132,11 +132,17 @@ class NodeManager(models.Manager):
         return NodeQuerySet(self.model)
 
 
-
-
 class Node(models.Model):
+    class Meta:
+        """
+        Abstract model.
+        """
+        abstract = True
+
+
+class MPNode(Node):
     """
-    Abstract Node model.
+    Abstract Materialized Path Node model.
 
     Use this abstract model to create inherited Node models. By default it
     defines 2 data fields:

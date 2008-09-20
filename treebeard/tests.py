@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.db import models
-from treebeard import Node, InvalidPosition, InvalidMoveToDescendant
+from treebeard import MPNode, InvalidPosition, InvalidMoveToDescendant
 
 BASE_DATA = [
   {'data':{'desc':'1'}},
@@ -19,13 +19,13 @@ BASE_DATA = [
 ]
 
 
-class TestNode(Node):
+class TestNode(MPNode):
     steplen = 3
 
     desc = models.CharField(max_length=255)
 
 
-class TestNodeSorted(Node):
+class TestNodeSorted(MPNode):
     steplen = 1
     node_order_by = ['val1', 'val2', 'desc']
     val1 = models.IntegerField()
