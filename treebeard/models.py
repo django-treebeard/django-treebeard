@@ -319,7 +319,8 @@ class Node(models.Model):
         if self.depth > 1:
             # making sure the non-root nodes share a parent
             parentpath = self._get_basepath(self.path, self.depth-1)
-            qset = qset.filter(path__startswith=parentpath)
+            qset = qset.filter(
+                path__range=self._get_children_path_interval(parentpath))
         return qset
 
 
@@ -328,8 +329,8 @@ class Node(models.Model):
         Returns a queryset of all the node's children
         """
         if self.numchild:
-            return self.__class__.objects.filter(path__startswith=self.path,
-                                             depth=self.depth+1)
+            return self.__class__.objects.filter(depth=self.depth+1,
+                path__range=self._get_children_path_interval(self.path))
         return self.__class__.objects.none()
 
 
@@ -823,6 +824,12 @@ class Node(models.Model):
         if path:
             return path[0:len(path)-cls.steplen]
         return ''
+
+
+    @classmethod
+    def _get_children_path_interval(cls, path):
+        return (path+ALPHABET[0]*cls.steplen,
+                path+ALPHABET[-1]*cls.steplen)
 
 
     @classmethod
