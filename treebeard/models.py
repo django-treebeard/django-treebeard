@@ -133,6 +133,11 @@ class NodeManager(models.Manager):
 
 
 class Node(models.Model):
+    """ Node class.
+
+    Right now there is only one class that inherits from Node: MPNode for
+    Materialized Path trees.
+    """
     class Meta:
         """
         Abstract model.
