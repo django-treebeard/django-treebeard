@@ -47,8 +47,8 @@ http://code.google.com/p/django-treebeard/source/browse/trunk/treebeard/tests.py
 
 VERSION = (0, 9, 'pre')
 
-from models import Node, NodeManager, InvalidPosition, \
+from models import MPNode, NodeManager, InvalidPosition, \
     InvalidMoveToDescendant
 
-__all__ = ['Node', 'NodeManager', 'InvalidPosition',
+__all__ = ['MPNode', 'NodeManager', 'InvalidPosition',
            'InvalidMoveToDescendant']
