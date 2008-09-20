@@ -506,13 +506,13 @@ class Node(models.Model):
 
         pos: the position, relative to the current node object, where the
             new node will be inserted, can be one of:
-            - first: the new node will be the new leftmost sibling
-            - prev: the new node will take the node's place, which will be
+            - first-sibling: the new node will be the new leftmost sibling
+            - left: the new node will take the node's place, which will be
               moved to the right 1 position
-            - next: the new node will be inserted at the right of the node
-            - last: the new node will be the new rightmost sibling
-            - sorted: the new node will be at the right position according to
-              the value of node_order_by
+            - right: the new node will be inserted at the right of the node
+            - last-sibling: the new node will be the new rightmost sibling
+            - sorted-sibling: the new node will be at the right position
+              according to the value of node_order_by
         **kwargs: object creation data that will be passed to the inherited
             Node model
         """
@@ -609,15 +609,23 @@ class Node(models.Model):
         target: the node that will be used as a relative sibling when moving
         pos: the position, relative to the target node, where the
             current node object will be moved to, can be one of:
-            - first: the node will be the new leftmost sibling of the target
-              node
-            - prev: the node will take the target node's place, which will be
+            - first-child: the node will be the new leftmost child of the
+              target node
+            - last-child: the node will be the new rightmost child of the
+              target node
+            - sorted-child: the new node will be moved as a child of the
+              target node according to the value of node_order_by
+            - first-sibling: the node will be the new leftmost sibling of the
+              target node
+            - left: the node will take the target node's place, which will be
               moved to the right 1 position
-            - next: the node will be moved to the right of the target node
-            - last: the node will be the new rightmost sibling of the target
-              node
-            - sorted: the new node will be at the right position according to
-              the value of node_order_by
+            - right: the node will be moved to the right of the target node
+            - last-sibling: the node will be the new rightmost sibling of the
+              target node
+            - sorted-sibling: the new node will be moved as a sibling of the
+              target node according to the value of node_order_by
+            If no pos is given the library will use last-sibling, or
+            sorted-sibling if node_order_by is enabled.
         """
         if pos is None:
             if self.node_order_by:
