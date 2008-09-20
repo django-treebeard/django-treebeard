@@ -48,7 +48,6 @@ http://code.google.com/p/django-treebeard/source/browse/trunk/treebeard/tests.py
 import operator
 from django.db import models, transaction, connection
 from django.db.models import Q
-from django.db.models.signals import post_init
 from django.conf import settings
 from numconv import int2str, str2int
 
@@ -542,7 +541,7 @@ class Node(models.Model):
             newpos, siblings = None, []
 
         stmts = []
-        oldpath, newpath = self._move_add_sibling_aux(pos, newpos,
+        _, newpath = self._move_add_sibling_aux(pos, newpos,
             self.depth, self, siblings, stmts, None, False)
 
         parentpath = self._get_basepath(newpath, self.depth-1)
@@ -633,42 +632,24 @@ class Node(models.Model):
                                   ' node_order_by is enabled' % (SORTEDS,
                                   SORTEDC))
         oldpath = self.path
-        newpos = None
-        newdepth = target.depth
-        siblings = []
 
-        if pos in (FIRSTC, LASTC, SORTEDC):
-            # moving to a child
-            parent = target
-            newdepth += 1
-            if target.numchild:
-                target = target.get_last_child()
-                pos = {FIRSTC:FIRSTS, LASTC:LASTS, SORTEDC:SORTEDS}[pos]
-            else:
-                # moving as a target's first child
-                newpos = 1
-                pos = FIRSTS
-                siblings = self.__class__.objects.none()
-            # this is not for save(), since if needed, will be handled with a
-            # custom UPDATE, this is only here to update django's object,
-            # should be useful in loops
-            parent.numchild += 1
-        else:
-            parent = None
+        # initialize variables and if moving to a child, updates "move to
+        # child" to become a "move to sibling" if possible (if it can't
+        # be done, it means that we are  adding the first child)
+        pos, target, newdepth, siblings, newpos = self._fix_move_to_child(pos,
+            target, target.depth)
 
         if target.is_descendant_of(self):
             raise InvalidMoveToDescendant("Can't move node to a descendant.")
 
-
-        if oldpath == target.path:
+        if oldpath == target.path and (
+              (pos == LEFTS) or \
+              (pos in (RIGHTS, LASTS) and \
+                target.path == target.get_last_sibling().path) or \
+              (pos == FIRSTS and \
+                target.path == target.get_first_sibling().path)):
             # special cases, not actually moving the node so no need to UPDATE
-            if pos == LEFTS:
-                return
-            if pos in (RIGHTS, LASTS) and \
-                    target.path == target.get_last_sibling().path:
-                return
-            if pos == FIRSTS and target.path == target.get_first_sibling().path:
-                return
+            return
         
         if pos == SORTEDS:
             newpos, siblings = self._get_sorted_pos_queryset(
@@ -677,32 +658,16 @@ class Node(models.Model):
                 pos = LASTS
 
         stmts = []
+        # generate the sql that will do the actual moving of nodes
         oldpath, newpath = self._move_add_sibling_aux(pos, newpos, newdepth,
             target, siblings, stmts, oldpath, True)
-
-        if settings.DATABASE_ENGINE == 'mysql' and len(oldpath) != len(newpath):
-            # no words can describe how dumb mysql is
-            # we must update the depth of the branch in a different query
-            stmts.append(self._get_sql_update_depth_in_branch(newpath))
-
-        oldparentpath = self._get_parent_path_from_path(oldpath)
-        newparentpath = self._get_parent_path_from_path(newpath)
-        if (not oldparentpath and newparentpath) or \
-               (oldparentpath and not newparentpath) or \
-               (oldparentpath != newparentpath):
-            # node changed parent, updating count
-            if oldparentpath:
-                stmts.append(self._get_sql_update_numchild(oldparentpath,
-                                                           'dec'))
-            if newparentpath:
-                stmts.append(self._get_sql_update_numchild(newparentpath,
-                                                           'inc'))
+        # updates needed for mysql and children count in parents
+        self._updates_after_move(oldpath, newpath, stmts)
 
         cursor = connection.cursor()
         for sql, vals in stmts:
             cursor.execute(sql, vals)
         transaction.commit_unless_managed()
-
 
 
     def delete(self):
@@ -770,6 +735,8 @@ class Node(models.Model):
 
     @classmethod
     def _get_children_path_interval(cls, path):
+        """ Returns an interval of all possible children paths for a node.
+        """
         return (path+ALPHABET[0]*cls.steplen,
                 path+ALPHABET[-1]*cls.steplen)
 
@@ -782,7 +749,8 @@ class Node(models.Model):
 
         Returns a tuple containing the old path and the new path.
         """
-        if pos == LASTS or (pos == RIGHTS and target == target.get_last_sibling()):
+        if pos == LASTS \
+                or (pos == RIGHTS and target == target.get_last_sibling()):
             # easy, the last node
             last = target.get_last_sibling()
             newpath = cls._inc_path(last.path)
@@ -822,6 +790,60 @@ class Node(models.Model):
                 stmts.append(cls._get_sql_newpath_in_branches(oldpath,
                                                                newpath))
         return oldpath, newpath
+
+
+    def _fix_move_to_child(self, pos, target, newdepth):
+        """ update preliminar vars in move() when moving to a child
+        """
+        newdepth = target.depth
+        parent = None
+        newpos = None
+        siblings = []
+        if pos in (FIRSTC, LASTC, SORTEDC):
+            # moving to a child
+            parent = target
+            newdepth += 1
+            if target.numchild:
+                target = target.get_last_child()
+                pos = {FIRSTC:FIRSTS, LASTC:LASTS, SORTEDC:SORTEDS}[pos]
+            else:
+                # moving as a target's first child
+                newpos = 1
+                pos = FIRSTS
+                siblings = self.__class__.objects.none()
+            # this is not for save(), since if needed, will be handled with a
+            # custom UPDATE, this is only here to update django's object,
+            # should be useful in loops
+            parent.numchild += 1
+            parent = None
+
+        return pos, target, newdepth, siblings, newpos
+
+
+    @classmethod
+    def _updates_after_move(cls, oldpath, newpath, stmts):
+        """ Updates the list of sql statements needed after moving nodes.
+
+        1) depth updates _ONLY_ needed by mysql databases (*sigh*)
+        2) update the number of children of parent nodes
+        """
+        if settings.DATABASE_ENGINE == 'mysql' and len(oldpath) != len(newpath):
+            # no words can describe how dumb mysql is
+            # we must update the depth of the branch in a different query
+            stmts.append(cls._get_sql_update_depth_in_branch(newpath))
+
+        oldparentpath = cls._get_parent_path_from_path(oldpath)
+        newparentpath = cls._get_parent_path_from_path(newpath)
+        if (not oldparentpath and newparentpath) or \
+               (oldparentpath and not newparentpath) or \
+               (oldparentpath != newparentpath):
+            # node changed parent, updating count
+            if oldparentpath:
+                stmts.append(cls._get_sql_update_numchild(oldparentpath,
+                                                           'dec'))
+            if newparentpath:
+                stmts.append(cls._get_sql_update_numchild(newparentpath,
+                                                           'inc'))
 
 
     @classmethod
@@ -891,6 +913,8 @@ class Node(models.Model):
     
     @classmethod
     def _get_sql_update_numchild(cls, path, incdec='inc'):
+        """ Returns the sql needed the numchild value of a node
+        """
         sql = "UPDATE %s SET numchild=numchild%s1" \
               " WHERE path=%%s" % (cls._meta.db_table,
                                    {'inc':'+', 'dec':'-'}[incdec])
