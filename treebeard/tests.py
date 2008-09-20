@@ -643,17 +643,22 @@ class TestMoveErrors(TestNonEmptyTree):
         self.assertRaises(InvalidMoveToDescendant, node.move, target,
             'first-sibling')
 
+    def test_nonsorted_move_in_sorted(self):
+        TestNodeSorted.add_root(val1=3, val2=3, desc='zxy')
+        node = TestNodeSorted.objects.get(path=u'1')
+        self.assertRaises(InvalidPosition, node.move, node, 'left')
 
 
-class TestMoveLeafSibling(TestNonEmptyTree):
+
+class TestMoveLeaf(TestNonEmptyTree):
 
     def setUp(self):
-        super(TestMoveLeafSibling, self).setUp()
+        super(TestMoveLeaf, self).setUp()
         self.node = TestNode.objects.get(path=u'002003001')
         self.target = TestNode.objects.get(path=u'002')
 
 
-    def test_move_leaf_last(self):
+    def test_move_leaf_last_sibling(self):
         self.node.move(self.target, 'last-sibling')
         expected = [(u'001', u'1', 1, 0),
                     (u'002', u'2', 1, 4),
@@ -668,7 +673,7 @@ class TestMoveLeafSibling(TestNonEmptyTree):
         self.assertEqual(self.got(), expected)
 
 
-    def test_move_leaf_first(self):
+    def test_move_leaf_first_sibling(self):
         self.node.move(self.target, 'first-sibling')
         expected = [(u'001', u'231', 1, 0),
                     (u'002', u'1', 1, 0),
@@ -683,7 +688,7 @@ class TestMoveLeafSibling(TestNonEmptyTree):
         self.assertEqual(self.got(), expected)
 
 
-    def test_move_leaf_left(self):
+    def test_move_leaf_left_sibling(self):
         self.node.move(self.target, 'left')
         expected = [(u'001', u'1', 1, 0),
                     (u'002', u'231', 1, 0),
@@ -698,7 +703,7 @@ class TestMoveLeafSibling(TestNonEmptyTree):
         self.assertEqual(self.got(), expected)
 
 
-    def test_move_leaf_right(self):
+    def test_move_leaf_right_sibling(self):
         self.node.move(self.target, 'right')
         expected = [(u'001', u'1', 1, 0),
                     (u'002', u'2', 1, 4),
@@ -713,16 +718,46 @@ class TestMoveLeafSibling(TestNonEmptyTree):
         self.assertEqual(self.got(), expected)
 
 
-    def test_move_leaf_left_itself(self):
+    def test_move_leaf_left_sibling_itself(self):
         self.node.move(self.node, 'left')
         self.assertEqual(self.got(), self.unchanged)
 
 
+    def test_move_leaf_last_child(self):
+        self.node.move(self.target, 'last-child')
+        expected = [(u'001', u'1', 1, 0),
+                    (u'002', u'2', 1, 5),
+                    (u'002001', u'21', 2, 0),
+                    (u'002002', u'22', 2, 0),
+                    (u'002003', u'23', 2, 0),
+                    (u'002004', u'24', 2, 0),
+                    (u'002005', u'231', 2, 0),
+                    (u'003', u'3', 1, 0),
+                    (u'004', u'4', 1, 1),
+                    (u'004001', u'41', 2, 0)]
+        self.assertEqual(self.got(), expected)
 
-class TestMoveBranchSibling(TestNonEmptyTree):
+
+    def test_move_leaf_first_child(self):
+        self.node.move(self.target, 'first-child')
+        expected = [(u'001', u'1', 1, 0),
+                    (u'002', u'2', 1, 5),
+                    (u'002001', u'231', 2, 0),
+                    (u'002002', u'21', 2, 0),
+                    (u'002003', u'22', 2, 0),
+                    (u'002004', u'23', 2, 0),
+                    (u'002005', u'24', 2, 0),
+                    (u'003', u'3', 1, 0),
+                    (u'004', u'4', 1, 1),
+                    (u'004001', u'41', 2, 0)] 
+        self.assertEqual(self.got(), expected)
+
+
+
+class TestMoveBranch(TestNonEmptyTree):
 
     def setUp(self):
-        super(TestMoveBranchSibling, self).setUp()
+        super(TestMoveBranch, self).setUp()
         self.node = TestNode.objects.get(path='004')
         self.target = TestNode.objects.get(path='002003')
 
@@ -820,6 +855,36 @@ class TestMoveBranchSibling(TestNonEmptyTree):
     def test_move_branch_left_itself_sibling(self):
         self.node.move(self.node, 'left')
         self.assertEqual(self.got(), self.unchanged)
+
+
+    def test_move_branch_first_child(self):
+        self.node.move(self.target, 'first-child')
+        expected = [(u'001', u'1', 1, 0),
+                    (u'002', u'2', 1, 4),
+                    (u'002001', u'21', 2, 0),
+                    (u'002002', u'22', 2, 0),
+                    (u'002003', u'23', 2, 2),
+                    (u'002003001', u'4', 3, 1),
+                    (u'002003001001', u'41', 4, 0),
+                    (u'002003002', u'231', 3, 0),
+                    (u'002004', u'24', 2, 0),
+                    (u'003', u'3', 1, 0)]
+        self.assertEqual(self.got(), expected)
+
+
+    def test_move_branch_last_child(self):
+        self.node.move(self.target, 'last-child')
+        expected =  [(u'001', u'1', 1, 0),
+                     (u'002', u'2', 1, 4),
+                     (u'002001', u'21', 2, 0),
+                     (u'002002', u'22', 2, 0),
+                     (u'002003', u'23', 2, 2),
+                     (u'002003001', u'231', 3, 0),
+                     (u'002003002', u'4', 3, 1),
+                     (u'002003002001', u'41', 4, 0),
+                     (u'002004', u'24', 2, 0),
+                     (u'003', u'3', 1, 0)]
+        self.assertEqual(self.got(), expected)
 
 
 
