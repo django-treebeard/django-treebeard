@@ -533,40 +533,19 @@ class Node(models.Model):
         newobj = self.__class__(**kwargs)
         newobj.depth = self.depth
         
-        newpos = None
-        siblings = []
-        stmts = []
-
         if pos == SORTEDS:
             newpos, siblings = self._get_sorted_pos_queryset(
                 self.get_siblings(), newobj)
             if newpos is None:
                 pos = LASTS
-
-        if pos == LASTS or (pos == RIGHTS and self == self.get_last_sibling()):
-            # easy, the last node, nothing to move
-            last = self.get_last_sibling()
-            newobj.path = self._inc_path(last.path)
         else:
+            newpos, siblings = None, []
 
-            # we must update the tree before inserting
+        stmts = []
+        oldpath, newpath = self._move_add_sibling_aux(pos, newpos,
+            self.depth, self, siblings, stmts, None, False)
 
-            if newpos is None:
-                siblings = self.get_siblings()
-                siblings = {LEFTS:siblings.filter(path__gte=self.path),
-                            RIGHTS:siblings.filter(path__gt=self.path),
-                            FIRSTS:siblings}[pos]
-                basenum = self._get_lastpos_in_path(self.path)
-                newpos = {FIRSTS:1, LEFTS:basenum, RIGHTS:basenum+1}[pos]
-
-            newobj.path = self._get_path(self.path, self.depth, newpos)
-
-            for node in siblings.reverse():
-                # moving the siblings (and their branches) at the right of the
-                # inserted position one step to the right
-                stmts.append(self._get_sql_inc_path_in_branches(node.path))
-
-        parentpath = self._get_basepath(newobj.path, newobj.depth-1)
+        parentpath = self._get_basepath(newpath, self.depth-1)
         if parentpath:
             stmts.append(self._get_sql_update_numchild(parentpath, 'inc'))
 
@@ -575,6 +554,7 @@ class Node(models.Model):
             cursor.execute(sql, vals)
 
         # saving the instance before returning it
+        newobj.path = newpath
         newobj.save()
 
         transaction.commit_unless_managed()
@@ -648,7 +628,6 @@ class Node(models.Model):
         if pos not in (FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDS,
                        FIRSTC, LASTC, SORTEDC):
             raise InvalidPosition('Invalid relative position: %s' % (pos,))
-        child = pos in (FIRSTC, LASTC, SORTEDC, SORTEDC)
         if self.node_order_by and pos not in (SORTEDC, SORTEDS):
             raise InvalidPosition('Must use %s or %s in add_sibling when'
                                   ' node_order_by is enabled' % (SORTEDS,
@@ -658,12 +637,12 @@ class Node(models.Model):
         newdepth = target.depth
         siblings = []
 
-        if child:
+        if pos in (FIRSTC, LASTC, SORTEDC):
+            # moving to a child
             parent = target
             newdepth += 1
             if target.numchild:
                 target = target.get_last_child()
-                child = False
                 pos = {FIRSTC:FIRSTS, LASTC:LASTS, SORTEDC:SORTEDS}[pos]
             else:
                 # moving as a target's first child
@@ -698,45 +677,8 @@ class Node(models.Model):
                 pos = LASTS
 
         stmts = []
-
-        if pos == LASTS or (pos == RIGHTS and
-                           target == target.get_last_sibling()):
-            # moving to last sibling
-            # easy, just move the branch
-            last = target.get_last_sibling()
-            newpath = self._inc_path(last.path)
-            stmts.append(self._get_sql_newpath_in_branches(self.path, newpath))
-        else:
-            # do the UPDATE dance
-
-            if newpos is None:
-                siblings = target.get_siblings()
-                siblings = {LEFTS:siblings.filter(path__gte=target.path),
-                            RIGHTS:siblings.filter(path__gt=target.path),
-                            FIRSTS:siblings}[pos]
-                basenum = self._get_lastpos_in_path(target.path)
-                newpos = {FIRSTS:1, LEFTS:basenum, RIGHTS:basenum+1}[pos]
-
-            newpath = self._get_path(target.path, newdepth, newpos)
-
-            for node in siblings.reverse():
-                # moving the siblings (and their branches) at the right
-                # of the relative position one step to the right
-                sql, vals = self._get_sql_inc_path_in_branches(node.path)
-                stmts.append((sql, vals))
-
-                if oldpath.startswith(node.path):
-                    # if moving to a parent, update oldpath since we just
-                    # increased the path of the entire branch
-                    oldpath = vals[0] + oldpath[len(vals[0]):]
-                if target.path.startswith(node.path):
-                    # and if we moved the target, update the object django made
-                    # for us, since the update won't do it
-                    # maybe useful in loops
-                    target.path = vals[0] + target.path[len(vals[0]):]
-
-            # node to move
-            stmts.append(self._get_sql_newpath_in_branches(oldpath, newpath))
+        oldpath, newpath = self._move_add_sibling_aux(pos, newpos, newdepth,
+            target, siblings, stmts, oldpath, True)
 
         if settings.DATABASE_ENGINE == 'mysql' and len(oldpath) != len(newpath):
             # no words can describe how dumb mysql is
@@ -830,6 +772,56 @@ class Node(models.Model):
     def _get_children_path_interval(cls, path):
         return (path+ALPHABET[0]*cls.steplen,
                 path+ALPHABET[-1]*cls.steplen)
+
+    
+    @classmethod
+    def _move_add_sibling_aux(cls, pos, newpos, newdepth, target, siblings,
+                              stmts, oldpath=None, movebranch=False):
+        """ Handles the reordering of nodes and branches when adding/moving
+        nodes.
+
+        Returns a tuple containing the old path and the new path.
+        """
+        if pos == LASTS or (pos == RIGHTS and target == target.get_last_sibling()):
+            # easy, the last node
+            last = target.get_last_sibling()
+            newpath = cls._inc_path(last.path)
+            if movebranch:
+                stmts.append(cls._get_sql_newpath_in_branches(oldpath, newpath))
+        else:
+            # do the UPDATE dance
+
+            if newpos is None:
+                siblings = target.get_siblings()
+                siblings = {LEFTS:siblings.filter(path__gte=target.path),
+                            RIGHTS:siblings.filter(path__gt=target.path),
+                            FIRSTS:siblings}[pos]
+                basenum = cls._get_lastpos_in_path(target.path)
+                newpos = {FIRSTS:1, LEFTS:basenum, RIGHTS:basenum+1}[pos]
+
+            newpath = cls._get_path(target.path, newdepth, newpos)
+
+            for node in siblings.reverse():
+                # moving the siblings (and their branches) at the right of the
+                # related position one step to the right
+                sql, vals = cls._get_sql_inc_path_in_branches(node.path)
+                stmts.append((sql, vals))
+
+                if movebranch:
+                    if oldpath.startswith(node.path):
+                        # if moving to a parent, update oldpath since we just
+                        # increased the path of the entire branch
+                        oldpath = vals[0] + oldpath[len(vals[0]):]
+                    if target.path.startswith(node.path):
+                        # and if we moved the target, update the object
+                        # django made for us, since the update won't do it
+                        # maybe useful in loops
+                        target.path = vals[0] + target.path[len(vals[0]):]
+            if movebranch:
+                # node to move
+                stmts.append(cls._get_sql_newpath_in_branches(oldpath,
+                                                               newpath))
+        return oldpath, newpath
 
 
     @classmethod
