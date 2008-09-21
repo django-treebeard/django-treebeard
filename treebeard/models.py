@@ -120,7 +120,7 @@ class MPNode(Node):
        Attribute that defines the length of each step in the :attr:`path` of
        a node.  The default value of *4* allows a maximum of
        *1679615* childs per node. Increase this value if you plan to store
-       large trees (a `steplen` of *5* allows more than *60M* childs per node).
+       large trees (a ``steplen`` of *5* allows more than *60M* childs per node).
        Note that increasing this value, while increasing the number of
        children per node, will decrease the max :attr:`depth` of the tree (by
        default: *63*). To increase the max :attr:`depth`, increase the
@@ -624,12 +624,12 @@ class MPNode(Node):
             The position, relative to the current node object, where the
             new node will be inserted, can be one of:
 
-            - first-sibling: the new node will be the new leftmost sibling
-            - left: the new node will take the node's place, which will be
+            - ``first-sibling``: the new node will be the new leftmost sibling
+            - ``left``: the new node will take the node's place, which will be
               moved to the right 1 position
-            - right: the new node will be inserted at the right of the node
-            - last-sibling: the new node will be the new rightmost sibling
-            - sorted-sibling: the new node will be at the right position
+            - ``right``: the new node will be inserted at the right of the node
+            - ``last-sibling``: the new node will be the new rightmost sibling
+            - ``sorted-sibling``: the new node will be at the right position
               according to the value of node_order_by
 
         :param \*\*kwargs: 
@@ -759,24 +759,24 @@ class MPNode(Node):
             The position, relative to the target node, where the
             current node object will be moved to, can be one of:
 
-            - `first-child`: the node will be the new leftmost child of the
-              `target` node
-            - `last-child`: the node will be the new rightmost child of the
-              `target` node
-            - `sorted-child`: the new node will be moved as a child of the
-              `target` node according to the value of :attr:`node_order_by`
-            - `first-sibling`: the node will be the new leftmost sibling of the
-              `target` node
-            - `left`: the node will take the `target` node's place, which will be
+            - ``first-child``: the node will be the new leftmost child of the
+              ``target`` node
+            - ``last-child``: the node will be the new rightmost child of the
+              ``target`` node
+            - ``sorted-child``: the new node will be moved as a child of the
+              ``target`` node according to the value of :attr:`node_order_by`
+            - ``first-sibling``: the node will be the new leftmost sibling of the
+              ``target`` node
+            - ``left``: the node will take the ``target`` node's place, which will be
               moved to the right 1 position
-            - `right`: the node will be moved to the right of the `target` node
-            - `last-sibling`: the node will be the new rightmost sibling of the
-              `target node`
-            - `sorted-sibling`: the new node will be moved as a sibling of the
-              `target` node according to the value of :attr:`node_order_by`
+            - ``right``: the node will be moved to the right of the ``target`` node
+            - ``last-sibling``: the node will be the new rightmost sibling of the
+              ``target`` node
+            - ``sorted-sibling``: the new node will be moved as a sibling of the
+              ``target`` node according to the value of :attr:`node_order_by`
 
-            .. note:: If no `pos` is given the library will use
-                     `last-sibling`, or `sorted-sibling` if
+            .. note:: If no ``pos`` is given the library will use
+                     ``last-sibling``, or ``sorted-sibling`` if
                      :attr:`node_order_by` is enabled.
         
         Examples::
