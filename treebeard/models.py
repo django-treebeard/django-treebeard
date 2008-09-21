@@ -111,8 +111,7 @@ class MPNode(Node):
     """
     Abstract Materialized Path Node model.
 
-    Abstract model to create your own tree models. By default it
-    defines 6 attributes:
+    Abstract model to create your own tree models.
 
     .. attribute:: steplen
        
@@ -176,6 +175,14 @@ class MPNode(Node):
        :attr:`node_order_by` after saving your first model. Doing so will
        corrupt the tree.
 
+    Example::
+
+       class SortedNode(treebeard.MPNode):
+          node_order_by = ['numval', 'strval']
+
+          numval = models.IntegerField()
+          strval = models.CharField(max_length=255)
+
     """
 
     steplen = 4
@@ -203,6 +210,12 @@ class MPNode(Node):
             Node model
 
         :returns: the created node object. It will be save()d by this method.
+
+        Example::
+
+            MyNode.add_root(numval=1, strval='abcd')
+            MyNode.add_root(**{'numval':1, 'strval':'abcd'})
+
         """
 
         # do we have a root node already?
@@ -245,24 +258,6 @@ class MPNode(Node):
             - ``children``: a list of dictionaries, each one has it's own
               ``data`` and ``children`` keys (a recursive structure)
 
-            For instance, this structure::
-
-                [{'data':{'foo':'bar'}},
-                 {'data':{'foo':'baz'}, 'children':[
-                     {'data':{'foo':'qux'}},
-                     {'data':{'foo':'quux'}},
-                 ]},
-                 {'data':{'foo':'quuux'}}
-                ]
-
-            Will create::
-
-                 |------------|-----------|
-                bar          baz         quuux
-                              |
-                        |-----------|
-                       qux         quux
-            
 
         :param parent:
             
@@ -283,6 +278,25 @@ class MPNode(Node):
             If your node model has :attr:`node_order_by` enabled, it will
             take precedence over the order in the structure.
 
+        Example::
+
+            data = [{'data':{'foo':'bar'}},
+                    {'data':{'foo':'baz'}, 'children':[
+                        {'data':{'foo':'qux'}},
+                        {'data':{'foo':'quux'}},
+                     ]},
+                    {'data':{'foo':'quuux'}}
+                   ]
+            # parent = None
+            MyNodeModel.load_data(data, None)
+        
+        Will create::
+
+                      |------------|-----------|
+            depth=1   bar          baz         quuux
+                                   |
+                             |-----------|
+            depth=2         qux         quux
         """
 
         # tree, iterative preorder
@@ -310,6 +324,10 @@ class MPNode(Node):
     def get_root_nodes(cls):
         """
         :returns: A queryset containing the root nodes in the tree.
+
+        Example::
+
+           MyNodeModel.get_root_nodes()
         """
         return cls.objects.filter(depth=1)
     
@@ -317,7 +335,11 @@ class MPNode(Node):
     @classmethod
     def get_first_root_node(cls):
         """
-        :returns: The first root node in the tree or None if it is empty
+        :returns: The first root node in the tree or ``None`` if it is empty
+
+        Example::
+
+           MyNodeModel.get_first_root_node()
         """
         try:
             return cls.get_root_nodes()[0]
@@ -328,7 +350,12 @@ class MPNode(Node):
     @classmethod
     def get_last_root_node(cls):
         """
-        :returns: The last root node in the tree or None if it is empty
+        :returns: The last root node in the tree or ``None`` if it is empty
+
+        Example::
+
+           MyNodeModel.get_last_root_node()
+
         """
         try:
             return cls.get_root_nodes().reverse()[0]
@@ -340,6 +367,10 @@ class MPNode(Node):
         """
         :returns: A queryset of all the node's siblings, including the node
             itself.
+
+        Example::
+
+           node.get_siblings()
         """
         qset = self.__class__.objects.filter(depth=self.depth)
         if self.depth > 1:
@@ -353,6 +384,10 @@ class MPNode(Node):
     def get_children(self):
         """
         :returns: A queryset of all the node's children
+
+        Example::
+
+           node.get_children()
         """
         if self.numchild:
             return self.__class__.objects.filter(depth=self.depth+1,
@@ -364,6 +399,10 @@ class MPNode(Node):
         """
         :returns: A queryset of all the node's descendants as DFS, doesn't
             include the node itself
+
+        Example::
+        
+           node.get_descendants()
         """
         if self.numchild:
             return self.__class__.objects.filter(path__startswith=self.path,
@@ -374,6 +413,10 @@ class MPNode(Node):
     def get_first_child(self):
         """
         :returns: The leftmost node's child, or None if it has no children.
+
+        Example::
+
+           node.get_first_child()
         """
         try:
             return self.get_children()[0]
@@ -384,6 +427,10 @@ class MPNode(Node):
     def get_last_child(self):
         """
         :returns: The rightmost node's child, or None if it has no children.
+
+        Example::
+
+           node.get_last_child()
         """
         try:
             return self.get_children().reverse()[0]
@@ -395,6 +442,10 @@ class MPNode(Node):
         """
         :returns: The leftmost node's sibling, can return the node itself if it
             was the leftmost sibling.
+
+        Example::
+         
+           node.get_first_sibling()
         """
         return self.get_siblings()[0]
 
@@ -403,6 +454,10 @@ class MPNode(Node):
         """
         :returns: The rightmost node's sibling, can return the node itself if it
             was the rightmost sibling.
+
+        Example::
+
+            node.get_last_sibling()
         """
         return self.get_siblings().reverse()[0]
 
@@ -411,6 +466,10 @@ class MPNode(Node):
         """
         :returns: The previous node's sibling, or None if it was the leftmost
             sibling.
+
+        Example::
+
+           node.get_prev_sibling()
         """
         try:
             return self.get_siblings().filter(path__lt=self.path).reverse()[0]
@@ -422,6 +481,10 @@ class MPNode(Node):
         """
         :returns: The next node's sibling, or None if it was the rightmost
             sibling.
+
+        Example::
+
+           node.get_next_sibling()
         """
         try:
             return self.get_siblings().filter(path__gt=self.path)[0]
@@ -437,6 +500,10 @@ class MPNode(Node):
         :param node:
         
             The node that will be checked as a sibling
+
+        Example::
+
+           node.is_sibling_of(node2)
         """
         aux = self.depth == node.depth
         if self.depth > 1:
@@ -454,6 +521,10 @@ class MPNode(Node):
         :param node:
 
             The node that will be checked as a parent
+
+        Example::
+
+           node.is_child_of(node2)
         """
         return self.path.startswith(node.path) and self.depth == node.depth+1
 
@@ -466,6 +537,10 @@ class MPNode(Node):
         :param node:
 
             The node that will be checked as an ancestor
+
+        Example::
+
+           node.is_descendant_of(node2)
         """
         return self.path.startswith(node.path) and self.depth > node.depth
 
@@ -483,6 +558,11 @@ class MPNode(Node):
             model
 
         :returns: The created node object. It will be save()d by this method.
+
+        Example::
+
+           node.add_child(numval=1, strval='abcd')
+           node.add_child(**{'numval': 1, 'strval': 'abcd'})
 
         """
 
@@ -559,6 +639,10 @@ class MPNode(Node):
             
             The created node object. It will be saved by this method.
 
+        Examples::
+
+           node.add_sibling('sorted-sibling', numval=1, strval='abcd')
+           node.add_sibling('sorted-sibling', **{'numval': 1, 'strval': 'abcd'})
         """
 
         if pos is None:
@@ -607,6 +691,10 @@ class MPNode(Node):
     def get_root(self):
         """
         :returns: the root node for the current node object.
+
+        Example::
+
+           node.get_root()
         """
         return self.__class__.objects.get(path=self.path[0:self.steplen])
 
@@ -615,6 +703,10 @@ class MPNode(Node):
         """
         :returns: A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
+
+        Example::
+
+           node.get_ancestors()
         """
         paths = [self.path[0:pos] 
             for pos in range(0, len(self.path), self.steplen)[1:]]
@@ -627,6 +719,10 @@ class MPNode(Node):
             Caches the result in the object itself to help in loops.
         
         :param update: Updates de cached value.
+
+        Example::
+
+           node.get_parent()
 
         """
         if self.depth <= 1:
@@ -680,6 +776,13 @@ class MPNode(Node):
             .. note:: If no `pos` is given the library will use
                      `last-sibling`, or `sorted-sibling` if
                      :attr:`node_order_by` is enabled.
+        
+        Examples::
+           
+           node.move(node2, 'sorted-child')
+           
+           node.move(node2, 'prev-sibling')
+
         """
         if pos is None:
             if self.node_order_by:
@@ -994,8 +1097,6 @@ class MPNode(Node):
         return sql, vals
 
 
-
-
     class Meta:
         """
         Abstract model.
@@ -1008,9 +1109,10 @@ class MPNode(Node):
         ordering = ['path']
 
 
+
 class InvalidPosition(Exception):
     """
-    Raised when passing an invalid pos value (first, last, prev, next)
+    Raised when passing an invalid pos value
     """
 
 class InvalidMoveToDescendant(Exception):
