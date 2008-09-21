@@ -15,8 +15,6 @@ from django.db.models import Q
 from django.conf import settings
 from numconv import int2str, str2int
 
-PATH_FIELD_LENGTH = 255
-BASE = 36
 FIRSTC, LASTC, FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDC, SORTEDS = ('first-child',
     'last-child', 'first-sibling', 'left', 'right', 'last-sibling',
     'sorted-child', 'sorted-sibling')
@@ -141,7 +139,7 @@ class MPNode(Node):
     alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     node_order_by = []
 
-    path = models.CharField(max_length=PATH_FIELD_LENGTH,
+    path = models.CharField(max_length=255,
                             unique=True,
                             db_index=True)
     depth = models.PositiveIntegerField()
@@ -684,7 +682,7 @@ class MPNode(Node):
         newstep: the value (integer) of the new step
         """
         parentpath = cls._get_basepath(path, depth-1)
-        key = int2str(newstep, BASE, cls.alphabet)
+        key = int2str(newstep, len(cls.alphabet), cls.alphabet)
         return '%s%s%s' % (parentpath, '0'*(cls.steplen-len(key)), key)
 
 
@@ -693,7 +691,8 @@ class MPNode(Node):
         """
         Returns the path of the next sibling of a given node path.
         """
-        key = int2str(str2int(path[-cls.steplen:], BASE, cls.alphabet)+1, BASE,
+        base = len(cls.alphabet)
+        key = int2str(str2int(path[-cls.steplen:], base, cls.alphabet)+1, base,
                       cls.alphabet)
         return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)), key)
 
@@ -703,7 +702,7 @@ class MPNode(Node):
         """
         Returns the integer value of the last step in a path.
         """
-        return str2int(path[-cls.steplen:], BASE, cls.alphabet)
+        return str2int(path[-cls.steplen:], len(cls.alphabet), cls.alphabet)
 
 
     @classmethod
