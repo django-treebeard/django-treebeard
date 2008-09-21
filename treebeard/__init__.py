@@ -30,7 +30,12 @@
     denormalization of ``parent``/``child`` foreign keys. This can be prevented
     with transactions (and of course you are already using them, right?).
 
-    ``django-treebeard`` stores two extra fields in every node:
+    ``django-treebeard`` uses a particular appoach: every step in the path has
+    a fixed width and has no separators. This makes queries predictable and
+    faster at the cost of using more characters to store a step. To attack this
+    problem, every step number is encoded.
+
+    Also, two extra fields are stored in every node:
     :attr:`~treebeard.MPNode.depth` and :attr:`~treebeard.MPNode.numchild`.
     This makes the read operations faster, at the cost of a little more
     maintenance on tree updates/inserts/deletes. Don't worry, even with these
