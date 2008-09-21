@@ -4,6 +4,8 @@
     treebeard.models
     ----------------
 
+    Django models.
+
     :copyright: 2008 by Gustavo Picon
     :license: Apache License 2.0
 
