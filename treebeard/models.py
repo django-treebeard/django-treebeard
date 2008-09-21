@@ -32,6 +32,8 @@ class NodeQuerySet(models.query.QuerySet):
         """
         Custom delete method, will remove all descendant nodes to ensure a
         consistent tree (no orphans)
+
+        :returns: ``None``
         """
         if known_children:
             # we already know the children, let's call the default django
@@ -110,36 +112,35 @@ class MPNode(Node):
     Abstract Materialized Path Node model.
 
     Abstract model to create your own tree models. By default it
-    defines 3 attributes and 3 database fields:
+    defines 6 attributes:
 
     .. attribute:: steplen
        
-       Attribute that defines the length of each step in the path of
-       a node. By default BASE36 encoding is used for each step since it's
-       the most optimal possible encoding that is portable between the
-       supported databases The default value of *4* allows a maximum of
+       Attribute that defines the length of each step in the :attr:`path` of
+       a node.  The default value of *4* allows a maximum of
        *1679615* childs per node. Increase this value if you plan to store
-       large trees (a steplen of *5* allows more than *60M* childs per node).
-       Note that increasing this value, while increasing the number of childs
-       per node, will decrease the max depth of the tree (by default:
-       *63*). To increase the max depth, increase the max_length attribute of
-       the path field in your Node model.
+       large trees (a `steplen` of *5* allows more than *60M* childs per node).
+       Note that increasing this value, while increasing the number of
+       children per node, will decrease the max :attr:`depth` of the tree (by
+       default: *63*). To increase the max :attr:`depth`, increase the
+       max_length attribute of the :attr:`path` field in your model.
 
     .. attribute:: alphabet
 
        Attribute: the alphabet that will be used in base conversions
-       when encoding the path steps into strings.
+       when encoding the path steps into strings. By default ``BASE36``
+       encoding is used for each step since it's the most optimal possible
+       encoding that is portable between the supported databases (which means:
+       their default collation will order the :attr:`path` field correctly).
 
     .. attribute:: node_order_by
 
        Attribute: a list of model fields that will be used for node
        ordering. When enabled, all tree operations will assume this ordering.
-       Currently there is **NO WAY** to reorder a tree, so once you set the
-       ordering, you shouldn't change it.
 
-          Example::
+       Example::
 
-             node_order_by = ['field1', 'field2', 'field3']
+          node_order_by = ['field1', 'field2', 'field3']
 
     .. attribute:: path
         
@@ -147,6 +148,11 @@ class MPNode(Node):
        default value of it's max_length, *255*, is the max efficient and
        portable value for a ``varchar``. Increase it to allow deeper trees (max
        depth by default: *63*)
+
+       .. note::
+
+          treebeard uses **numconv** for path encoding:
+          http://code.google.com/p/numconv/
 
     .. attribute:: depth
 
@@ -158,11 +164,18 @@ class MPNode(Node):
        ``PositiveIntegerField``, the number of children of the node.
 
 
-    
-    .. note::
+    .. warning::
        
-       treebeard uses **numconv** for path encoding:
-       http://code.google.com/p/numconv/
+       Do not change the values of :attr:`path`, :attr:`depth` or
+       :attr:`numchild` directly: use one of the included methods instead.
+       Consider these values *read-only*.
+
+    .. warning::
+
+       Do not change the values of the :attr:`depth`, :attr:`alphabet` or
+       :attr:`node_order_by` after saving your first model. Doing so will
+       corrupt the tree.
+
     """
 
     steplen = 4
