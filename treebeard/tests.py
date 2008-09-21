@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
+
     treebeard.tests
-    ================
-    
+    ---------------
+
     Unit tests.
 
     :copyright: 2008 by Gustavo Picon
-    :license: BSD
+    :license: Apache License 2.0
+
 """
 
 from django.test import TestCase
