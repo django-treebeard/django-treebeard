@@ -282,23 +282,41 @@ class MPNode(Node):
 
         Example::
 
-            data = [{'data':{'foo':'bar'}},
-                    {'data':{'foo':'baz'}, 'children':[
-                        {'data':{'foo':'qux'}},
-                        {'data':{'foo':'quux'}},
-                     ]},
-                    {'data':{'foo':'quuux'}}
-                   ]
+            data = [{'data':{'desc':'1'}},
+                    {'data':{'desc':'2'}, 'children':[
+                      {'data':{'desc':'21'}},
+                      {'data':{'desc':'22'}},
+                      {'data':{'desc':'23'}, 'children':[
+                        {'data':{'desc':'231'}},
+                      ]},
+                      {'data':{'desc':'24'}},
+                    ]},
+                    {'data':{'desc':'3'}},
+                    {'data':{'desc':'4'}, 'children':[
+                      {'data':{'desc':'41'}},
+                    ]},
+            ]
             # parent = None
             MyNodeModel.load_data(data, None)
         
-        Will create::
+        Will create:
 
-                      |------------|-----------|
-            depth=1   bar          baz         quuux
-                                   |
-                             |-----------|
-            depth=2         qux         quux
+            * 1
+            * 2
+
+              * 21
+              * 22
+              * 23
+
+                * 231
+
+              * 24
+
+            * 3
+            * 4
+
+              * 41
+
         """
 
         # tree, iterative preorder
@@ -641,6 +659,11 @@ class MPNode(Node):
             
             The created node object. It will be saved by this method.
 
+        :raise InvalidPosition: when passing an invalid ``pos`` parm
+        :raise InvalidPosition: when :attr:`node_order_by` is enabled and the
+           ``pos`` parm wasn't ``sorted-sibling``
+
+
         Examples::
 
            node.add_sibling('sorted-sibling', numval=1, strval='abcd')
@@ -778,6 +801,14 @@ class MPNode(Node):
             .. note:: If no ``pos`` is given the library will use
                      ``last-sibling``, or ``sorted-sibling`` if
                      :attr:`node_order_by` is enabled.
+
+        :returns: None
+
+        :raise InvalidPosition: when passing an invalid ``pos`` parm
+        :raise InvalidPosition: when :attr:`node_order_by` is enabled and the
+           ``pos`` parm wasn't ``sorted-sibling`` or ``sorted-child``
+        :raise InvalidMoveToDescendant: when trying to move a node to one of
+           it's own descendants
         
         Examples::
            
