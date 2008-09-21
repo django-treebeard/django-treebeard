@@ -1,48 +1,12 @@
 # -*- coding: utf-8 -*-
-
-# ----------------------------------------------------------------------------
-# django-treebeard
-# Copyright (c) 2008 Gustavo Picon
-# All rights reserved.
-# 
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions 
-# are met:
-#
-#  * Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-#  * Redistributions in binary form must reproduce the above copyright 
-#    notice, this list of conditions and the following disclaimer in
-#    the documentation and/or other materials provided with the
-#    distribution.
-#  * Neither the name of django-treebeard nor the names of its
-#    contributors may be used to endorse or promote products
-#    derived from this software without specific prior written
-#    permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-# ----------------------------------------------------------------------------
-
 """
+    treebeard.models
+    ================
+    
+    Django Models.
 
-django-treebeard 1.0 - http://code.google.com/p/django-treebeard/
-
-Efficient Materialized Path tree implementation for Django 1.0+
-
-For examples on how to use this library, open the included tests.py file
-or go to:
-http://code.google.com/p/django-treebeard/source/browse/trunk/treebeard/tests.py
+    :copyright: 2008 by Gustavo Picon
+    :license: BSD
 """
 
 import operator
@@ -53,7 +17,6 @@ from numconv import int2str, str2int
 
 PATH_FIELD_LENGTH = 255
 BASE = 36
-ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 FIRSTC, LASTC, FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDC, SORTEDS = ('first-child',
     'last-child', 'first-sibling', 'left', 'right', 'last-sibling',
     'sorted-child', 'sorted-sibling')
@@ -175,6 +138,7 @@ class MPNode(Node):
     """
 
     steplen = 4
+    alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     node_order_by = []
 
     path = models.CharField(max_length=PATH_FIELD_LENGTH,
@@ -720,7 +684,7 @@ class MPNode(Node):
         newstep: the value (integer) of the new step
         """
         parentpath = cls._get_basepath(path, depth-1)
-        key = int2str(newstep, BASE, ALPHABET)
+        key = int2str(newstep, BASE, cls.alphabet)
         return '%s%s%s' % (parentpath, '0'*(cls.steplen-len(key)), key)
 
 
@@ -729,8 +693,8 @@ class MPNode(Node):
         """
         Returns the path of the next sibling of a given node path.
         """
-        key = int2str(str2int(path[-cls.steplen:], BASE, ALPHABET)+1, BASE,
-                      ALPHABET)
+        key = int2str(str2int(path[-cls.steplen:], BASE, cls.alphabet)+1, BASE,
+                      cls.alphabet)
         return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)), key)
 
 
@@ -739,7 +703,7 @@ class MPNode(Node):
         """
         Returns the integer value of the last step in a path.
         """
-        return str2int(path[-cls.steplen:], BASE, ALPHABET)
+        return str2int(path[-cls.steplen:], BASE, cls.alphabet)
 
 
     @classmethod
@@ -756,8 +720,8 @@ class MPNode(Node):
     def _get_children_path_interval(cls, path):
         """ Returns an interval of all possible children paths for a node.
         """
-        return (path+ALPHABET[0]*cls.steplen,
-                path+ALPHABET[-1]*cls.steplen)
+        return (path+cls.alphabet[0]*cls.steplen,
+                path+cls.alphabet[-1]*cls.steplen)
 
     
     @classmethod
