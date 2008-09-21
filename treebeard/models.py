@@ -12,10 +12,11 @@
 """
 
 import operator
+import numconv
 from django.db import models, transaction, connection
 from django.db.models import Q
 from django.conf import settings
-from numconv import int2str, str2int
+
 
 FIRSTC, LASTC, FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDC, SORTEDS = ('first-child',
     'last-child', 'first-sibling', 'left', 'right', 'last-sibling',
@@ -129,10 +130,30 @@ class MPNode(Node):
     .. attribute:: alphabet
 
        Attribute: the alphabet that will be used in base conversions
-       when encoding the path steps into strings. By default ``BASE36``
-       encoding is used for each step since it's the most optimal possible
-       encoding that is portable between the supported databases (which means:
+       when encoding the path steps into strings. The default value,
+       ``0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ`` is the most optimal possible
+       value that is portable between the supported databases (which means:
        their default collation will order the :attr:`path` field correctly).
+
+       .. note::
+
+          In case you know what you are doing, there is a test that is disabled
+          by default that can tell you the optimal default alphabet in your
+          enviroment. To run the test you must enable the
+          :envvar:`TREEBEARD_TEST_ALPHABET` enviroment variable::
+       
+             $ TREEBEARD_TEST_ALPHABET=1 python manage.py test treebeard.TestTreeAlphabet
+
+          On my Ubuntu 8.04.1 system, these are the optimal values for the three
+          supported databases in their *default* configuration:
+
+           ================ ==============================================================
+           Database         Optimal Alphabet
+           ================ ==============================================================
+           MySQL 5.0.51     0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
+           PostgreSQL 8.2.7 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
+           Sqlite3          0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+           ================ ==============================================================
 
     .. attribute:: node_order_by
 
@@ -899,7 +920,7 @@ class MPNode(Node):
         :param newstep: the value (integer) of the new step
         """
         parentpath = cls._get_basepath(path, depth-1)
-        key = int2str(newstep, len(cls.alphabet), cls.alphabet)
+        key = numconv.int2str(newstep, len(cls.alphabet), cls.alphabet)
         return '%s%s%s' % (parentpath, '0'*(cls.steplen-len(key)), key)
 
 
@@ -909,9 +930,10 @@ class MPNode(Node):
         :returns: The path of the next sibling of a given node path.
         """
         base = len(cls.alphabet)
-        key = int2str(str2int(path[-cls.steplen:], base, cls.alphabet)+1, base,
-                      cls.alphabet)
-        return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)), key)
+        key = numconv.int2str(numconv.str2int(path[-cls.steplen:], base,
+                              cls.alphabet)+1, base, cls.alphabet)
+        return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)),
+                           key)
 
 
     @classmethod
@@ -919,7 +941,8 @@ class MPNode(Node):
         """
         :returns: The integer value of the last step in a path.
         """
-        return str2int(path[-cls.steplen:], len(cls.alphabet), cls.alphabet)
+        return numconv.str2int(path[-cls.steplen:], len(cls.alphabet),
+                               cls.alphabet)
 
 
     @classmethod

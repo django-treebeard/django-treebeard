@@ -11,9 +11,10 @@
 
 """
 
+import os
 from django.test import TestCase
 from django.db import models
-from treebeard import MPNode, InvalidPosition, InvalidMoveToDescendant
+from treebeard import MPNode, InvalidPosition, InvalidMoveToDescendant, numconv
 
 BASE_DATA = [
   {'data':{'desc':'1'}},
@@ -45,6 +46,11 @@ class TestNodeSorted(MPNode):
     val2 = models.IntegerField()
     desc = models.CharField(max_length=255)
 
+
+class TestNodeAlphabet(MPNode):
+    steplen = 2
+
+    numval = models.IntegerField()
 
 
 class TestTreeBase(TestCase):
@@ -901,7 +907,7 @@ class TestMoveBranch(TestNonEmptyTree):
 
 
 
-class TestTreeSortedSuite(TestCase):
+class TestTreeSorted(TestCase):
 
     def got(self):
         return [(o.path, o.val1, o.val2, o.desc, o.depth, o.numchild)
@@ -974,6 +980,48 @@ class TestTreeSortedSuite(TestCase):
         self.assertEqual(self.got(), expected)
 
 
+class TestTreeAlphabet(TestCase):
+
+    def test_alphabet(self):
+        if not os.getenv('TREEBEARD_TEST_ALPHABET', False):
+            # run this test only if the enviroment variable is set
+            return
+        basealpha = numconv.BASE85
+        got_err = False
+        last_good = None
+        for alphabetlen in range(35, len(basealpha)+1):
+            alphabet = basealpha[0:alphabetlen]
+            expected = [alphabet[0]+char for char in alphabet[1:]]
+            expected.extend([alphabet[1]+char for char in alphabet])
+            expected.append(alphabet[2]+alphabet[0])
+
+            # remove all nodes
+            TestNodeAlphabet.objects.all().delete()
+
+            # change the model's alphabet
+            TestNodeAlphabet.alphabet = alphabet
+
+            # insert root nodes
+            for pos in range(len(alphabet)*2):
+                try:
+                    TestNodeAlphabet.add_root(numval=pos)
+                except:
+                    got_err = True
+                    break
+            if not got_err:
+                got = [obj.path for obj in TestNodeAlphabet.objects.all()]
+                if got != expected:
+                    got_err = True
+            if got_err:
+                break
+            else:
+                last_good = alphabet
+        if last_good:
+            print '\nThe best BASE85 based alphabet for your setup is: %s' \
+                % (last_good,)
+        else:
+            # this should never happen
+            self.fail("Couldn't find a default working alphabet for your setup!")
 
 
 #~
