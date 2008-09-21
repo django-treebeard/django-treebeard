@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+
     treebeard.models
-    ================
-    
-    Django Models.
+    ----------------
 
     :copyright: 2008 by Gustavo Picon
-    :license: BSD
+    :license: Apache License 2.0
+
 """
 
 import operator
@@ -82,8 +82,7 @@ class NodeQuerySet(models.query.QuerySet):
 
 
 class NodeManager(models.Manager):
-    """
-    Custom manager for nodes.
+    """ Custom manager for nodes.
     """
 
     def get_query_set(self):
@@ -110,29 +109,60 @@ class MPNode(Node):
     """
     Abstract Materialized Path Node model.
 
-    Use this abstract model to create inherited Node models. By default it
-    defines 2 data fields:
+    Abstract model to create your own tree models. By default it
+    defines 3 attributes and 3 database fields:
 
-    path: database field, stores the materialized path for each node. The
-        default value of it's max_length, 255, is the max efficient and
-        portable value for a varchar. Increase it to allow deeper trees
-        (max depth by default: 63)
-    depth: helper value that stores the depth of a node in the tree. A root
-        node has a depth of 1.
-    steplen: class variable that defines the length of each step in the path of
-        a node. django-treebeard uses BASE36 encoding for each step since it's
-        the most optimal possible encoding that is portable between the
-        supported databases The default value of 4 allows a maximum of
-        1679615 childs per node. Increase this value if you plan to store large
-        trees (a steplen of 5 allows more than 60M childs per node). Note that
-        increasing this value, while increasing the number of childs per node,
-        will decrease the max depth of the tree (by default: 63). To increase
-        the max depth, increase the max_length attribute of the path field in
-        your Node model.
+    .. attribute:: steplen
+       
+       Attribute that defines the length of each step in the path of
+       a node. By default BASE36 encoding is used for each step since it's
+       the most optimal possible encoding that is portable between the
+       supported databases The default value of *4* allows a maximum of
+       *1679615* childs per node. Increase this value if you plan to store
+       large trees (a steplen of *5* allows more than *60M* childs per node).
+       Note that increasing this value, while increasing the number of childs
+       per node, will decrease the max depth of the tree (by default:
+       *63*). To increase the max depth, increase the max_length attribute of
+       the path field in your Node model.
+
+    .. attribute:: alphabet
+
+       Attribute: the alphabet that will be used in base conversions
+       when encoding the path steps into strings.
+
+    .. attribute:: node_order_by
+
+       Attribute: a list of model fields that will be used for node
+       ordering. When enabled, all tree operations will assume this ordering.
+       Currently there is **NO WAY** to reorder a tree, so once you set the
+       ordering, you shouldn't change it.
+
+          Example::
+
+             node_order_by = ['field1', 'field2', 'field3']
+
+    .. attribute:: path
+        
+       ``CharField``, stores the full materialized path for each node. The
+       default value of it's max_length, *255*, is the max efficient and
+       portable value for a ``varchar``. Increase it to allow deeper trees (max
+       depth by default: *63*)
+
+    .. attribute:: depth
+
+       ``PositiveIntegerField``, depth of a node in the tree. A root node
+       has a depth of *1*.
+
+    .. attribute:: numchild
+
+       ``PositiveIntegerField``, the number of children of the node.
+
 
     
-    Note: django-treebeard uses numconv for path encoding:
-          http://code.google.com/p/numconv/
+    .. note::
+       
+       treebeard uses **numconv** for path encoding:
+       http://code.google.com/p/numconv/
     """
 
     steplen = 4
@@ -153,15 +183,13 @@ class MPNode(Node):
         """
         Adds a root node to the tree. The new root node will be the new
         rightmost root node. If you want to insert a root node at a specific
-        position, use the add_sibling method of an already existing root node
+        position, use :meth:`add_sibling` in an already existing root node
         instead.
-        
-        Returns the created node object. It will be save()d by this
-        method.
 
-
-        **kwargs: object creation data that will be passed to the inherited
+        :param \*\*kwargs: object creation data that will be passed to the inherited
             Node model
+
+        :returns: the created node object. It will be save()d by this method.
         """
 
         # do we have a root node already?
@@ -191,43 +219,56 @@ class MPNode(Node):
     def load_bulk(cls, bulk_data, parent=None):
         """
         Loads a list/dictionary structure to the tree.
-        Returns a list of the added node paths.
 
 
-        parent: the node that will receive the structure as children, if not
+        :param bulk_data:
+        
+            The data that will be loaded, the structure is a list of
+            dictionaries with 2 keys:
+
+            - ``data``: will store arguments that will be passed for object
+              creation, and
+
+            - ``children``: a list of dictionaries, each one has it's own
+              ``data`` and ``children`` keys (a recursive structure)
+
+            For instance, this structure::
+
+                [{'data':{'foo':'bar'}},
+                 {'data':{'foo':'baz'}, 'children':[
+                     {'data':{'foo':'qux'}},
+                     {'data':{'foo':'quux'}},
+                 ]},
+                 {'data':{'foo':'quuux'}}
+                ]
+
+            Will create::
+
+                 |------------|-----------|
+                bar          baz         quuux
+                              |
+                        |-----------|
+                       qux         quux
+            
+
+        :param parent:
+            
+            The node that will receive the structure as children, if not
             specified the first level of the structure will be loaded as root
             nodes
 
-        bulk_data: the data that will be loaded, the structure is a list of
-            dictionaries with 2 keys:
-            - data: will store arguments that will be passed for object
-              creation, and
-            - children: a list of dictionaries, each one has it's own data and
-              children keys (a recursive structure)
-            Note that any internal data that you may have stored in your nodes'
-            data (full path, depth) will be ignored.
-            The porpuse of this structure is to make it JSON friendly.
+        :returns: A list of the added node paths.
 
+        .. note::
 
-        For instance, this structure:
-          [{'data':{'foo':'bar'}},
-           {'data':{'foo':'baz'}, 'children':[
-             {'data':{'foo':'qux'}},
-             {'data':{'foo':'quux'}},
-           ]},
-           {'data':{'foo':'quuux'}}
-          ]
+            Any internal data that you may have stored in your
+            nodes' data (:attr:`path`, :attr:`depth`) will be
+            ignored.
 
-        Will create:
+        .. note::
 
-             |------------|-----------|
-            bar          baz         quuux
-                          |
-                    |-----------|
-                   qux         quux
-        
-        Note that if your node model has "node_order_by enabled", it will
-        take precedence over the order in the structure.
+            If your node model has :attr:`node_order_by` enabled, it will
+            take precedence over the order in the structure.
 
         """
 
@@ -255,7 +296,7 @@ class MPNode(Node):
     @classmethod
     def get_root_nodes(cls):
         """
-        Returns a queryset containing the root nodes in the tree.
+        :returns: A queryset containing the root nodes in the tree.
         """
         return cls.objects.filter(depth=1)
     
@@ -263,7 +304,7 @@ class MPNode(Node):
     @classmethod
     def get_first_root_node(cls):
         """
-        Returns the first root node in the tree or None if it is empty
+        :returns: The first root node in the tree or None if it is empty
         """
         try:
             return cls.get_root_nodes()[0]
@@ -274,7 +315,7 @@ class MPNode(Node):
     @classmethod
     def get_last_root_node(cls):
         """
-        Returns the last root node in the tree or None if it is empty
+        :returns: The last root node in the tree or None if it is empty
         """
         try:
             return cls.get_root_nodes().reverse()[0]
@@ -284,8 +325,8 @@ class MPNode(Node):
 
     def get_siblings(self):
         """
-        Returns a queryset of all the node's siblings, including the node
-        itself.
+        :returns: A queryset of all the node's siblings, including the node
+            itself.
         """
         qset = self.__class__.objects.filter(depth=self.depth)
         if self.depth > 1:
@@ -298,7 +339,7 @@ class MPNode(Node):
 
     def get_children(self):
         """
-        Returns a queryset of all the node's children
+        :returns: A queryset of all the node's children
         """
         if self.numchild:
             return self.__class__.objects.filter(depth=self.depth+1,
@@ -308,8 +349,8 @@ class MPNode(Node):
 
     def get_descendants(self):
         """
-        Returns a queryset of all the node's descendants as DFS, doesn't
-        include the node itself
+        :returns: A queryset of all the node's descendants as DFS, doesn't
+            include the node itself
         """
         if self.numchild:
             return self.__class__.objects.filter(path__startswith=self.path,
@@ -319,7 +360,7 @@ class MPNode(Node):
 
     def get_first_child(self):
         """
-        Returns the leftmost node's child, or None if it has no children.
+        :returns: The leftmost node's child, or None if it has no children.
         """
         try:
             return self.get_children()[0]
@@ -329,7 +370,7 @@ class MPNode(Node):
 
     def get_last_child(self):
         """
-        Returns the rightmost node's child, or None if it has no children.
+        :returns: The rightmost node's child, or None if it has no children.
         """
         try:
             return self.get_children().reverse()[0]
@@ -339,24 +380,24 @@ class MPNode(Node):
 
     def get_first_sibling(self):
         """
-        Returns the leftmost node's sibling, can return the node itself if it
-        was the leftmost sibling.
+        :returns: The leftmost node's sibling, can return the node itself if it
+            was the leftmost sibling.
         """
         return self.get_siblings()[0]
 
 
     def get_last_sibling(self):
         """
-        Returns the rightmost node's sibling, can return the node itself if it
-        was the rightmost sibling.
+        :returns: The rightmost node's sibling, can return the node itself if it
+            was the rightmost sibling.
         """
         return self.get_siblings().reverse()[0]
 
 
     def get_prev_sibling(self):
         """
-        Returns the previous node's sibling, or None if it was the leftmost
-        sibling.
+        :returns: The previous node's sibling, or None if it was the leftmost
+            sibling.
         """
         try:
             return self.get_siblings().filter(path__lt=self.path).reverse()[0]
@@ -366,8 +407,8 @@ class MPNode(Node):
 
     def get_next_sibling(self):
         """
-        Returns the next node's sibling, or None if it was the rightmost
-        sibling.
+        :returns: The next node's sibling, or None if it was the rightmost
+            sibling.
         """
         try:
             return self.get_siblings().filter(path__gt=self.path)[0]
@@ -377,10 +418,12 @@ class MPNode(Node):
 
     def is_sibling_of(self, node):
         """
-        Returns True if the node if a sibling of another node given as an
-        argument, else, returns False
+        :returns: ``True`` if the node if a sibling of another node given as an
+            argument, else, returns ``False``
 
-        node: the node that will be checked as a sibling
+        :param node:
+        
+            The node that will be checked as a sibling
         """
         aux = self.depth == node.depth
         if self.depth > 1:
@@ -392,20 +435,24 @@ class MPNode(Node):
 
     def is_child_of(self, node):
         """
-        Returns True if the node if a child of another node given as an
-        argument, else, returns False
+        :returns: ``True`` if the node if a child of another node given as an
+            argument, else, returns ``False``
 
-        node: the node that will be checked as a parent
+        :param node:
+
+            The node that will be checked as a parent
         """
         return self.path.startswith(node.path) and self.depth == node.depth+1
 
 
     def is_descendant_of(self, node):
         """
-        Returns True if the node if a descendant of another node given as an
-        argument, else, returns False
+        :returns: ``True`` if the node if a descendant of another node given
+            as an argument, else, returns ``False``
 
-        node: the node that will be checked as an ancestor
+        :param node:
+
+            The node that will be checked as an ancestor
         """
         return self.path.startswith(node.path) and self.depth > node.depth
 
@@ -414,14 +461,16 @@ class MPNode(Node):
         """
         Adds a child to the node. The new node will be the new rightmost
         child. If you want to insert a node at a specific position,
-        use the add_sibling method of an already existing child node instead.
+        use the :meth:`add_sibling` method of an already existing
+        child node instead.
 
-        Returns the created node object. It will be save()d by this
-        method.
+        :param \*\*kwargs:
+        
+            Object creation data that will be passed to the inherited Node
+            model
 
+        :returns: The created node object. It will be save()d by this method.
 
-        **kwargs: object creation data that will be passed to the inherited
-            Node model
         """
 
         if self.numchild and self.node_order_by:
@@ -448,9 +497,9 @@ class MPNode(Node):
 
     def _get_sorted_pos_queryset(self, siblings, newobj):
         """
-        Returns the position a new node will be inserted related to the current
-        node, and also a queryset of the nodes that must be moved to the right.
-        Called only for Node models with node_order_by
+        :returns: The position a new node will be inserted related to the
+        current node, and also a queryset of the nodes that must be moved
+        to the right. Called only for Node models with :attr:`node_order_by`
 
         This function was taken from django-mptt (BSD licensed) by Jonathan Buchanan:
         http://code.google.com/p/django-mptt/source/browse/trunk/mptt/signals.py?spec=svn100&r=100#12
@@ -474,11 +523,12 @@ class MPNode(Node):
     def add_sibling(self, pos=None, **kwargs):
         """
         Adds a new node as a sibling to the current node object.
-        Returns the created node object. It will be saved by this method.
 
 
-        pos: the position, relative to the current node object, where the
+        :param pos:
+            The position, relative to the current node object, where the
             new node will be inserted, can be one of:
+
             - first-sibling: the new node will be the new leftmost sibling
             - left: the new node will take the node's place, which will be
               moved to the right 1 position
@@ -486,8 +536,16 @@ class MPNode(Node):
             - last-sibling: the new node will be the new rightmost sibling
             - sorted-sibling: the new node will be at the right position
               according to the value of node_order_by
-        **kwargs: object creation data that will be passed to the inherited
+
+        :param \*\*kwargs: 
+        
+            Object creation data that will be passed to the inherited
             Node model
+
+        :returns:
+            
+            The created node object. It will be saved by this method.
+
         """
 
         if pos is None:
@@ -535,15 +593,15 @@ class MPNode(Node):
 
     def get_root(self):
         """
-        Returns the root node for the current node object.
+        :returns: the root node for the current node object.
         """
         return self.__class__.objects.get(path=self.path[0:self.steplen])
 
 
     def get_ancestors(self):
         """
-        Returns a queryset containing the current node object's ancestors,
-        starting by the root node and descending to the parent.
+        :returns: A queryset containing the current node object's ancestors,
+            starting by the root node and descending to the parent.
         """
         paths = [self.path[0:pos] 
             for pos in range(0, len(self.path), self.steplen)[1:]]
@@ -552,10 +610,11 @@ class MPNode(Node):
 
     def get_parent(self, update=False):
         """
-        Returns the parent node of the current node object.
-        Caches the result in the object itself to help in loops, the cache
-        can be invalidated (updated) by calling this function again with
-        update=True
+        :returns: the parent node of the current node object.
+            Caches the result in the object itself to help in loops.
+        
+        :param update: Updates de cached value.
+
         """
         if self.depth <= 1:
             return
@@ -576,29 +635,38 @@ class MPNode(Node):
         """
         Moves the current node and all it's descendants to a new position
         relative to another node.
-        The node can be moved under another root node.
+        
+        .. note:: The node can be moved under another root node.
 
 
-        target: the node that will be used as a relative sibling when moving
-        pos: the position, relative to the target node, where the
+        :param target:
+
+            The node that will be used as a relative child/sibling when moving
+
+        :param pos:
+        
+            The position, relative to the target node, where the
             current node object will be moved to, can be one of:
-            - first-child: the node will be the new leftmost child of the
-              target node
-            - last-child: the node will be the new rightmost child of the
-              target node
-            - sorted-child: the new node will be moved as a child of the
-              target node according to the value of node_order_by
-            - first-sibling: the node will be the new leftmost sibling of the
-              target node
-            - left: the node will take the target node's place, which will be
+
+            - `first-child`: the node will be the new leftmost child of the
+              `target` node
+            - `last-child`: the node will be the new rightmost child of the
+              `target` node
+            - `sorted-child`: the new node will be moved as a child of the
+              `target` node according to the value of :attr:`node_order_by`
+            - `first-sibling`: the node will be the new leftmost sibling of the
+              `target` node
+            - `left`: the node will take the `target` node's place, which will be
               moved to the right 1 position
-            - right: the node will be moved to the right of the target node
-            - last-sibling: the node will be the new rightmost sibling of the
-              target node
-            - sorted-sibling: the new node will be moved as a sibling of the
-              target node according to the value of node_order_by
-            If no pos is given the library will use last-sibling, or
-            sorted-sibling if node_order_by is enabled.
+            - `right`: the node will be moved to the right of the `target` node
+            - `last-sibling`: the node will be the new rightmost sibling of the
+              `target node`
+            - `sorted-sibling`: the new node will be moved as a sibling of the
+              `target` node according to the value of :attr:`node_order_by`
+
+            .. note:: If no `pos` is given the library will use
+                     `last-sibling`, or `sorted-sibling` if
+                     :attr:`node_order_by` is enabled.
         """
         if pos is None:
             if self.node_order_by:
@@ -665,7 +733,7 @@ class MPNode(Node):
     @classmethod
     def _get_basepath(cls, path, depth):
         """
-        Returns the base path of another path up to a given depth
+        :returns: The base path of another path up to a given depth
         """
         if path:
             return path[0:(depth)*cls.steplen]
@@ -677,9 +745,9 @@ class MPNode(Node):
         """
         Builds a path given some values
 
-        path: the base path
-        depth: the depth of the parent node
-        newstep: the value (integer) of the new step
+        :param path: the base path
+        :param depth: the depth of the parent node
+        :param newstep: the value (integer) of the new step
         """
         parentpath = cls._get_basepath(path, depth-1)
         key = int2str(newstep, len(cls.alphabet), cls.alphabet)
@@ -689,7 +757,7 @@ class MPNode(Node):
     @classmethod
     def _inc_path(cls, path):
         """
-        Returns the path of the next sibling of a given node path.
+        :returns: The path of the next sibling of a given node path.
         """
         base = len(cls.alphabet)
         key = int2str(str2int(path[-cls.steplen:], base, cls.alphabet)+1, base,
@@ -700,7 +768,7 @@ class MPNode(Node):
     @classmethod
     def _get_lastpos_in_path(cls, path):
         """
-        Returns the integer value of the last step in a path.
+        :returns: The integer value of the last step in a path.
         """
         return str2int(path[-cls.steplen:], len(cls.alphabet), cls.alphabet)
 
@@ -708,7 +776,7 @@ class MPNode(Node):
     @classmethod
     def _get_parent_path_from_path(cls, path):
         """
-        Returns the parent path for a given path
+        :returns: The parent path for a given path
         """
         if path:
             return path[0:len(path)-cls.steplen]
@@ -717,7 +785,8 @@ class MPNode(Node):
 
     @classmethod
     def _get_children_path_interval(cls, path):
-        """ Returns an interval of all possible children paths for a node.
+        """
+        :returns: An interval of all possible children paths for a node.
         """
         return (path+cls.alphabet[0]*cls.steplen,
                 path+cls.alphabet[-1]*cls.steplen)
@@ -726,10 +795,11 @@ class MPNode(Node):
     @classmethod
     def _move_add_sibling_aux(cls, pos, newpos, newdepth, target, siblings,
                               stmts, oldpath=None, movebranch=False):
-        """ Handles the reordering of nodes and branches when adding/moving
+        """
+        Handles the reordering of nodes and branches when adding/moving
         nodes.
 
-        Returns a tuple containing the old path and the new path.
+        :returns: A tuple containing the old path and the new path.
         """
         if pos == LASTS \
                 or (pos == RIGHTS and target == target.get_last_sibling()):
@@ -775,7 +845,8 @@ class MPNode(Node):
 
 
     def _fix_move_to_child(self, pos, target, newdepth):
-        """ update preliminar vars in move() when moving to a child
+        """
+        Update preliminar vars in :meth:`move` when moving to a child
         """
         newdepth = target.depth
         parent = None
@@ -804,10 +875,12 @@ class MPNode(Node):
 
     @classmethod
     def _updates_after_move(cls, oldpath, newpath, stmts):
-        """ Updates the list of sql statements needed after moving nodes.
+        """
+        
+        Updates the list of sql statements needed after moving nodes.
 
-        1) depth updates _ONLY_ needed by mysql databases (*sigh*)
-        2) update the number of children of parent nodes
+        1. :attr:`depth` updates *ONLY* needed by mysql databases (*sigh*)
+        2. update the number of children of parent nodes
         """
         if settings.DATABASE_ENGINE == 'mysql' and len(oldpath) != len(newpath):
             # no words can describe how dumb mysql is
@@ -831,9 +904,12 @@ class MPNode(Node):
     @classmethod
     def _get_sql_newpath_in_branches(cls, oldpath, newpath):
         """
-        Returns the sql needed to move a branch to another position.
+        :returns" The sql needed to move a branch to another position.
 
-        The generated sql will only update the depth values if needed.
+        .. note::
+
+           The generated sql will only update the depth values if needed.
+
         """
         
         sql1 = "UPDATE %s SET" % (cls._meta.db_table,)
@@ -873,7 +949,7 @@ class MPNode(Node):
     @classmethod
     def _get_sql_inc_path_in_branches(cls, oldpath):
         """
-        Returns the sql needed to move a branch 1 position to the right.
+        :returns: The sql needed to move a branch 1 position to the right.
         """
         newpath = cls._inc_path(oldpath)
         return cls._get_sql_newpath_in_branches(oldpath, newpath)
@@ -882,8 +958,8 @@ class MPNode(Node):
     @classmethod
     def _get_sql_update_depth_in_branch(cls, path):
         """
-        Returns the sql needed to update the depth of all the nodes in a
-        branch.
+        :returns: The sql needed to update the depth of all the nodes in a
+                  branch.
         """
 
         # Right now this is only used by *sigh* mysql.
@@ -895,7 +971,8 @@ class MPNode(Node):
     
     @classmethod
     def _get_sql_update_numchild(cls, path, incdec='inc'):
-        """ Returns the sql needed the numchild value of a node
+        """
+        :returns: The sql needed the numchild value of a node
         """
         sql = "UPDATE %s SET numchild=numchild%s1" \
               " WHERE path=%%s" % (cls._meta.db_table,

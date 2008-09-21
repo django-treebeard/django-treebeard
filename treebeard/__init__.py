@@ -11,6 +11,5 @@
 
 VERSION = (0, 9, 'pre')
 
-from models import MPNode, NodeManager, InvalidPosition, \
-    InvalidMoveToDescendant
+from models import MPNode, InvalidPosition, InvalidMoveToDescendant
 
