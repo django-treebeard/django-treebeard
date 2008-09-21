@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+    treebeard.tests
+    ================
+    
+    Unit tests.
+
+    :copyright: 2008 by Gustavo Picon
+    :license: BSD
+"""
+
 from django.test import TestCase
 from django.db import models
 from treebeard import MPNode, InvalidPosition, InvalidMoveToDescendant
