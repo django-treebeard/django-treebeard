@@ -1,0 +1,11 @@
+   
+django-treebeard
+================
+
+To install, run this command:
+
+    python setup.py install
+
+You can find the documentation in
+
+    http://django-treebeard.googlecode.com/svn/docs/index.html
