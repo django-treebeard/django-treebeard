@@ -1,6 +1,6 @@
 
 :mod:`treebeard` --- tree
-=========================================================
+=========================
 
 .. automodule:: treebeard
 
@@ -35,8 +35,16 @@
    .. autoexception:: InvalidPosition
 
    .. autoexception:: InvalidMoveToDescendant
+   
+   .. autoexception:: PathOverflow
+
+   .. autoexception:: MissingNodeOrderBy
 
 
+:mod:`tbbench` --- tree
+=======================
+
+.. automodule:: tbbench
 
 Indices and tables
 ==================
