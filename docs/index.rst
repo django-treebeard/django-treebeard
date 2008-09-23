@@ -1,6 +1,6 @@
 
-:mod:`treebeard` --- tree
-=========================
+:mod:`treebeard` --- Efficient Materialized Path tree implementation for Django
+===============================================================================
 
 .. automodule:: treebeard
 
@@ -12,6 +12,7 @@
       .. automethod:: get_last_root_node
       .. automethod:: get_root_nodes
       .. automethod:: load_bulk
+      .. automethod:: dump_bulk
 
       .. automethod:: add_child
       .. automethod:: add_sibling

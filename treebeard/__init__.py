@@ -6,7 +6,7 @@
 
     :synopsys: Efficient Materialized Path tree implementation
                for Django 1.0+
-    :copyright: 2008 by Gustavo Picon
+    :copyright: 2008 by `Gustavo Picon <http://gpicon.org>`_
     :license: Apache License 2.0
     :version: 0.9-svn
     :url: http://code.google.com/p/django-treebeard/
