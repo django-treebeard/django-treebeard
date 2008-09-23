@@ -30,7 +30,7 @@
     denormalization of ``parent``/``child`` foreign keys. This can be prevented
     with transactions (and of course you are already using them, right?).
 
-    ``django-treebeard`` uses a particular appoach: every step in the path has
+    ``django-treebeard`` uses a particular approach: every step in the path has
     a fixed width and has no separators. This makes queries predictable and
     faster at the cost of using more characters to store a step. To attack this
     problem, every step number is encoded.
@@ -54,7 +54,7 @@
     to let you define your own models. To use ``django-treebeard``:
 
        1. Download a release from the `treebeard download page`_ or get a
-          development version from the `djangotree subversion repository`.
+          development version from the `treebeard subversion repository`_.
        2. Run :command:`python setup.py install`
        3. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your django
           settings file.
@@ -77,5 +77,6 @@
 
 VERSION = (0, 9, 'svn')
 
-from models import MPNode, InvalidPosition, InvalidMoveToDescendant
+from models import MPNode, InvalidPosition, InvalidMoveToDescendant, \
+   PathOverflow, MissingNodeOrderBy
 

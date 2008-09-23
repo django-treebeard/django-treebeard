@@ -112,17 +112,15 @@ class Node(models.Model):
 
 class MPNode(Node):
     """
-    Abstract Materialized Path Node model.
-
     Abstract model to create your own tree models.
 
     .. attribute:: steplen
        
        Attribute that defines the length of each step in the :attr:`path` of
        a node.  The default value of *4* allows a maximum of
-       *1679615* childs per node. Increase this value if you plan to store
-       large trees (a ``steplen`` of *5* allows more than *60M* childs per node).
-       Note that increasing this value, while increasing the number of
+       *1679615* children per node. Increase this value if you plan to store
+       large trees (a ``steplen`` of *5* allows more than *60M* children per
+       node). Note that increasing this value, while increasing the number of
        children per node, will decrease the max :attr:`depth` of the tree (by
        default: *63*). To increase the max :attr:`depth`, increase the
        max_length attribute of the :attr:`path` field in your model.
@@ -232,6 +230,8 @@ class MPNode(Node):
         :param \*\*kwargs: object creation data that will be passed to the inherited
             Node model
 
+        :raise PathOverflow: when no more root objects can be added
+
         :returns: the created node object. It will be save()d by this method.
 
         Example::
@@ -249,15 +249,16 @@ class MPNode(Node):
             # delegate sorted insertion to add_sibling
             return last_root.add_sibling(SORTEDS, **kwargs)
 
+        if last_root:
+            # adding the new root node as the last one
+            newpath = cls._inc_path(last_root.path)
+        else:
+            # adding the first root node
+            newpath = cls._get_path(None, 1, 1)
         # creating the new object
         newobj = cls(**kwargs)
         newobj.depth = 1
-        if last_root:
-            # adding the new root node as the last one
-            newobj.path = cls._inc_path(last_root.path)
-        else:
-            # adding the first root node
-            newobj.path = cls._get_path(None, 1, 1)
+        newobj.path = newpath
         # saving the instance before returning it
         newobj.save()
         transaction.commit_unless_managed()
@@ -598,6 +599,8 @@ class MPNode(Node):
             Object creation data that will be passed to the inherited Node
             model
 
+        :raise PathOverflow: when no more child nodes can be added
+
         :returns: The created node object. It will be save()d by this method.
 
         Example::
@@ -683,6 +686,11 @@ class MPNode(Node):
         :raise InvalidPosition: when passing an invalid ``pos`` parm
         :raise InvalidPosition: when :attr:`node_order_by` is enabled and the
            ``pos`` parm wasn't ``sorted-sibling``
+        :raise PathOverflow: when the library can't make room for the
+           node's new position
+        :raise MissingNodeOrderBy: when passing ``sorted-sibling`` as ``pos``
+           and the :attr:`node_order_by` attribute is missing
+
 
 
         Examples::
@@ -701,6 +709,8 @@ class MPNode(Node):
         if self.node_order_by and pos != SORTEDS:
             raise InvalidPosition('Must use %s in add_sibling when'
                                   ' node_order_by is enabled' % (SORTEDS,))
+        if pos == SORTEDS and not self.node_order_by:
+            raise MissingNodeOrderBy('Missing node_order_by attribute.')
 
         # creating a new object
         newobj = self.__class__(**kwargs)
@@ -830,6 +840,11 @@ class MPNode(Node):
            ``pos`` parm wasn't ``sorted-sibling`` or ``sorted-child``
         :raise InvalidMoveToDescendant: when trying to move a node to one of
            it's own descendants
+        :raise PathOverflow: when the library can't make room for the
+           node's new position
+        :raise MissingNodeOrderBy: when passing ``sorted-sibling`` or
+           ``sorted-child`` as ``pos`` and the :attr:`node_order_by`
+           attribute is missing
         
         Examples::
            
@@ -850,6 +865,9 @@ class MPNode(Node):
             raise InvalidPosition('Must use %s or %s in add_sibling when'
                                   ' node_order_by is enabled' % (SORTEDS,
                                   SORTEDC))
+        if pos in (SORTEDC, SORTEDS) and not self.node_order_by:
+            raise MissingNodeOrderBy('Missing node_order_by attribute.')
+
         oldpath = self.path
 
         # initialize variables and if moving to a child, updates "move to
@@ -930,8 +948,10 @@ class MPNode(Node):
         :returns: The path of the next sibling of a given node path.
         """
         base = len(cls.alphabet)
-        key = numconv.int2str(numconv.str2int(path[-cls.steplen:], base,
-                              cls.alphabet)+1, base, cls.alphabet)
+        newpos = numconv.str2int(path[-cls.steplen:], base, cls.alphabet) + 1
+        if newpos >= base:
+            raise PathOverflow
+        key = numconv.int2str(newpos, base, cls.alphabet)
         return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)),
                            key)
 
@@ -996,7 +1016,8 @@ class MPNode(Node):
             for node in siblings.reverse():
                 # moving the siblings (and their branches) at the right of the
                 # related position one step to the right
-                sql, vals = cls._get_sql_inc_path_in_branches(node.path)
+                sql, vals = cls._get_sql_newpath_in_branches(node.path,
+                    cls._inc_path(node.path))
                 stmts.append((sql, vals))
 
                 if movebranch:
@@ -1119,15 +1140,6 @@ class MPNode(Node):
 
 
     @classmethod
-    def _get_sql_inc_path_in_branches(cls, oldpath):
-        """
-        :returns: The sql needed to move a branch 1 position to the right.
-        """
-        newpath = cls._inc_path(oldpath)
-        return cls._get_sql_newpath_in_branches(oldpath, newpath)
-
-
-    @classmethod
     def _get_sql_update_depth_in_branch(cls, path):
         """
         :returns: The sql needed to update the depth of all the nodes in a
@@ -1174,6 +1186,19 @@ class InvalidPosition(Exception):
 class InvalidMoveToDescendant(Exception):
     """
     Raised when attemping to move a node to one of it's descendants.
+    """
+
+class MissingNodeOrderBy(Exception):
+    """
+    Raised when an operation needs a missing
+    :attr:`~treebeard.MPNode.node_order_by` attribute
+    """
+
+class PathOverflow(Exception):
+    """
+    Raised when trying to add or move a node to a position where no more nodes
+    can be added (see :attr:`~treebeard.MPNode.path` and
+    :attr:`~treebeard.MPNode.alphabet` for more info)
     """
 
 

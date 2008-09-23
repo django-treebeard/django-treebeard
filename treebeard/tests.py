@@ -14,7 +14,8 @@
 import os
 from django.test import TestCase
 from django.db import models
-from treebeard import MPNode, InvalidPosition, InvalidMoveToDescendant, numconv
+from treebeard import MPNode, InvalidPosition, InvalidMoveToDescendant, \
+    PathOverflow, MissingNodeOrderBy, numconv
 
 BASE_DATA = [
   {'data':{'desc':'1'}},
@@ -51,6 +52,11 @@ class TestNodeAlphabet(MPNode):
     steplen = 2
 
     numval = models.IntegerField()
+
+
+class TestNodeSmallStep(MPNode):
+    steplen = 1
+    alphabet = '0123456789'
 
 
 class TestTreeBase(TestCase):
@@ -467,6 +473,12 @@ class TestAddSibling(TestNonEmptyTree):
     def test_add_sibling_invalid_pos(self):
         method =  TestNode.objects.get(path=u'002003001').add_sibling
         self.assertRaises(InvalidPosition, method, 'invalid_pos')
+
+
+    def test_add_sibling_missing_nodeorderby(self):
+        method = self.node_children.add_sibling
+        self.assertRaises(MissingNodeOrderBy, method, 'sorted-sibling',
+                          desc='aaa')
     
     
     def test_add_sibling_last(self):
@@ -666,6 +678,15 @@ class TestMoveErrors(TestNonEmptyTree):
         TestNodeSorted.add_root(val1=3, val2=3, desc='zxy')
         node = TestNodeSorted.objects.get(path=u'1')
         self.assertRaises(InvalidPosition, node.move, node, 'left')
+
+
+    def test_move_missing_nodeorderby(self):
+        node = TestNode.objects.get(path=u'002003001')
+        self.assertRaises(MissingNodeOrderBy, node.move, node,
+                          'sorted-child')
+        self.assertRaises(MissingNodeOrderBy, node.move, node,
+                          'sorted-sibling')
+
 
 
 
@@ -1022,6 +1043,47 @@ class TestTreeAlphabet(TestCase):
         else:
             # this should never happen
             self.fail("Couldn't find a default working alphabet for your setup!")
+
+
+
+class TestTreeStepOverflow(TestCase):
+    
+    def test_add_root(self):
+        method = TestNodeSmallStep.add_root
+        for i in range(1, 10):
+            method()
+        self.assertRaises(PathOverflow, method)
+
+    def test_add_child(self):
+        root = TestNodeSmallStep.add_root()
+        method = root.add_child
+        for i in range(1, 10):
+            method()
+        self.assertRaises(PathOverflow, method)
+
+    def test_add_sibling(self):
+        root = TestNodeSmallStep.add_root()
+        for i in range(1, 10):
+            root.add_child()
+        method = root.get_last_child().add_sibling
+        positions = ('first-sibling', 'left', 'right', 'last-sibling')
+        for pos in positions:
+            self.assertRaises(PathOverflow, method, pos)
+
+    def test_move(self):
+        root = TestNodeSmallStep.add_root()
+        for i in range(1, 10):
+            root.add_child()
+        newroot = TestNodeSmallStep.add_root()
+        targets = [(root, ['first-child', 'last-child']),
+                   (root.get_first_child(), ['first-sibling',
+                                            'left',
+                                            'right',
+                                            'last-sibling'])]
+        for target, positions in targets:
+            for pos in positions:
+                self.assertRaises(PathOverflow, newroot.move, target, pos)
+
 
 
 #~
