@@ -13,6 +13,7 @@
 
 import operator
 import numconv
+from django.core import serializers
 from django.db import models, transaction, connection
 from django.db.models import Q
 from django.conf import settings
@@ -360,6 +361,55 @@ class MPNode(Node):
                     for node in node_struct['children'][::-1]])
         transaction.commit_unless_managed()
         return added
+
+
+    @classmethod
+    def dump_bulk(cls, parent=None):
+        """
+        Dumps a tree branch to a python data structure.
+
+        :param parent:
+            
+            The node whose descendants will be dumped. The node itself will be
+            included in the dump. If not given, the entire tree will be dumped.
+
+        :returns: A python data structure, describen with detail in
+                  :meth:`load_bulk`
+
+        Example::
+
+           tree = MyNodeModel.dump_bulk()
+
+           branch = MyNodeModel.dump_bulk(node_obj)
+
+        """
+        if parent:
+            qset = cls.objects.filter(path__startswith=parent.path,
+                                             depth__gte=parent.depth)
+        else:
+            qset = cls.objects.all()
+        ret = []
+        lnk = {}
+        for pyobj in serializers.serialize('python', qset):
+            fields = pyobj['fields']
+            depth = fields['depth']
+            path = fields['path']
+            del fields['depth']
+            del fields['path']
+            del fields['numchild']
+            newobj = {'data':pyobj['fields']}
+            if (not parent and depth == 1) or \
+                    (parent and depth == parent.depth):
+                ret.append(newobj)
+            else:
+                parentpath = cls._get_basepath(path, depth-1)
+                parentobj = lnk[parentpath]
+                if 'children' not in parentobj:
+                    parentobj['children'] = []
+                parentobj['children'].append(newobj)
+            lnk[path] = newobj
+        return ret
+
 
 
     @classmethod
@@ -949,9 +999,9 @@ class MPNode(Node):
         """
         base = len(cls.alphabet)
         newpos = numconv.str2int(path[-cls.steplen:], base, cls.alphabet) + 1
-        if newpos >= base:
-            raise PathOverflow
         key = numconv.int2str(newpos, base, cls.alphabet)
+        if len(key) > cls.steplen:
+            raise PathOverflow("Path Overflow from: '%s'" % (path,))
         return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)),
                            key)
 

@@ -90,6 +90,10 @@ class TestEmptyTree(TestTreeBase):
         self.assertEqual(paths, [x[0] for x in self.unchanged])
         self.assertEqual(self.got(), self.unchanged)
 
+    
+    def test_dump_bulk_empty(self):
+        self.assertEqual(TestNode.dump_bulk(), [])
+
 
     def test_add_root_empty(self):
         obj = TestNode.add_root(desc='1')
@@ -133,8 +137,7 @@ class TestManagerMethods(TestNonEmptyTree):
 
         # inserting on an existing node
 
-        newparent = TestNode.objects.get(path='002003001')
-        ids = TestNode.load_bulk(BASE_DATA, newparent)
+        ids = TestNode.load_bulk(BASE_DATA, self.leafnode)
         expected = [(u'001', u'1', 1, 0),
                     (u'002', u'2', 1, 4),
                     (u'002001', u'21', 2, 0),
@@ -167,6 +170,16 @@ class TestManagerMethods(TestNonEmptyTree):
                         u'002003001004001']
         self.assertEqual(ids, expected_ids)
         self.assertEqual(self.got(), expected)
+
+
+    def test_dump_bulk_all(self):
+        self.assertEqual(TestNode.dump_bulk(), BASE_DATA)
+
+
+    def test_dump_bulk_node(self):
+        TestNode.load_bulk(BASE_DATA, self.leafnode)
+        expected = [{'data':{'desc':u'231'}, 'children':BASE_DATA}]
+        self.assertEqual(TestNode.dump_bulk(self.leafnode), expected)
 
 
     def test_add_root(self):
