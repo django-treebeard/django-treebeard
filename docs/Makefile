@@ -27,7 +27,7 @@ clean:
 	-rm -rf _build $(HTMLDIR)/*
 
 html:
-	mkdir -p $(HTMLDIR) _build/doctrees
+	mkdir -p $(HTMLDIR) _build/doctrees _static
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(HTMLDIR)
 	@echo
 	@echo "Build finished. The HTML pages are in $(HTMLDIR)"
