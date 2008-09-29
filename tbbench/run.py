@@ -153,6 +153,7 @@ def delete_test(nodemodel, numnodes):
         nodemodel.objects.filter(id__in=ids).delete()
         dur = time.time() - time_start
         if dur >= SLOW:
+            nodemodel.objects.all().delete()
             return 'SLOW'
     nodemodel.objects.all().delete()
     return time.time() - time_start
@@ -165,13 +166,13 @@ TESTS = [('Inserts', insertion_test),
          ('Delete', delete_test)]
 TREE_MODELS = [
                ('TB', TbNode),
-               ('TB Sorted', TbSortedNode),
                ('MPTT', MpttNode),
+               ('TB Sorted', TbSortedNode),
                ('MPTT Sorted', MpttSortedNode),
                ]
 
 MAXNODES = (100, 1000)
-MAXNODES = (100,)
+MAXNODES = (1000,)
 SLOW = 15
 
 def main():
