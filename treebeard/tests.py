@@ -59,6 +59,22 @@ class TestNodeSmallStep(MPNode):
     alphabet = '0123456789'
 
 
+class TestNodeSortedAutoNow(MPNode):
+    desc = models.CharField(max_length=255)
+    created = models.DateTimeField(auto_now_add=True)
+
+    node_order_by = ['created']
+
+
+class TestNodeShortPath(MPNode):
+    steplen = 1
+
+# This is how you change the default fields defined in a Django abstract class
+# (in this case, MPNode), since Django doesn't allow overriding fields, only
+# mehods and attributes
+TestNodeShortPath._meta.get_field('path').max_length = 4
+
+
 class TestTreeBase(TestCase):
 
     def setUp(self):
@@ -1098,5 +1114,38 @@ class TestTreeStepOverflow(TestCase):
                 self.assertRaises(PathOverflow, newroot.move, target, pos)
 
 
+
+class TestTreeSortedAutoNow(TestCase):
+    """
+    The sorting mechanism used by treebeard when adding a node can fail if the
+    ordering is using an "auto_now" field
+    """
+
+    def test_sorted_by_autonow_workaround(self):
+        """
+        workaround
+        """
+        import datetime
+        for i in range(1, 5):
+            TestNodeSortedAutoNow.add_root(desc='node%d' % (i,),
+                                           created=datetime.datetime.now())
+
+    def test_sorted_by_autonow_FAIL(self):
+        """
+        This test asserts that we have a problem.
+        fix this, somehow
+        """
+        TestNodeSortedAutoNow.add_root(desc='node1')
+        self.assertRaises(ValueError, TestNodeSortedAutoNow.add_root, desc='node2')
+
+
+class TestTreeShortPath(TestCase):
+    """
+    Here we test a tree with a very small path field (max_length=4) and a
+    steplen of 1
+    """
+    def test_short_path(self):
+        obj = TestNodeShortPath.add_root().add_child().add_child().add_child()
+        self.assertRaises(PathOverflow, obj.add_child)
 
 #~
