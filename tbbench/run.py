@@ -76,10 +76,7 @@ def insertion_test(nodemodel, numnodes):
                 newobj = nodemodel.objects.create(numval=numval, strval=strval)
             newobj.save()
         ids.append(newobj.id)
-        dur = time.time() - time_start
-        if dur >= SLOW:
-            return 'SLOW'
-    return dur
+    return time.time() - time_start
 
 
 def get_descendants(nodemodel, numnodes):
@@ -91,10 +88,7 @@ def get_descendants(nodemodel, numnodes):
     for i in range(10):
         for obj in nodemodel.objects.all():
             total += len(obj.get_descendants())
-            dur = time.time() - time_start
-            if dur >= SLOW:
-                return 'SLOW'
-    return dur
+    return time.time() - time_start
 
 
 def moves_test(nodemodel, numnodes):
@@ -127,18 +121,12 @@ def moves_test(nodemodel, numnodes):
              root_nodes_func()[0],
              root_nodes_func().reverse()[0],
              possib)
-        dur = time.time() - time_start
-        if dur >= SLOW:
-            return 'SLOW'
     # move to child nodes
     while root_nodes_func().count() > 1:
         move(nodemodel,
              root_nodes_func().reverse()[0],
              root_nodes_func().all()[0],
              poschild)
-        dur = time.time() - time_start
-        if dur >= SLOW:
-            return 'SLOW'
     return time.time() - time_start
 
 
@@ -151,10 +139,6 @@ def delete_test(nodemodel, numnodes):
         if not len(ids):
             break
         nodemodel.objects.filter(id__in=ids).delete()
-        dur = time.time() - time_start
-        if dur >= SLOW:
-            nodemodel.objects.all().delete()
-            return 'SLOW'
     nodemodel.objects.all().delete()
     return time.time() - time_start
 
@@ -173,7 +157,6 @@ TREE_MODELS = [
 
 MAXNODES = (100, 1000)
 MAXNODES = (1000,)
-SLOW = 15
 
 def main():
 
@@ -185,8 +168,7 @@ def main():
                 for test_desc, test_func in TESTS:
                     key = (test_desc, numnodes, model_desc)
                     if not model or \
-                          (test_desc == 'Descendants' and want_tx) or \
-                          (model_desc == 'MPTT Sorted' and test_desc == 'Move'):
+                          (test_desc == 'Descendants' and want_tx):
                         res = 'N/A'
                     else:
                         if want_tx:
@@ -194,6 +176,8 @@ def main():
                         else:
                             func = test_func
                         res = func(model, numnodes)
+                    #if model_desc == 'MPTT Sorted' and test_desc == 'Move':
+                    #    res = 'N/A'
                     sys.stderr.write('.')
                     sys.stderr.flush()
                     if key in results:
@@ -230,7 +214,7 @@ def main():
                 ln2.append('| %s ' % (model_desc.ljust(maxlen_model),))
                 for dur in results[(test_desc, numnodes, model_desc)]:
                     ln1.append('+-%s-' % ('-' * maxlen_dur,))
-                    if dur in ('SLOW', 'N/A'):
+                    if dur in ('N/A',):
                         ln2.append('| %s ' % (dur.rjust(maxlen_dur),))
                     elif dur:
                         ln2.append('| %s ' % ('%%%dd' % (maxlen_dur,) % (dur*1000,)))
