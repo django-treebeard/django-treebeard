@@ -171,6 +171,10 @@ class MPNode(Node):
        depth by default: *63*)
 
        .. note::
+          
+          `django-treebeard` uses Django's model inheritanceTODO
+
+       .. note::
 
           treebeard uses **numconv** for path encoding:
           http://code.google.com/p/numconv/
@@ -212,8 +216,7 @@ class MPNode(Node):
     node_order_by = []
 
     path = models.CharField(max_length=255,
-                            unique=True,
-                            db_index=True)
+                            unique=True)
     depth = models.PositiveIntegerField()
     numchild = models.PositiveIntegerField(default=0)
 
@@ -674,6 +677,11 @@ class MPNode(Node):
         else:
             # the node had no children, adding the first child
             newobj.path = self._get_path(self.path, newobj.depth, 1)
+            if len(newobj.path) > \
+                    newobj.__class__._meta.get_field('path').max_length:
+                raise PathOverflow('The new node is too deep in the tree, try'
+                                   ' increasing the path.max_length property'
+                                   ' and UPDATE your  database')
         # saving the instance before returning it
         newobj.save()
         newobj._parent_obj = self
