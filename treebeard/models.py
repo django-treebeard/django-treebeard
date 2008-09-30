@@ -50,13 +50,16 @@ class NodeQuerySet(models.query.QuerySet):
             # already getting removed, since that would be redundant
             removed = {}
             for node in self.order_by('depth', 'path'):
+                found = False
                 for depth in range(1, len(node.path)/node.steplen):
                     path = node._get_basepath(node.path, depth)
                     if path in removed:
                         # we are already removing a parent of this node
                         # skip
-                        continue
-                removed[node.path] = node
+                        found = True
+                        break
+                if not found:
+                    removed[node.path] = node
 
             # ok, got the minimal list of nodes to remove...
             # we must also remove their children
@@ -231,7 +234,7 @@ class MPNode(Node):
 
     .. warning::
 
-       Do not change the values of the :attr:`depth`, :attr:`alphabet` or
+       Do not change the values of the :attr:`steplen`, :attr:`alphabet` or
        :attr:`node_order_by` after saving your first model. Doing so will
        corrupt the tree. If you *must* do it:
          
