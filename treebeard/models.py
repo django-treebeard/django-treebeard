@@ -182,7 +182,7 @@ class MPNode(Node):
                    pass
 
                MyNodeModel._meta.get_field('path').max_length = 1024
-          2. You can;t rely on Django's `auto_now` properties in date fields
+          2. You can't rely on Django's `auto_now` properties in date fields
              for sorting, you'll have to manually set the value before creating
              a node::
 
@@ -237,7 +237,7 @@ class MPNode(Node):
          
          1. Backup the tree with :meth:`dump_bulk`
          2. Empty your model's table
-         3. Change :attr:`depth`, :attr:`alphabet: and/or
+         3. Change :attr:`depth`, :attr:`alphabet` and/or
             :attr:`node_order_by` in your model
          4. Restore your backup using :meth:`load_bulk` with
             ``keep_ids=True`` to keep the same primary keys you had.
