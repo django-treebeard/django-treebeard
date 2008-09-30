@@ -70,7 +70,7 @@ class NodeQuerySet(models.query.QuerySet):
                     if parentpath not in parents:
                         parents[parentpath] = node.get_parent(True)
                     parent = parents[parentpath]
-                    if parent:
+                    if parent and parent.numchild > 0:
                         parent.numchild -= 1
                         parent.save()
                 if node.numchild:
@@ -172,7 +172,41 @@ class MPNode(Node):
 
        .. note::
           
-          `django-treebeard` uses Django's model inheritanceTODO
+          `django-treebeard` uses Django's abstract model inheritance, so:
+
+          1. To change the max_length value of the path in your model, you
+             can't just define it since you'd get a django exception, you have
+             to modify the already defined attribute::
+
+               class MyNodeModel(MPNode):
+                   pass
+
+               MyNodeModel._meta.get_field('path').max_length = 1024
+          2. You can;t rely on Django's `auto_now` properties in date fields
+             for sorting, you'll have to manually set the value before creating
+             a node::
+
+               
+               class TestNodeSortedAutoNow(MPNode):
+                   desc = models.CharField(max_length=255)
+                   created = models.DateTimeField(auto_now_add=True)
+                   node_order_by = ['created']
+
+               TestNodeSortedAutoNow.add_root(desc='foo',
+                                              created=datetime.datetime.now())
+
+       .. note::
+
+          For performance, and if your database allows it, you can safely
+          define the path column as ASCII (not utf-8/unicode/iso8859-1/etc) to
+          keep the index smaller (and faster). Also note that some databases
+          (mysql) have a small index size limit. InnoDB for instance has a
+          limit of 765 bytes per index, so that would be the limit if your path
+          is ASCII encoded. If your path column in InnoDB is using unicode,
+          the index limit will be 255 characters since in MySQL's indexes,
+          unicode means 3 bytes.
+
+
 
        .. note::
 
@@ -199,7 +233,14 @@ class MPNode(Node):
 
        Do not change the values of the :attr:`depth`, :attr:`alphabet` or
        :attr:`node_order_by` after saving your first model. Doing so will
-       corrupt the tree.
+       corrupt the tree. If you *must* do it:
+         
+         1. Backup the tree with :meth:`dump_bulk`
+         2. Empty your model's table
+         3. Change :attr:`depth`, :attr:`alphabet: and/or
+            :attr:`node_order_by` in your model
+         4. Restore your backup using :meth:`load_bulk` with
+            ``keep_ids=True`` to keep the same primary keys you had.
 
     Example::
 
@@ -270,7 +311,7 @@ class MPNode(Node):
 
 
     @classmethod
-    def load_bulk(cls, bulk_data, parent=None):
+    def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """
         Loads a list/dictionary structure to the tree.
 
@@ -292,6 +333,14 @@ class MPNode(Node):
             The node that will receive the structure as children, if not
             specified the first level of the structure will be loaded as root
             nodes
+
+
+        :param keep_ids:
+
+            If enabled, lads the nodes with the same id that are given in the
+            structure. Will error if there are nodes without id info or if the
+            ids are already used.
+
 
         :returns: A list of the added node paths.
 
@@ -352,6 +401,8 @@ class MPNode(Node):
         while stack:
             parent, node_struct = stack.pop()
             node_data = node_struct['data']
+            if keep_ids:
+                node_data['id'] = node_struct['id']
             if parent:
                 node_obj = parent.add_child(**node_data)
             else:
@@ -367,7 +418,7 @@ class MPNode(Node):
 
 
     @classmethod
-    def dump_bulk(cls, parent=None):
+    def dump_bulk(cls, parent=None, keep_ids=True):
         """
         Dumps a tree branch to a python data structure.
 
@@ -375,6 +426,11 @@ class MPNode(Node):
             
             The node whose descendants will be dumped. The node itself will be
             included in the dump. If not given, the entire tree will be dumped.
+
+        :param keep_ids:
+
+            Stores the id value (primary key) of every node. Enabled by
+            default.
 
         :returns: A python data structure, describen with detail in
                   :meth:`load_bulk`
@@ -386,23 +442,31 @@ class MPNode(Node):
            branch = MyNodeModel.dump_bulk(node_obj)
 
         """
+
+        # Because of fix_tree, this method assumes that the depth
+        # and numchild properties in the nodes can be incorrect,
+        # so no helper methods are used
         if parent:
-            qset = cls.objects.filter(path__startswith=parent.path,
-                                             depth__gte=parent.depth)
+            qset = cls.objects.filter(path__startswith=parent.path)
         else:
             qset = cls.objects.all()
-        ret = []
-        lnk = {}
+        ret, lnk = [], {}
         for pyobj in serializers.serialize('python', qset):
+            # django's serializer stores the attributes in 'fields'
             fields = pyobj['fields']
-            depth = fields['depth']
             path = fields['path']
+            depth = len(path)/cls.steplen
+            # this will be useless in load_bulk
             del fields['depth']
             del fields['path']
             del fields['numchild']
+
             newobj = {'data':pyobj['fields']}
+            if keep_ids:
+                newobj['id'] = pyobj['pk']
+
             if (not parent and depth == 1) or \
-                    (parent and depth == parent.depth):
+                    (parent and len(path) == len(parent.path)):
                 ret.append(newobj)
             else:
                 parentpath = cls._get_basepath(path, depth-1)
@@ -456,6 +520,99 @@ class MPNode(Node):
             return cls.get_root_nodes().reverse()[0]
         except IndexError:
             return None
+    
+
+    @classmethod
+    def find_problems(cls):
+        """
+        Checks for problems in the tree structure, problems can occur when:
+
+           1. your code breaks and you get incomplete transactions (always
+              use transactions!)
+           2. changing the ``steplen`` value in a model (you must :meth:`dump_bulk`
+              first, change ``steplen`` and then :meth:`load_bulk`
+
+        :returns: A tuple of three lists:
+                  
+                  1. a list of ids of nodes with characters not found in the
+                     ``alphabet``
+                  2. a list of ids of nodes when a wrong ``path`` length
+                     according to ``steplen``
+                  3. a list of ids of orphaned nodes
+
+        .. note::
+           
+           These problems can't be solved automatically.
+
+        Example::
+
+           MyNodeModel.find_problems()
+
+        """
+        evil_chars, bad_steplen, orphans = [], [], []
+        for node in cls.objects.all():
+            found_error = False
+            for char in node.path:
+                if char not in cls.alphabet:
+                    evil_chars.append(node.id)
+                    found_error = True
+                    break
+            if found_error:
+                continue
+            if len(node.path) % cls.steplen:
+                bad_steplen.append(node.id)
+                continue
+            try:
+                parent = node.get_parent(True)
+            except cls.DoesNotExist:
+                orphans.append(node.id)
+
+        return evil_chars, bad_steplen, orphans
+
+
+    @classmethod
+    def fix_tree(cls):
+        """
+        Solves some problems that can appear when transactions are not used and
+        a piece of code breaks, leaving the tree in an inconsistent state.
+
+        The problems this method solves are:
+        
+           1. Nodes with an incorrect ``level`` or ``numchild`` values due to
+              incorrect code and lack of database transactions.
+           2. "Holes" in the tree. This is normal if you move/delete nodes a
+              lot. Holes in a tree don't affect performance,
+           3. Incorrect ordering of nodes when ``node_order_by`` is enabled.
+              Ordering is enforced on *node insertion*, so if an attribute in
+              ``node_order_by`` is modified after the node is inserted, the
+              tree ordering will be inconsistent.
+
+        If these problems don't apply to you, you'll never need to use this
+        method.
+
+        .. note::
+
+           Currently what this method does is:
+
+           1. Backup the tree with :meth:`dump_data`
+           2. Remove all nodes in the tree.
+           3. Restore the tree with :meth:`load_data`
+
+           So, even when the primary keys of your nodes will be preserved, this
+           method isn't foreign-key friendly. That needs complex in-place
+           tree reordering, not available at the moment (hint: patches are
+           welcome).
+
+        Example::
+
+           MyNodeModel.fix_tree()
+
+
+        """
+        dump = cls.dump_bulk(None, True)
+        cls.objects.all().delete()
+        cls.load_bulk(dump, None, True)
+
 
 
     def get_siblings(self):
@@ -839,7 +996,8 @@ class MPNode(Node):
            node.get_parent()
 
         """
-        if self.depth <= 1:
+        depth = len(self.path)/self.steplen
+        if depth <= 1:
             return
         try:
             if update:
@@ -848,7 +1006,7 @@ class MPNode(Node):
                 return self._parent_obj
         except AttributeError:
             pass
-        parentpath = self._get_basepath(self.path, self.depth-1)
+        parentpath = self._get_basepath(self.path, depth-1)
         self._parent_obj = self.__class__.objects.get(path=parentpath)
         return self._parent_obj
 
@@ -992,7 +1150,7 @@ class MPNode(Node):
         Builds a path given some values
 
         :param path: the base path
-        :param depth: the depth of the parent node
+        :param depth: the depth of the  node
         :param newstep: the value (integer) of the new step
         """
         parentpath = cls._get_basepath(path, depth-1)

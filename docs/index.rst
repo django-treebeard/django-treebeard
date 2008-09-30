@@ -13,6 +13,8 @@
       .. automethod:: get_root_nodes
       .. automethod:: load_bulk
       .. automethod:: dump_bulk
+      .. automethod:: find_problems
+      .. automethod:: fix_tree
 
       .. automethod:: add_child
       .. automethod:: add_sibling
