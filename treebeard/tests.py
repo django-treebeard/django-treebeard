@@ -68,11 +68,23 @@ class TestNodeSortedAutoNow(MPNode):
 
 class TestNodeShortPath(MPNode):
     steplen = 1
+    alphabet = '01234'
+    desc = models.CharField(max_length=255)
 
 # This is how you change the default fields defined in a Django abstract class
 # (in this case, MPNode), since Django doesn't allow overriding fields, only
 # mehods and attributes
 TestNodeShortPath._meta.get_field('path').max_length = 4
+
+
+class TestSortedNodeShortPath(MPNode):
+    steplen = 1
+    alphabet = '01234'
+    desc = models.CharField(max_length=255)
+
+    node_order_by = ['desc']
+TestSortedNodeShortPath._meta.get_field('path').max_length = 4
+
 
 
 class TestTreeBase(TestCase):
@@ -1139,6 +1151,7 @@ class TestTreeSortedAutoNow(TestCase):
         self.assertRaises(ValueError, TestNodeSortedAutoNow.add_root, desc='node2')
 
 
+
 class TestTreeShortPath(TestCase):
     """
     Here we test a tree with a very small path field (max_length=4) and a
@@ -1147,5 +1160,99 @@ class TestTreeShortPath(TestCase):
     def test_short_path(self):
         obj = TestNodeShortPath.add_root().add_child().add_child().add_child()
         self.assertRaises(PathOverflow, obj.add_child)
+
+
+
+class TestFindProblems(TestTreeBase):
+    def setUp(self):
+        model = TestNodeAlphabet
+        model.alphabet = '012'
+        model(path='01', depth=1, numchild=0, numval=0).save()
+        model(path='1', depth=1, numchild=0, numval=0).save()
+        model(path='111', depth=1, numchild=0, numval=0).save()
+        model(path='abcd', depth=1, numchild=0, numval=0).save()
+        model(path='qa#$%!', depth=1, numchild=0, numval=0).save()
+        model(path='0201', depth=2, numchild=0, numval=0).save()
+        model(path='020201', depth=3, numchild=0, numval=0).save()
+
+    def test_find_problems(self):
+        model = TestNodeAlphabet
+        evil_chars, bad_steplen, orphans = model.find_problems()
+        self.assertEqual(['abcd', 'qa#$%!'],
+            [o.path for o in model.objects.filter(id__in=evil_chars)])
+        self.assertEqual(['1', '111'],
+            [o.path for o in model.objects.filter(id__in=bad_steplen)])
+        self.assertEqual(['0201', '020201'],
+            [o.path for o in model.objects.filter(id__in=orphans)])
+
+
+
+class TestFixTree(TestTreeBase):
+
+    def setUp(self):
+        super(TestFixTree, self).setUp()
+        for model in (TestNodeShortPath, TestSortedNodeShortPath):
+            model(path='4', depth=2, numchild=2, desc='a').save()
+            model(path='13', depth=1000, numchild=0, desc='u').save()
+            model(path='14', depth=4, numchild=500, desc='o').save()
+            model(path='134', depth=321, numchild=543, desc='i').save()
+            model(path='1343', depth=321, numchild=543, desc='e').save()
+            model(path='42', depth=1, numchild=1, desc='a').save()
+            model(path='43', depth=1000, numchild=0, desc='u').save()
+            model(path='44', depth=4, numchild=500, desc='o').save()
+            model(path='434', depth=321, numchild=543, desc='i').save()
+            model(path='4343', depth=321, numchild=543, desc='e').save()
+            model(path='41', depth=1, numchild=1, desc='a').save()
+            model(path='3', depth=221, numchild=322, desc='g').save()
+            model(path='1', depth=10, numchild=3, desc='b').save()
+            model(path='2', depth=10, numchild=3, desc='d').save()
+    
+    
+    def got(self, model):
+        return [(o.path, o.desc, o.depth, o.numchild) for o in model.objects.all()]
+
+
+    def test_fix_tree(self):
+        # (o.path, o.desc, o.depth, o.numchild)
+        expected_unsorted = [
+           ('1', 'b', 1, 2),
+           ('11', 'u', 2, 1),
+           ('111', 'i', 3, 1),
+           ('1111', 'e', 4, 0),
+           ('12', 'o', 2, 0),
+           ('2', 'd', 1, 0),
+           ('3', 'g', 1, 0),
+           ('4', 'a', 1, 4),
+           ('41', 'a', 2, 0),
+           ('42', 'a', 2, 0),
+           ('43', 'u', 2, 1),
+           ('431', 'i', 3, 1),
+           ('4311', 'e', 4, 0),
+           ('44', 'o', 2, 0),
+           ]
+        expected_sorted = [
+            ('1', 'a', 1, 4),
+            ('11', 'a', 2, 0),
+            ('12', 'a', 2, 0),
+            ('13', 'o', 2, 0),
+            ('14', 'u', 2, 1),
+            ('141', 'i', 3, 1),
+            ('1411', 'e', 4, 0),
+            ('2', 'b', 1, 2),
+            ('21', 'o', 2, 0),
+            ('22', 'u', 2, 1),
+            ('221', 'i', 3, 1),
+            ('2211', 'e', 4, 0),
+            ('3', 'd', 1, 0),
+            ('4', 'g', 1, 0),
+            ]
+
+        TestNodeShortPath.fix_tree()
+        self.assertEqual(self.got(TestNodeShortPath), expected_unsorted)
+        
+        TestSortedNodeShortPath.fix_tree()
+        self.assertEqual(self.got(TestSortedNodeShortPath), expected_sorted)
+
+
 
 #~
