@@ -1271,5 +1271,38 @@ class TestFixTree(TestTreeBase):
         self.assertEqual(self.got(TestSortedNodeShortPath), expected_sorted)
 
 
+class TestHelpers(TestTreeBase):
+
+    def setUp(self):
+        TestNode.load_bulk(BASE_DATA)
+        for node in TestNode.get_root_nodes():
+            TestNode.load_bulk(BASE_DATA, node)
+        TestNode.add_root(desc='5')
+
+    def test_descendants_group_count_root(self):
+        got = [(o.path, count)
+               for o, count in TestNode.get_descendants_group_count()]
+        expected = [('001', 10),
+                    ('002', 15),
+                    ('003', 10),
+                    ('004', 11),
+                    ('005', 0)]
+        self.assertEqual(got, expected)
+
+
+    def test_descendants_group_count_node(self):
+        parent = TestNode.objects.get(path='002')
+        got = [(o.path, count)
+               for o, count in TestNode.get_descendants_group_count(parent)]
+        expected = [('002001', 0),
+                    ('002002', 0),
+                    ('002003', 1),
+                    ('002004', 0),
+                    ('002005', 0),
+                    ('002006', 5),
+                    ('002007', 0),
+                    ('002008', 1)]
+        self.assertEqual(got, expected)
+
 
 #~
