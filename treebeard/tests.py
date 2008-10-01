@@ -215,7 +215,7 @@ class TestManagerMethods(TestNonEmptyTree):
 
     def test_load_and_dump_bulk_keeping_ids(self):
         exp = TestNode.dump_bulk(keep_ids=True)
-        TestNode..objects.all().delete()
+        TestNode.objects.all().delete()
         TestNode.load_bulk(exp, None, True)
         got = TestNode.dump_bulk(keep_ids=True)
         self.assertEqual(got, exp)
