@@ -622,6 +622,37 @@ class MPNode(Node):
 
 
 
+    @classmethod
+    def get_descendants_group_count(cls, parent=None):
+        """
+        Helper function for efficient aggregates.
+        FIXME: Needs better docstring.
+        """
+        if parent:
+            depth = parent.depth + 1
+            sqlparms = cls._get_children_path_interval(parent.path)
+            extrand = 'AND path BETWEEN %s AND %s'
+        else:
+            depth = 1
+            sqlparms = []
+            extrand = ''
+        sql = 'SELECT SUBSTR(path, 0, %d) AS subpath, COUNT(*)-1 AS count ' \
+              ' FROM  %s ' \
+              ' WHERE depth >= %d %s' \
+              ' GROUP BY subpath ORDER BY subpath' % (1+depth*cls.steplen,
+              cls._meta.db_table, depth, extrand)
+
+        cursor = connection.cursor()
+        cursor.execute(sql, sqlparms)
+        ret = cursor.fetchall()
+        paths = [path for path, _ in ret]
+        nodes = dict([(obj.path, obj)
+                      for obj in cls.objects.filter(path__in=paths)])
+        ret = [(nodes[path], count) for path, count in ret]
+        transaction.commit_unless_managed()
+        return ret
+
+
     def get_siblings(self):
         """
         :returns: A queryset of all the node's siblings, including the node
