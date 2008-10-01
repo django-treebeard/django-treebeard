@@ -40,6 +40,10 @@ class TestNode(MPNode):
     desc = models.CharField(max_length=255)
 
 
+class SomeDepForTestNode(models.Model):
+    node = models.ForeignKey(TestNode)
+
+
 class TestNodeSorted(MPNode):
     steplen = 1
     node_order_by = ['val1', 'val2', 'desc']
@@ -201,13 +205,21 @@ class TestManagerMethods(TestNonEmptyTree):
 
 
     def test_dump_bulk_all(self):
-        self.assertEqual(TestNode.dump_bulk(), BASE_DATA)
+        self.assertEqual(TestNode.dump_bulk(keep_ids=False), BASE_DATA)
 
 
     def test_dump_bulk_node(self):
         TestNode.load_bulk(BASE_DATA, self.leafnode)
         expected = [{'data':{'desc':u'231'}, 'children':BASE_DATA}]
-        self.assertEqual(TestNode.dump_bulk(self.leafnode), expected)
+        self.assertEqual(TestNode.dump_bulk(self.leafnode, False), expected)
+
+    def test_load_and_dump_bulk_keeping_ids(self):
+        exp = TestNode.dump_bulk(keep_ids=True)
+        TestNode..objects.all().delete()
+        TestNode.load_bulk(exp, None, True)
+        got = TestNode.dump_bulk(keep_ids=True)
+        self.assertEqual(got, exp)
+
 
 
     def test_add_root(self):
@@ -620,6 +632,11 @@ class TestAddSibling(TestNonEmptyTree):
 
 class TestDelete(TestNonEmptyTree):
 
+    def setUp(self):
+        super(TestDelete, self).setUp()
+        for node in TestNode.objects.all():
+            SomeDepForTestNode(node=node).save()
+
     def test_delete_leaf(self):
         TestNode.objects.get(path=u'002003001').delete()
         expected = [(u'001', u'1', 1, 0),
@@ -695,7 +712,7 @@ class TestDelete(TestNonEmptyTree):
         self.assertEqual(count, 0)
 
 
-    def test_delete_all(self):
+    def test_delete_all_nodes(self):
         TestNode.objects.all().delete()
         count = TestNode.objects.count()
         self.assertEqual(count, 0)
