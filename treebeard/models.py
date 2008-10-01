@@ -403,7 +403,8 @@ class MPNode(Node):
         stack = [(parent, node) for node in bulk_data[::-1]]
         while stack:
             parent, node_struct = stack.pop()
-            node_data = node_struct['data']
+            # shallow copy of the data strucure so it doesn't persist...
+            node_data = node_struct['data'].copy()
             if keep_ids:
                 node_data['id'] = node_struct['id']
             if parent:
@@ -463,8 +464,11 @@ class MPNode(Node):
             del fields['depth']
             del fields['path']
             del fields['numchild']
+            if 'id' in fields:
+                # this happens immediately after a load_bulk
+                del fields['id']
 
-            newobj = {'data':pyobj['fields']}
+            newobj = {'data':fields}
             if keep_ids:
                 newobj['id'] = pyobj['pk']
 
