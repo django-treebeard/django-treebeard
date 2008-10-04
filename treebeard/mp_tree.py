@@ -42,18 +42,6 @@
        ``LIKE`` clauses that don't **start** with a ``%`` character will use the
        index. This is what makes the materialized path approach so fast.
 
-    ``django-treebeard`` uses `Django Model Inheritance with abstract classes`_
-    to let you define your own models. To use ``django-treebeard``:
-
-       1. Download a release from the `treebeard download page`_ or get a
-          development version from the `treebeard subversion repository`_.
-       2. Run :command:`python setup.py install`
-       3. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your django
-          settings file.
-       4. Create a new model that inherits from :class:`MPNode`
-       5. Run :command:`python manage.py syncdb`
-
-    Read the :class:`MPNode` API reference for detailed info.
 
     .. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/
     .. _`Sql Design Patterns`:
@@ -284,7 +272,7 @@ class MPNode(Node):
 
     Example::
 
-       class SortedNode(treebeard.MPNode):
+       class SortedNode(MPNode):
           node_order_by = ['numval', 'strval']
 
           numval = models.IntegerField()
