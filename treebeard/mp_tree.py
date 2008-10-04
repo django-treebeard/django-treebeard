@@ -1,31 +1,80 @@
 # -*- coding: utf-8 -*-
 """
 
-    treebeard.models
-    ----------------
+    treebeard.mp_tree
+    -----------------
 
-    Django models.
+    Materialized Path Tree.
 
     :copyright: 2008 by Gustavo Picon
     :license: Apache License 2.0
 
+    This is an efficient implementation of Materialized Path
+    trees for Django 1.0+, as described by `Vadim Tropashko`_ in `SQL Design
+    Patterns`_. Materialized Path is probably the fastest way of working with
+    trees in SQL without the need of extra work in the database, like Oracle's
+    ``CONNECT BY`` or sprocs and triggers for nested intervals.
+
+    In a materialized path approach, every node in the tree will have a
+    :attr:`~MPNode.path` attribute, where the full path from the root
+    to the node will be stored. This has the advantage of needing very simple
+    and fast queries, at the risk of inconsistency because of the
+    denormalization of ``parent``/``child`` foreign keys. This can be prevented
+    with transactions (and of course you are already using them, right?).
+
+    ``django-treebeard`` uses a particular approach: every step in the path has
+    a fixed width and has no separators. This makes queries predictable and
+    faster at the cost of using more characters to store a step. To attack this
+    problem, every step number is encoded.
+
+    Also, two extra fields are stored in every node:
+    :attr:`~MPNode.depth` and :attr:`~MPNode.numchild`.
+    This makes the read operations faster, at the cost of a little more
+    maintenance on tree updates/inserts/deletes. Don't worry, even with these
+    extra steps, materialized path is more efficient than other approaches.
+
+    .. note::
+       
+       The materialized path approach makes heavy use of ``LIKE`` in your
+       database, with clauses like ``WHERE path LIKE '002003%'``. If you think
+       that ``LIKE`` is too slow, you're right, but in this case the
+       :attr:`~MPNode.path` field is indexed in the database, and all
+       ``LIKE`` clauses that don't **start** with a ``%`` character will use the
+       index. This is what makes the materialized path approach so fast.
+
+    ``django-treebeard`` uses `Django Model Inheritance with abstract classes`_
+    to let you define your own models. To use ``django-treebeard``:
+
+       1. Download a release from the `treebeard download page`_ or get a
+          development version from the `treebeard subversion repository`_.
+       2. Run :command:`python setup.py install`
+       3. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your django
+          settings file.
+       4. Create a new model that inherits from :class:`MPNode`
+       5. Run :command:`python manage.py syncdb`
+
+    Read the :class:`MPNode` API reference for detailed info.
+
+    .. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/
+    .. _`Sql Design Patterns`:
+       http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm
+    .. _`Django Model Inheritance with abstract classes`:
+      http://docs.djangoproject.com/en/dev/topics/db/models/#abstract-base-classes
 """
 
 import operator
 import numconv
+
 from django.core import serializers
 from django.db import models, transaction, connection
 from django.db.models import Q
-from django.db.models.sql.subqueries import CountQuery
 from django.conf import settings
 
-
-FIRSTC, LASTC, FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDC, SORTEDS = ('first-child',
-    'last-child', 'first-sibling', 'left', 'right', 'last-sibling',
-    'sorted-child', 'sorted-sibling')
+from treebeard import Node, InvalidPosition, InvalidMoveToDescendant, \
+    PathOverflow, MissingNodeOrderBy
 
 
-class NodeQuerySet(models.query.QuerySet):
+class MPNodeQuerySet(models.query.QuerySet):
     """
     Custom queryset for the tree node manager.
 
@@ -44,7 +93,7 @@ class NodeQuerySet(models.query.QuerySet):
             # we already know the children, let's call the default django
             # delete method and let it handle the removal of the user's
             # foreign keys...
-            super(NodeQuerySet, self).delete()
+            super(MPNodeQuerySet, self).delete()
         else:
             # we'll have to manually run through all the nodes that are going
             # to be deleted and remove nodes from the list if an ancestor is
@@ -91,7 +140,7 @@ class NodeQuerySet(models.query.QuerySet):
 
 
 
-class NodeManager(models.Manager):
+class MPNodeManager(models.Manager):
     """ Custom manager for nodes.
     """
 
@@ -99,20 +148,7 @@ class NodeManager(models.Manager):
         """
         Sets the custom queryset as the default.
         """
-        return NodeQuerySet(self.model)
-
-
-class Node(models.Model):
-    """ Node class.
-
-    Right now there is only one class that inherits from Node: MPNode for
-    Materialized Path trees.
-    """
-    class Meta:
-        """
-        Abstract model.
-        """
-        abstract = True
+        return MPNodeQuerySet(self.model)
 
 
 class MPNode(Node):
@@ -265,29 +301,17 @@ class MPNode(Node):
     depth = models.PositiveIntegerField()
     numchild = models.PositiveIntegerField(default=0)
 
-    objects = NodeManager()
+    objects = MPNodeManager()
 
 
     @classmethod
     def add_root(cls, **kwargs):
         """
-        Adds a root node to the tree. The new root node will be the new
-        rightmost root node. If you want to insert a root node at a specific
-        position, use :meth:`add_sibling` in an already existing root node
-        instead.
+        Adds a root node to the tree.
 
-        :param \*\*kwargs: object creation data that will be passed to the inherited
-            Node model
+        See: :meth:`treebeard.Node.add_root`
 
         :raise PathOverflow: when no more root objects can be added
-
-        :returns: the created node object. It will be save()d by this method.
-
-        Example::
-
-            MyNode.add_root(numval=1, strval='abcd')
-            MyNode.add_root(**{'numval':1, 'strval':'abcd'})
-
         """
 
         # do we have a root node already?
@@ -296,7 +320,7 @@ class MPNode(Node):
         if last_root and last_root.node_order_by:
             # there are root nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
-            return last_root.add_sibling(SORTEDS, **kwargs)
+            return last_root.add_sibling('sorted-sibling', **kwargs)
 
         if last_root:
             # adding the new root node as the last one
@@ -319,83 +343,7 @@ class MPNode(Node):
         """
         Loads a list/dictionary structure to the tree.
 
-
-        :param bulk_data:
-        
-            The data that will be loaded, the structure is a list of
-            dictionaries with 2 keys:
-
-            - ``data``: will store arguments that will be passed for object
-              creation, and
-
-            - ``children``: a list of dictionaries, each one has it's own
-              ``data`` and ``children`` keys (a recursive structure)
-
-
-        :param parent:
-            
-            The node that will receive the structure as children, if not
-            specified the first level of the structure will be loaded as root
-            nodes
-
-
-        :param keep_ids:
-
-            If enabled, lads the nodes with the same id that are given in the
-            structure. Will error if there are nodes without id info or if the
-            ids are already used.
-
-
-        :returns: A list of the added node paths.
-
-        .. note::
-
-            Any internal data that you may have stored in your
-            nodes' data (:attr:`path`, :attr:`depth`) will be
-            ignored.
-
-        .. note::
-
-            If your node model has :attr:`node_order_by` enabled, it will
-            take precedence over the order in the structure.
-
-        Example::
-
-            data = [{'data':{'desc':'1'}},
-                    {'data':{'desc':'2'}, 'children':[
-                      {'data':{'desc':'21'}},
-                      {'data':{'desc':'22'}},
-                      {'data':{'desc':'23'}, 'children':[
-                        {'data':{'desc':'231'}},
-                      ]},
-                      {'data':{'desc':'24'}},
-                    ]},
-                    {'data':{'desc':'3'}},
-                    {'data':{'desc':'4'}, 'children':[
-                      {'data':{'desc':'41'}},
-                    ]},
-            ]
-            # parent = None
-            MyNodeModel.load_data(data, None)
-        
-        Will create:
-
-            * 1
-            * 2
-
-              * 21
-              * 22
-              * 23
-
-                * 231
-
-              * 24
-
-            * 3
-            * 4
-
-              * 41
-
+        See: :meth:`treebeard.Node.load_bulk`
         """
 
         # tree, iterative preorder
@@ -412,7 +360,7 @@ class MPNode(Node):
                 node_obj = parent.add_child(**node_data)
             else:
                 node_obj = cls.add_root(**node_data)
-            added.append(node_obj.path)
+            added.append(node_obj.id)
             if 'children' in node_struct:
                 # extending the stack with the current node as the parent of
                 # the new nodes
@@ -427,25 +375,7 @@ class MPNode(Node):
         """
         Dumps a tree branch to a python data structure.
 
-        :param parent:
-            
-            The node whose descendants will be dumped. The node itself will be
-            included in the dump. If not given, the entire tree will be dumped.
-
-        :param keep_ids:
-
-            Stores the id value (primary key) of every node. Enabled by
-            default.
-
-        :returns: A python data structure, describen with detail in
-                  :meth:`load_bulk`
-
-        Example::
-
-           tree = MyNodeModel.dump_bulk()
-
-           branch = MyNodeModel.dump_bulk(node_obj)
-
+        See: :meth:`treebeard.Node.dump_bulk`
         """
 
         # Because of fix_tree, this method assumes that the depth
@@ -485,50 +415,6 @@ class MPNode(Node):
             lnk[path] = newobj
         return ret
 
-
-
-    @classmethod
-    def get_root_nodes(cls):
-        """
-        :returns: A queryset containing the root nodes in the tree.
-
-        Example::
-
-           MyNodeModel.get_root_nodes()
-        """
-        return cls.objects.filter(depth=1)
-    
-
-    @classmethod
-    def get_first_root_node(cls):
-        """
-        :returns: The first root node in the tree or ``None`` if it is empty
-
-        Example::
-
-           MyNodeModel.get_first_root_node()
-        """
-        try:
-            return cls.get_root_nodes()[0]
-        except IndexError:
-            return None
-
-
-    @classmethod
-    def get_last_root_node(cls):
-        """
-        :returns: The last root node in the tree or ``None`` if it is empty
-
-        Example::
-
-           MyNodeModel.get_last_root_node()
-
-        """
-        try:
-            return cls.get_root_nodes().reverse()[0]
-        except IndexError:
-            return None
-    
 
     @classmethod
     def find_problems(cls):
@@ -627,26 +513,9 @@ class MPNode(Node):
     def get_descendants_group_count(cls, parent=None):
         """
         Helper for a very common case: get a group of siblings and the number
-        of *descendants* (not only children) in every sibling.
+        of *descendants* in every sibling.
 
-        :param parent:
-            
-            The parent of the siblings to return. If no parent is given, the
-            root nodes will be returned.
-        
-        :returns:
-
-            A `list` (**NOT** a Queryset) of node objects with an extra
-            attribute: `descendants_count`.
-
-        Example::
-
-            # get a list of the root nodes
-            root_nodes = MyModel.get_descendants_group_count()
-
-            for node in root_nodes:
-                print '%s by %s (%d replies)' % (node.comment, node.author,
-                                                 node.descendants_count)
+        See: :meth:`treebeard.Node.get_descendants_group_count`
         """
 
         #~
@@ -710,9 +579,7 @@ class MPNode(Node):
         :returns: A queryset of all the node's siblings, including the node
             itself.
 
-        Example::
-
-           node.get_siblings()
+        See: :meth:`treebeard.Node.get_siblings`
         """
         qset = self.__class__.objects.filter(depth=self.depth)
         if self.depth > 1:
@@ -727,9 +594,7 @@ class MPNode(Node):
         """
         :returns: A queryset of all the node's children
 
-        Example::
-
-           node.get_children()
+        See: :meth:`treebeard.Node.get_children`
         """
         if self.numchild:
             return self.__class__.objects.filter(depth=self.depth+1,
@@ -742,9 +607,7 @@ class MPNode(Node):
         :returns: A queryset of all the node's descendants as DFS, doesn't
             include the node itself
 
-        Example::
-        
-           node.get_descendants()
+        See: :meth:`treebeard.Node.get_descendants`
         """
         if self.numchild:
             return self.__class__.objects.filter(path__startswith=self.path,
@@ -752,66 +615,12 @@ class MPNode(Node):
         return self.__class__.objects.none()
 
 
-    def get_first_child(self):
-        """
-        :returns: The leftmost node's child, or None if it has no children.
-
-        Example::
-
-           node.get_first_child()
-        """
-        try:
-            return self.get_children()[0]
-        except IndexError:
-            return None
-
-
-    def get_last_child(self):
-        """
-        :returns: The rightmost node's child, or None if it has no children.
-
-        Example::
-
-           node.get_last_child()
-        """
-        try:
-            return self.get_children().reverse()[0]
-        except IndexError:
-            return None
-
-
-    def get_first_sibling(self):
-        """
-        :returns: The leftmost node's sibling, can return the node itself if it
-            was the leftmost sibling.
-
-        Example::
-         
-           node.get_first_sibling()
-        """
-        return self.get_siblings()[0]
-
-
-    def get_last_sibling(self):
-        """
-        :returns: The rightmost node's sibling, can return the node itself if it
-            was the rightmost sibling.
-
-        Example::
-
-            node.get_last_sibling()
-        """
-        return self.get_siblings().reverse()[0]
-
-
     def get_prev_sibling(self):
         """
         :returns: The previous node's sibling, or None if it was the leftmost
             sibling.
 
-        Example::
-
-           node.get_prev_sibling()
+        See: :meth:`treebeard.Node.get_prev_sibling`
         """
         try:
             return self.get_siblings().filter(path__lt=self.path).reverse()[0]
@@ -824,9 +633,7 @@ class MPNode(Node):
         :returns: The next node's sibling, or None if it was the rightmost
             sibling.
 
-        Example::
-
-           node.get_next_sibling()
+        See: :meth:`treebeard.Node.get_next_sibling`
         """
         try:
             return self.get_siblings().filter(path__gt=self.path)[0]
@@ -839,13 +646,7 @@ class MPNode(Node):
         :returns: ``True`` if the node if a sibling of another node given as an
             argument, else, returns ``False``
 
-        :param node:
-        
-            The node that will be checked as a sibling
-
-        Example::
-
-           node.is_sibling_of(node2)
+        See: :meth:`treebeard.Node.is_sibling_of`
         """
         aux = self.depth == node.depth
         if self.depth > 1:
@@ -857,16 +658,10 @@ class MPNode(Node):
 
     def is_child_of(self, node):
         """
-        :returns: ``True`` if the node if a child of another node given as an
+        :returns: ``True`` is the node if a child of another node given as an
             argument, else, returns ``False``
 
-        :param node:
-
-            The node that will be checked as a parent
-
-        Example::
-
-           node.is_child_of(node2)
+        See: :meth:`treebeard.Node.is_child_of`
         """
         return self.path.startswith(node.path) and self.depth == node.depth+1
 
@@ -876,44 +671,24 @@ class MPNode(Node):
         :returns: ``True`` if the node if a descendant of another node given
             as an argument, else, returns ``False``
 
-        :param node:
-
-            The node that will be checked as an ancestor
-
-        Example::
-
-           node.is_descendant_of(node2)
+        See: :meth:`treebeard.Node.is_descendant_of`
         """
         return self.path.startswith(node.path) and self.depth > node.depth
 
 
     def add_child(self, **kwargs):
         """
-        Adds a child to the node. The new node will be the new rightmost
-        child. If you want to insert a node at a specific position,
-        use the :meth:`add_sibling` method of an already existing
-        child node instead.
+        Adds a child to the node.
 
-        :param \*\*kwargs:
-        
-            Object creation data that will be passed to the inherited Node
-            model
+        See: :meth:`treebeard.Node.add_child`
 
         :raise PathOverflow: when no more child nodes can be added
-
-        :returns: The created node object. It will be save()d by this method.
-
-        Example::
-
-           node.add_child(numval=1, strval='abcd')
-           node.add_child(**{'numval': 1, 'strval': 'abcd'})
-
         """
 
         if self.numchild and self.node_order_by:
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
-            return self.get_last_child().add_sibling(SORTEDS, **kwargs)
+            return self.get_last_child().add_sibling('sorted-sibling', **kwargs)
 
         # creating a new object
         newobj = self.__class__(**kwargs)
@@ -966,66 +741,34 @@ class MPNode(Node):
         """
         Adds a new node as a sibling to the current node object.
 
+        See: :meth:`treebeard.Node.add_sibling`
 
-        :param pos:
-            The position, relative to the current node object, where the
-            new node will be inserted, can be one of:
-
-            - ``first-sibling``: the new node will be the new leftmost sibling
-            - ``left``: the new node will take the node's place, which will be
-              moved to the right 1 position
-            - ``right``: the new node will be inserted at the right of the node
-            - ``last-sibling``: the new node will be the new rightmost sibling
-            - ``sorted-sibling``: the new node will be at the right position
-              according to the value of node_order_by
-
-        :param \*\*kwargs: 
-        
-            Object creation data that will be passed to the inherited
-            Node model
-
-        :returns:
-            
-            The created node object. It will be saved by this method.
-
-        :raise InvalidPosition: when passing an invalid ``pos`` parm
-        :raise InvalidPosition: when :attr:`node_order_by` is enabled and the
-           ``pos`` parm wasn't ``sorted-sibling``
         :raise PathOverflow: when the library can't make room for the
            node's new position
-        :raise MissingNodeOrderBy: when passing ``sorted-sibling`` as ``pos``
-           and the :attr:`node_order_by` attribute is missing
-
-
-
-        Examples::
-
-           node.add_sibling('sorted-sibling', numval=1, strval='abcd')
-           node.add_sibling('sorted-sibling', **{'numval': 1, 'strval': 'abcd'})
         """
 
         if pos is None:
             if self.node_order_by:
-                pos = SORTEDS
+                pos = 'sorted-sibling'
             else:
-                pos = LASTS
-        if pos not in (FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDS):
+                pos = 'last-sibling'
+        if pos not in ('first-sibling', 'left', 'right', 'last-sibling', 'sorted-sibling'):
             raise InvalidPosition('Invalid relative position: %s' % (pos,))
-        if self.node_order_by and pos != SORTEDS:
+        if self.node_order_by and pos != 'sorted-sibling':
             raise InvalidPosition('Must use %s in add_sibling when'
-                                  ' node_order_by is enabled' % (SORTEDS,))
-        if pos == SORTEDS and not self.node_order_by:
+                                  ' node_order_by is enabled' % ('sorted-sibling',))
+        if pos == 'sorted-sibling' and not self.node_order_by:
             raise MissingNodeOrderBy('Missing node_order_by attribute.')
 
         # creating a new object
         newobj = self.__class__(**kwargs)
         newobj.depth = self.depth
         
-        if pos == SORTEDS:
+        if pos == 'sorted-sibling':
             newpos, siblings = self._get_sorted_pos_queryset(
                 self.get_siblings(), newobj)
             if newpos is None:
-                pos = LASTS
+                pos = 'last-sibling'
         else:
             newpos, siblings = None, []
 
@@ -1053,9 +796,7 @@ class MPNode(Node):
         """
         :returns: the root node for the current node object.
 
-        Example::
-
-           node.get_root()
+        See: :meth:`treebeard.Node.get_root`
         """
         return self.__class__.objects.get(path=self.path[0:self.steplen])
 
@@ -1065,9 +806,7 @@ class MPNode(Node):
         :returns: A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
 
-        Example::
-
-           node.get_ancestors()
+        See: :meth:`treebeard.Node.get_ancestors`
         """
         paths = [self.path[0:pos] 
             for pos in range(0, len(self.path), self.steplen)[1:]]
@@ -1078,13 +817,8 @@ class MPNode(Node):
         """
         :returns: the parent node of the current node object.
             Caches the result in the object itself to help in loops.
-        
-        :param update: Updates de cached value.
 
-        Example::
-
-           node.get_parent()
-
+        See: :meth:`treebeard.Node.get_parent`
         """
         depth = len(self.path)/self.steplen
         if depth <= 1:
@@ -1106,72 +840,25 @@ class MPNode(Node):
         """
         Moves the current node and all it's descendants to a new position
         relative to another node.
+
+        See: :meth:`treebeard.Node.move`
         
-        .. note:: The node can be moved under another root node.
-
-
-        :param target:
-
-            The node that will be used as a relative child/sibling when moving
-
-        :param pos:
-        
-            The position, relative to the target node, where the
-            current node object will be moved to, can be one of:
-
-            - ``first-child``: the node will be the new leftmost child of the
-              ``target`` node
-            - ``last-child``: the node will be the new rightmost child of the
-              ``target`` node
-            - ``sorted-child``: the new node will be moved as a child of the
-              ``target`` node according to the value of :attr:`node_order_by`
-            - ``first-sibling``: the node will be the new leftmost sibling of the
-              ``target`` node
-            - ``left``: the node will take the ``target`` node's place, which will be
-              moved to the right 1 position
-            - ``right``: the node will be moved to the right of the ``target`` node
-            - ``last-sibling``: the node will be the new rightmost sibling of the
-              ``target`` node
-            - ``sorted-sibling``: the new node will be moved as a sibling of the
-              ``target`` node according to the value of :attr:`node_order_by`
-
-            .. note:: If no ``pos`` is given the library will use
-                     ``last-sibling``, or ``sorted-sibling`` if
-                     :attr:`node_order_by` is enabled.
-
-        :returns: None
-
-        :raise InvalidPosition: when passing an invalid ``pos`` parm
-        :raise InvalidPosition: when :attr:`node_order_by` is enabled and the
-           ``pos`` parm wasn't ``sorted-sibling`` or ``sorted-child``
-        :raise InvalidMoveToDescendant: when trying to move a node to one of
-           it's own descendants
         :raise PathOverflow: when the library can't make room for the
            node's new position
-        :raise MissingNodeOrderBy: when passing ``sorted-sibling`` or
-           ``sorted-child`` as ``pos`` and the :attr:`node_order_by`
-           attribute is missing
-        
-        Examples::
-           
-           node.move(node2, 'sorted-child')
-           
-           node.move(node2, 'prev-sibling')
-
         """
         if pos is None:
             if self.node_order_by:
-                pos = SORTEDS
+                pos = 'sorted-sibling'
             else:
-                pos = LASTS
-        if pos not in (FIRSTS, LEFTS, RIGHTS, LASTS, SORTEDS,
-                       FIRSTC, LASTC, SORTEDC):
+                pos = 'last-sibling'
+        if pos not in ('first-sibling', 'left', 'right', 'last-sibling', 'sorted-sibling',
+                       'first-child', 'last-child', 'sorted-child'):
             raise InvalidPosition('Invalid relative position: %s' % (pos,))
-        if self.node_order_by and pos not in (SORTEDC, SORTEDS):
+        if self.node_order_by and pos not in ('sorted-child', 'sorted-sibling'):
             raise InvalidPosition('Must use %s or %s in add_sibling when'
-                                  ' node_order_by is enabled' % (SORTEDS,
-                                  SORTEDC))
-        if pos in (SORTEDC, SORTEDS) and not self.node_order_by:
+                                  ' node_order_by is enabled' % ('sorted-sibling',
+                                  'sorted-child'))
+        if pos in ('sorted-child', 'sorted-sibling') and not self.node_order_by:
             raise MissingNodeOrderBy('Missing node_order_by attribute.')
 
         oldpath = self.path
@@ -1186,19 +873,19 @@ class MPNode(Node):
             raise InvalidMoveToDescendant("Can't move node to a descendant.")
 
         if oldpath == target.path and (
-              (pos == LEFTS) or \
-              (pos in (RIGHTS, LASTS) and \
+              (pos == 'left') or \
+              (pos in ('right', 'last-sibling') and \
                 target.path == target.get_last_sibling().path) or \
-              (pos == FIRSTS and \
+              (pos == 'first-sibling' and \
                 target.path == target.get_first_sibling().path)):
             # special cases, not actually moving the node so no need to UPDATE
             return
         
-        if pos == SORTEDS:
+        if pos == 'sorted-sibling':
             newpos, siblings = self._get_sorted_pos_queryset(
                 target.get_siblings(), self)
             if newpos is None:
-                pos = LASTS
+                pos = 'last-sibling'
 
         stmts = []
         # generate the sql that will do the actual moving of nodes
@@ -1211,16 +898,6 @@ class MPNode(Node):
         for sql, vals in stmts:
             cursor.execute(sql, vals)
         transaction.commit_unless_managed()
-
-
-    def delete(self):
-        """
-        Removes a node and all it's descendants.
-        """
-        # call our queryset's delete to handle children removal and updating
-        # the parent's numchild
-        self.__class__.objects.filter(path=self.path).delete()
-
 
 
     @classmethod
@@ -1298,8 +975,8 @@ class MPNode(Node):
 
         :returns: A tuple containing the old path and the new path.
         """
-        if pos == LASTS \
-                or (pos == RIGHTS and target == target.get_last_sibling()):
+        if pos == 'last-sibling' \
+                or (pos == 'right' and target == target.get_last_sibling()):
             # easy, the last node
             last = target.get_last_sibling()
             newpath = cls._inc_path(last.path)
@@ -1310,11 +987,11 @@ class MPNode(Node):
 
             if newpos is None:
                 siblings = target.get_siblings()
-                siblings = {LEFTS:siblings.filter(path__gte=target.path),
-                            RIGHTS:siblings.filter(path__gt=target.path),
-                            FIRSTS:siblings}[pos]
+                siblings = {'left':siblings.filter(path__gte=target.path),
+                            'right':siblings.filter(path__gt=target.path),
+                            'first-sibling':siblings}[pos]
                 basenum = cls._get_lastpos_in_path(target.path)
-                newpos = {FIRSTS:1, LEFTS:basenum, RIGHTS:basenum+1}[pos]
+                newpos = {'first-sibling':1, 'left':basenum, 'right':basenum+1}[pos]
 
             newpath = cls._get_path(target.path, newdepth, newpos)
 
@@ -1350,17 +1027,17 @@ class MPNode(Node):
         parent = None
         newpos = None
         siblings = []
-        if pos in (FIRSTC, LASTC, SORTEDC):
+        if pos in ('first-child', 'last-child', 'sorted-child'):
             # moving to a child
             parent = target
             newdepth += 1
             if target.numchild:
                 target = target.get_last_child()
-                pos = {FIRSTC:FIRSTS, LASTC:LASTS, SORTEDC:SORTEDS}[pos]
+                pos = {'first-child':'first-sibling', 'last-child':'last-sibling', 'sorted-child':'sorted-sibling'}[pos]
             else:
                 # moving as a target's first child
                 newpos = 1
-                pos = FIRSTS
+                pos = 'first-sibling'
                 siblings = self.__class__.objects.none()
             # this is not for save(), since if needed, will be handled with a
             # custom UPDATE, this is only here to update django's object,
@@ -1480,31 +1157,6 @@ class MPNode(Node):
         # This ordering assumes you want something... TREEISH
         # PROTIP: don't change this
         ordering = ['path']
-
-
-
-class InvalidPosition(Exception):
-    """
-    Raised when passing an invalid pos value
-    """
-
-class InvalidMoveToDescendant(Exception):
-    """
-    Raised when attemping to move a node to one of it's descendants.
-    """
-
-class MissingNodeOrderBy(Exception):
-    """
-    Raised when an operation needs a missing
-    :attr:`~treebeard.MPNode.node_order_by` attribute
-    """
-
-class PathOverflow(Exception):
-    """
-    Raised when trying to add or move a node to a position where no more nodes
-    can be added (see :attr:`~treebeard.MPNode.path` and
-    :attr:`~treebeard.MPNode.alphabet` for more info)
-    """
 
 
 
