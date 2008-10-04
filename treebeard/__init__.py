@@ -77,6 +77,6 @@
 
 VERSION = (0, 9, 'svn')
 
-from models import MPNode, InvalidPosition, InvalidMoveToDescendant, \
+from mp_tree import MPNode, InvalidPosition, InvalidMoveToDescendant, \
    PathOverflow, MissingNodeOrderBy
 
