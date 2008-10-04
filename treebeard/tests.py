@@ -14,8 +14,10 @@
 import os
 from django.test import TestCase
 from django.db import models
-from treebeard.mp_tree import MPNode, InvalidPosition, InvalidMoveToDescendant, \
+
+from treebeard import InvalidPosition, InvalidMoveToDescendant, \
     PathOverflow, MissingNodeOrderBy, numconv
+from treebeard.mp_tree import MPNode
 
 BASE_DATA = [
   {'data':{'desc':'1'}},
@@ -94,33 +96,29 @@ TestSortedNodeShortPath._meta.get_field('path').max_length = 4
 class TestTreeBase(TestCase):
 
     def setUp(self):
-        self.unchanged = [(u'001', u'1', 1, 0),
-                          (u'002', u'2', 1, 4),
-                          (u'002001', u'21', 2, 0),
-                          (u'002002', u'22', 2, 0),
-                          (u'002003', u'23', 2, 1),
-                          (u'002003001', u'231', 3, 0),
-                          (u'002004', u'24', 2, 0),
-                          (u'003', u'3', 1, 0),
-                          (u'004', u'4', 1, 1),
-                          (u'004001', u'41', 2, 0)]
+        self.unchanged = [(u'1', 1, 0),
+                          (u'2', 1, 4),
+                          (u'21', 2, 0),
+                          (u'22', 2, 0),
+                          (u'23', 2, 1),
+                          (u'231', 3, 0),
+                          (u'24', 2, 0),
+                          (u'3', 1, 0),
+                          (u'4', 1, 1),
+                          (u'41', 2, 0)]
 
-
-    def got(self, tree=1):
-        return [(o.path, o.desc, o.depth, o.numchild) for o in MPTestNode.objects.all()]
+    def got(self):
+        return [(o.desc, o.depth, o.numchild) for o in MPTestNode.objects.all()]
 
 
 
 class TestEmptyTree(TestTreeBase):
 
-    def test_keylen(self):
-        self.assertEqual(MPTestNode.steplen, 3)
-
-
     def test_load_bulk_empty(self):
         ids = MPTestNode.load_bulk(BASE_DATA)
-        paths = [obj.path for obj in MPTestNode.objects.filter(id__in=ids)]
-        self.assertEqual(paths, [x[0] for x in self.unchanged])
+        got_descs = [obj.desc for obj in MPTestNode.objects.filter(id__in=ids)]
+        expected_descs = [x[0] for x in self.unchanged]
+        self.assertEqual(sorted(got_descs), sorted(expected_descs))
         self.assertEqual(self.got(), self.unchanged)
 
     
@@ -130,7 +128,7 @@ class TestEmptyTree(TestTreeBase):
 
     def test_add_root_empty(self):
         obj = MPTestNode.add_root(desc='1')
-        expected = [(u'001', u'1', 1, 0)]
+        expected = [(u'1', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -156,8 +154,8 @@ class TestNonEmptyTree(TestTreeBase):
     def setUp(self):
         super(TestNonEmptyTree, self).setUp()
         MPTestNode.load_bulk(BASE_DATA)
-        self.leafnode = MPTestNode.objects.get(path=u'002003001')
-        self.node_children = MPTestNode.objects.get(path=u'002')
+        self.leafnode = MPTestNode.objects.get(desc=u'231')
+        self.node_children = MPTestNode.objects.get(desc=u'2')
 
 
 class TestManagerMethods(TestNonEmptyTree):
@@ -171,38 +169,30 @@ class TestManagerMethods(TestNonEmptyTree):
         # inserting on an existing node
 
         ids = MPTestNode.load_bulk(BASE_DATA, self.leafnode)
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 4),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 1),
-                    (u'002003001', u'231', 3, 4),
-                    (u'002003001001', u'1', 4, 0),
-                    (u'002003001002', u'2', 4, 4),
-                    (u'002003001002001', u'21', 5, 0),
-                    (u'002003001002002', u'22', 5, 0),
-                    (u'002003001002003', u'23', 5, 1),
-                    (u'002003001002003001', u'231', 6, 0),
-                    (u'002003001002004', u'24', 5, 0),
-                    (u'002003001003', u'3', 4, 0),
-                    (u'002003001004', u'4', 4, 1),
-                    (u'002003001004001', u'41', 5, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
-        expected_paths = [u'002003001001',
-                        u'002003001002',
-                        u'002003001002001',
-                        u'002003001002002',
-                        u'002003001002003',
-                        u'002003001002003001',
-                        u'002003001002004',
-                        u'002003001003',
-                        u'002003001004',
-                        u'002003001004001']
-        paths = [obj.path for obj in MPTestNode.objects.filter(id__in=ids)]
-        self.assertEqual(paths, expected_paths)
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 4),
+                    (u'1', 4, 0),
+                    (u'2', 4, 4),
+                    (u'21', 5, 0),
+                    (u'22', 5, 0),
+                    (u'23', 5, 1),
+                    (u'231', 6, 0),
+                    (u'24', 5, 0),
+                    (u'3', 4, 0),
+                    (u'4', 4, 1),
+                    (u'41', 5, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
+        expected_descs = [u'1', u'2', u'21', u'22', u'23', u'231', u'24', u'3',
+                          u'4', u'41']
+        got_descs = [obj.desc for obj in MPTestNode.objects.filter(id__in=ids)]
+        self.assertEqual(sorted(got_descs), sorted(expected_descs))
         self.assertEqual(self.got(), expected)
 
 
@@ -215,6 +205,7 @@ class TestManagerMethods(TestNonEmptyTree):
         expected = [{'data':{'desc':u'231'}, 'children':BASE_DATA}]
         self.assertEqual(MPTestNode.dump_bulk(self.leafnode, False), expected)
 
+
     def test_load_and_dump_bulk_keeping_ids(self):
         exp = MPTestNode.dump_bulk(keep_ids=True)
         MPTestNode.objects.all().delete()
@@ -223,27 +214,26 @@ class TestManagerMethods(TestNonEmptyTree):
         self.assertEqual(got, exp)
 
 
+    def test_get_root_nodes(self):
+        got = MPTestNode.get_root_nodes()
+        expected = ['1', '2', '3', '4']
+        self.assertEqual([node.desc for node in got], expected)
+
+
+    def test_get_first_root_node(self):
+        got = MPTestNode.get_first_root_node()
+        self.assertEqual(got.desc, '1')
+
+
+    def test_get_last_root_node(self):
+        got = MPTestNode.get_last_root_node()
+        self.assertEqual(got.desc, '4')
+
 
     def test_add_root(self):
         obj = MPTestNode.add_root(desc='5')
-        self.assertEqual(obj.path, u'005')
         self.assertEqual(obj.depth, 1)
-
-
-    def test_get_root_nodes(self):
-        got = MPTestNode.get_root_nodes()
-        expected = ['001', '002', '003', '004']
-        self.assertEqual([node.path for node in got], expected)
-
-
-    def test_get_first_root_node_empty(self):
-        got = MPTestNode.get_first_root_node()
-        self.assertEqual(got.path, '001')
-
-
-    def test_get_last_root_node_empty(self):
-        got = MPTestNode.get_last_root_node()
-        self.assertEqual(got.path, '004')
+        self.assertEqual(MPTestNode.get_last_root_node().desc, '5')
 
 
 
@@ -251,273 +241,273 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
 
     def test_get_root(self):
         data = [
-            ('002', '002'),
-            ('001', '001'),
-            ('004', '004'),
-            ('002001', '002'),
-            ('002004', '002'),
-            ('002002', '002'),
-            ('002003001', '002'),
+            ('2', '2'),
+            ('1', '1'),
+            ('4', '4'),
+            ('21', '2'),
+            ('24', '2'),
+            ('22', '2'),
+            ('231', '2'),
         ]
-        for path, expected in data:
-            node = MPTestNode.objects.get(path=path).get_root()
-            self.assertEqual(node.path, expected)
+        for desc, expected in data:
+            node = MPTestNode.objects.get(desc=desc).get_root()
+            self.assertEqual(node.desc, expected)
 
 
     def test_get_parent(self):
         data = [
-            ('002', None),
-            ('001', None),
-            ('004', None),
-            ('002001', '002'),
-            ('002004', '002'),
-            ('002002', '002'),
-            ('002003001', '002003'),
+            ('2', None),
+            ('1', None),
+            ('4', None),
+            ('21', '2'),
+            ('24', '2'),
+            ('22', '2'),
+            ('231', '23'),
         ]
         data = dict(data)
         objs = {}
-        for path, expected in data.items():
-            node = MPTestNode.objects.get(path=path)
+        for desc, expected in data.items():
+            node = MPTestNode.objects.get(desc=desc)
             parent = node.get_parent()
             if expected:
-                self.assertEqual(parent.path, expected)
+                self.assertEqual(parent.desc, expected)
             else:
                 self.assertEqual(parent, None)
-            objs[path] = node
+            objs[desc] = node
             # corrupt the objects' parent cache
             node._parent_obj = 'CORRUPTED!!!'
 
-        for path, expected in data.items():
-            node = objs[path]
+        for desc, expected in data.items():
+            node = objs[desc]
             # asking get_parent to not use the parent cache (since we corrupted
             # it in the previous loop)
             parent = node.get_parent(True)
             if expected:
-                self.assertEqual(parent.path, expected)
+                self.assertEqual(parent.desc, expected)
             else:
                 self.assertEqual(parent, None)
 
     
     def test_get_children(self):
         data = [
-            ('002', ['002001', '002002', '002003', '002004']),
-            ('002003', ['002003001']),
-            ('002003001', []),
+            ('2', ['21', '22', '23', '24']),
+            ('23', ['231']),
+            ('231', []),
         ]
-        for path, expected in data:
-            children = MPTestNode.objects.get(path=path).get_children()
-            self.assertEqual([node.path for node in children], expected)
+        for desc, expected in data:
+            children = MPTestNode.objects.get(desc=desc).get_children()
+            self.assertEqual([node.desc for node in children], expected)
 
 
     def test_get_siblings(self):
         data = [
-            ('002', ['001', '002', '003', '004']),
-            ('002001', ['002001', '002002', '002003', '002004']),
-            ('002003001', ['002003001']),
+            ('2', ['1', '2', '3', '4']),
+            ('21', ['21', '22', '23', '24']),
+            ('231', ['231']),
         ]
-        for path, expected in data:
-            siblings = MPTestNode.objects.get(path=path).get_siblings()
-            self.assertEqual([node.path for node in siblings], expected)
+        for desc, expected in data:
+            siblings = MPTestNode.objects.get(desc=desc).get_siblings()
+            self.assertEqual([node.desc for node in siblings], expected)
 
 
     def test_get_first_sibling(self):
         data = [
-            ('002', '001'),
-            ('001', '001'),
-            ('004', '001'),
-            ('002001', '002001'),
-            ('002004', '002001'),
-            ('002002', '002001'),
-            ('002003001', '002003001'),
+            ('2', '1'),
+            ('1', '1'),
+            ('4', '1'),
+            ('21', '21'),
+            ('24', '21'),
+            ('22', '21'),
+            ('231', '231'),
         ]
-        for path, expected in data:
-            node = MPTestNode.objects.get(path=path).get_first_sibling()
-            self.assertEqual(node.path, expected)
+        for desc, expected in data:
+            node = MPTestNode.objects.get(desc=desc).get_first_sibling()
+            self.assertEqual(node.desc, expected)
     
 
     def test_get_prev_sibling(self):
         data = [
-            ('002', '001'),
-            ('001', None),
-            ('004', '003'),
-            ('002001', None),
-            ('002004', '002003'),
-            ('002002', '002001'),
-            ('002003001', None),
+            ('2', '1'),
+            ('1', None),
+            ('4', '3'),
+            ('21', None),
+            ('24', '23'),
+            ('22', '21'),
+            ('231', None),
         ]
-        for path, expected in data:
-            node = MPTestNode.objects.get(path=path).get_prev_sibling()
+        for desc, expected in data:
+            node = MPTestNode.objects.get(desc=desc).get_prev_sibling()
             if expected is None:
                 self.assertEqual(node, None)
             else:
-                self.assertEqual(node.path, expected)
+                self.assertEqual(node.desc, expected)
     
     
     def test_get_next_sibling(self):
         data = [
-            ('002', '003'),
-            ('001', '002'),
-            ('004', None),
-            ('002001', '002002'),
-            ('002004', None),
-            ('002002', '002003'),
-            ('002003001', None),
+            ('2', '3'),
+            ('1', '2'),
+            ('4', None),
+            ('21', '22'),
+            ('24', None),
+            ('22', '23'),
+            ('231', None),
         ]
-        for path, expected in data:
-            node = MPTestNode.objects.get(path=path).get_next_sibling()
+        for desc, expected in data:
+            node = MPTestNode.objects.get(desc=desc).get_next_sibling()
             if expected is None:
                 self.assertEqual(node, None)
             else:
-                self.assertEqual(node.path, expected)
+                self.assertEqual(node.desc, expected)
 
 
     def test_get_last_sibling(self):
         data = [
-            ('002', '004'),
-            ('001', '004'),
-            ('004', '004'),
-            ('002001', '002004'),
-            ('002004', '002004'),
-            ('002002', '002004'),
-            ('002003001', '002003001'),
+            ('2', '4'),
+            ('1', '4'),
+            ('4', '4'),
+            ('21', '24'),
+            ('24', '24'),
+            ('22', '24'),
+            ('231', '231'),
         ]
-        for path, expected in data:
-            node = MPTestNode.objects.get(path=path).get_last_sibling()
-            self.assertEqual(node.path, expected)
+        for desc, expected in data:
+            node = MPTestNode.objects.get(desc=desc).get_last_sibling()
+            self.assertEqual(node.desc, expected)
 
 
     def test_get_first_child(self):
         data = [
-            ('002', '002001'),
-            ('002001', None),
-            ('002003', '002003001'),
-            ('002003001', None),
+            ('2', '21'),
+            ('21', None),
+            ('23', '231'),
+            ('231', None),
         ]
-        for path, expected in data:
-            node = MPTestNode.objects.get(path=path).get_first_child()
+        for desc, expected in data:
+            node = MPTestNode.objects.get(desc=desc).get_first_child()
             if expected is None:
                 self.assertEqual(node, None)
             else:
-                self.assertEqual(node.path, expected)
+                self.assertEqual(node.desc, expected)
 
 
     def test_get_last_child(self):
         data = [
-            ('002', '002004'),
-            ('002001', None),
-            ('002003', '002003001'),
-            ('002003001', None),
+            ('2', '24'),
+            ('21', None),
+            ('23', '231'),
+            ('231', None),
         ]
-        for path, expected in data:
-            node = MPTestNode.objects.get(path=path).get_last_child()
+        for desc, expected in data:
+            node = MPTestNode.objects.get(desc=desc).get_last_child()
             if expected is None:
                 self.assertEqual(node, None)
             else:
-                self.assertEqual(node.path, expected)
+                self.assertEqual(node.desc, expected)
 
 
     def test_get_ancestors(self):
         data = [
-            ('002', []),
-            ('002001', ['002']),
-            ('002003001', ['002', '002003']),
+            ('2', []),
+            ('21', ['2']),
+            ('231', ['2', '23']),
         ]
-        for path, expected in data:
-            nodes = MPTestNode.objects.get(path=path).get_ancestors()
-            self.assertEqual([node.path for node in nodes], expected)
+        for desc, expected in data:
+            nodes = MPTestNode.objects.get(desc=desc).get_ancestors()
+            self.assertEqual([node.desc for node in nodes], expected)
 
 
     def test_get_descendants(self):
         data = [
-            ('002', ['002001', '002002', '002003', '002003001', '002004']),
-            ('002003', ['002003001']),
-            ('002003001', []),
-            ('001', []),
-            ('004', ['004001']),
+            ('2', ['21', '22', '23', '231', '24']),
+            ('23', ['231']),
+            ('231', []),
+            ('1', []),
+            ('4', ['41']),
         ]
-        for path, expected in data:
-            nodes = MPTestNode.objects.get(path=path).get_descendants()
-            self.assertEqual([node.path for node in nodes], expected)
+        for desc, expected in data:
+            nodes = MPTestNode.objects.get(desc=desc).get_descendants()
+            self.assertEqual([node.desc for node in nodes], expected)
 
 
     def test_is_sibling_of(self):
         data = [
-            ('002', '002', True),
-            ('002', '001', True),
-            ('002001', '002', False),
-            ('002003001', '002', False),
-            ('002002', '002003', True),
-            ('002003001', '002003', False),
-            ('002003001', '002003001', True),
+            ('2', '2', True),
+            ('2', '1', True),
+            ('21', '2', False),
+            ('231', '2', False),
+            ('22', '23', True),
+            ('231', '23', False),
+            ('231', '231', True),
         ]
-        for path1, path2, expected in data:
-            node1 = MPTestNode.objects.get(path=path1)
-            node2 = MPTestNode.objects.get(path=path2)
+        for desc1, desc2, expected in data:
+            node1 = MPTestNode.objects.get(desc=desc1)
+            node2 = MPTestNode.objects.get(desc=desc2)
             self.assertEqual(node1.is_sibling_of(node2), expected)
 
 
 
     def test_is_child_of(self):
         data = [
-            ('002', '002', False),
-            ('002', '001', False),
-            ('002001', '002', True),
-            ('002003001', '002', False),
-            ('002003001', '002003', True),
-            ('002003001', '002003001', False),
+            ('2', '2', False),
+            ('2', '1', False),
+            ('21', '2', True),
+            ('231', '2', False),
+            ('231', '23', True),
+            ('231', '231', False),
         ]
-        for path1, path2, expected in data:
-            node1 = MPTestNode.objects.get(path=path1)
-            node2 = MPTestNode.objects.get(path=path2)
+        for desc1, desc2, expected in data:
+            node1 = MPTestNode.objects.get(desc=desc1)
+            node2 = MPTestNode.objects.get(desc=desc2)
             self.assertEqual(node1.is_child_of(node2), expected)
 
 
     def test_is_descendant_of(self):
         data = [
-            ('002', '002', False),
-            ('002', '001', False),
-            ('002001', '002', True),
-            ('002003001', '002', True),
-            ('002003001', '002003', True),
-            ('002003001', '002003001', False),
+            ('2', '2', False),
+            ('2', '1', False),
+            ('21', '2', True),
+            ('231', '2', True),
+            ('231', '23', True),
+            ('231', '231', False),
         ]
-        for path1, path2, expected in data:
-            node1 = MPTestNode.objects.get(path=path1)
-            node2 = MPTestNode.objects.get(path=path2)
+        for desc1, desc2, expected in data:
+            node1 = MPTestNode.objects.get(desc=desc1)
+            node2 = MPTestNode.objects.get(desc=desc2)
             self.assertEqual(node1.is_descendant_of(node2), expected)
 
 
 class TestAddChild(TestNonEmptyTree):
 
     def test_add_child_to_leaf(self):
-        obj = MPTestNode.objects.get(path=u'002003001').add_child(desc='2311')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 4),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 1),
-                    (u'002003001', u'231', 3, 1),
-                    (u'002003001001', u'2311', 4, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+        obj = MPTestNode.objects.get(desc=u'231').add_child(desc='2311')
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 1),
+                    (u'2311', 4, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_add_child_to_node(self):
-        obj = MPTestNode.objects.get(path=u'002').add_child(desc='25')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 5),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 1),
-                    (u'002003001', u'231', 3, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'002005', u'25', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+        obj = MPTestNode.objects.get(desc=u'2').add_child(desc='25')
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'25', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -526,7 +516,7 @@ class TestAddSibling(TestNonEmptyTree):
 
 
     def test_add_sibling_invalid_pos(self):
-        method =  MPTestNode.objects.get(path=u'002003001').add_sibling
+        method =  MPTestNode.objects.get(desc=u'231').add_sibling
         self.assertRaises(InvalidPosition, method, 'invalid_pos')
 
 
@@ -538,96 +528,96 @@ class TestAddSibling(TestNonEmptyTree):
     
     def test_add_sibling_last(self):
         obj = self.node_children.add_sibling('last-sibling', desc='5')
-        self.assertEqual(obj.path, u'005')
         self.assertEqual(obj.depth, 1)
+        self.assertEqual(self.node_children.get_last_sibling().desc, u'5')
 
         obj = self.leafnode.add_sibling('last-sibling', desc='232')
-        self.assertEqual(obj.path, u'002003002')
         self.assertEqual(obj.depth, 3)
+        self.assertEqual(self.leafnode.get_last_sibling().desc, u'232')
 
 
     def test_add_sibling_first(self):
         obj = self.node_children.add_sibling('first-sibling', desc='new')
-        self.assertEqual(obj.path, u'001')
-        expected = [(u'001', u'new', 1, 0),
-                    (u'002', u'1', 1, 0),
-                    (u'003', u'2', 1, 4),
-                    (u'003001', u'21', 2, 0),
-                    (u'003002', u'22', 2, 0),
-                    (u'003003', u'23', 2, 1),
-                    (u'003003001', u'231', 3, 0),
-                    (u'003004', u'24', 2, 0),
-                    (u'004', u'3', 1, 0),
-                    (u'005', u'4', 1, 1),
-                    (u'005001', u'41', 2, 0)]
+        self.assertEqual(obj.depth, 1)
+        expected = [( u'new', 1, 0),
+                    (u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_add_sibling_left(self):
         obj = self.node_children.add_sibling('left', desc='new')
-        self.assertEqual(obj.path, u'002')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'new', 1, 0),
-                    (u'003', u'2', 1, 4),
-                    (u'003001', u'21', 2, 0),
-                    (u'003002', u'22', 2, 0),
-                    (u'003003', u'23', 2, 1),
-                    (u'003003001', u'231', 3, 0),
-                    (u'003004', u'24', 2, 0),
-                    (u'004', u'3', 1, 0),
-                    (u'005', u'4', 1, 1),
-                    (u'005001', u'41', 2, 0)]
+        self.assertEqual(obj.depth, 1)
+        expected = [(u'1', 1, 0),
+                    (u'new', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_add_sibling_left_noleft(self):
         obj = self.leafnode.add_sibling('left', desc='new')
-        self.assertEqual(obj.path, u'002003001')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 4),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 2),
-                    (u'002003001', u'new', 3, 0),
-                    (u'002003002', u'231', 3, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+        self.assertEqual(obj.depth, 3)
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 2),
+                    (u'new', 3, 0),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_add_sibling_right(self):
         obj = self.node_children.add_sibling('right', desc='new')
-        self.assertEqual(obj.path, u'003')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 4),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 1),
-                    (u'002003001', u'231', 3, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'new', 1, 0),
-                    (u'004', u'3', 1, 0),
-                    (u'005', u'4', 1, 1),
-                    (u'005001', u'41', 2, 0)]
+        self.assertEqual(obj.depth, 1)
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'new', 1, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_add_sibling_right_noright(self):
         obj = self.leafnode.add_sibling('right', desc='new')
-        self.assertEqual(obj.path, u'002003002')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 4),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 2),
-                    (u'002003001', u'231', 3, 0),
-                    (u'002003002', u'new', 3, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+        self.assertEqual(obj.depth, 3)
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 2),
+                    (u'231', 3, 0),
+                    (u'new', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -640,71 +630,71 @@ class TestDelete(TestNonEmptyTree):
             MPTestNodeSomeDep(node=node).save()
 
     def test_delete_leaf(self):
-        MPTestNode.objects.get(path=u'002003001').delete()
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 4),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+        MPTestNode.objects.get(desc=u'231').delete()
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_delete_node(self):
-        MPTestNode.objects.get(path=u'002003').delete()
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 3),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+        MPTestNode.objects.get(desc=u'23').delete()
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 3),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_delete_root(self):
-        MPTestNode.objects.get(path=u'002').delete()
-        expected = [(u'001', u'1', 1, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+        MPTestNode.objects.get(desc=u'2').delete()
+        expected = [(u'1', 1, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_delete_filter_root_nodes(self):
-        MPTestNode.objects.filter(path__in=('002', '003')).delete()
-        expected = [(u'001', u'1', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+        MPTestNode.objects.filter(desc__in=('2', '3')).delete()
+        expected = [(u'1', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_delete_filter_children(self):
         MPTestNode.objects.filter(
-            path__in=('002', '002003', '002003001')).delete()
-        expected = [(u'001', u'1', 1, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+            desc__in=('2', '23', '231')).delete()
+        expected = [(u'1', 1, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_delete_nonexistant_nodes(self):
-        MPTestNode.objects.filter(path__in=('ZZZ', 'XXX')).delete()
+        MPTestNode.objects.filter(desc__in=('ZZZ', 'XXX')).delete()
         self.assertEqual(self.got(), self.unchanged)
 
 
     def test_delete_same_node_twice(self):
         MPTestNode.objects.filter(
-            path__in=('002', '002')).delete()
-        expected = [(u'001', u'1', 1, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+            desc__in=('2', '2')).delete()
+        expected = [(u'1', 1, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -724,24 +714,23 @@ class TestDelete(TestNonEmptyTree):
 class TestMoveErrors(TestNonEmptyTree):
 
     def test_move_invalid_pos(self):
-        node = MPTestNode.objects.get(path=u'002003001')
+        node = MPTestNode.objects.get(desc=u'231')
         self.assertRaises(InvalidPosition, node.move, node, 'invalid_pos')
 
 
     def test_move_to_descendant(self):
-        node = MPTestNode.objects.get(path=u'002')
-        target = MPTestNode.objects.get(path=u'002003001')
+        node = MPTestNode.objects.get(desc=u'2')
+        target = MPTestNode.objects.get(desc=u'231')
         self.assertRaises(InvalidMoveToDescendant, node.move, target,
             'first-sibling')
 
     def test_nonsorted_move_in_sorted(self):
-        MPTestNodeSorted.add_root(val1=3, val2=3, desc='zxy')
-        node = MPTestNodeSorted.objects.get(path=u'1')
+        node = MPTestNodeSorted.add_root(val1=3, val2=3, desc='zxy')
         self.assertRaises(InvalidPosition, node.move, node, 'left')
 
 
     def test_move_missing_nodeorderby(self):
-        node = MPTestNode.objects.get(path=u'002003001')
+        node = MPTestNode.objects.get(desc=u'231')
         self.assertRaises(MissingNodeOrderBy, node.move, node,
                           'sorted-child')
         self.assertRaises(MissingNodeOrderBy, node.move, node,
@@ -754,67 +743,67 @@ class TestMoveLeaf(TestNonEmptyTree):
 
     def setUp(self):
         super(TestMoveLeaf, self).setUp()
-        self.node = MPTestNode.objects.get(path=u'002003001')
-        self.target = MPTestNode.objects.get(path=u'002')
+        self.node = MPTestNode.objects.get(desc=u'231')
+        self.target = MPTestNode.objects.get(desc=u'2')
 
 
     def test_move_leaf_last_sibling(self):
         self.node.move(self.target, 'last-sibling')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 4),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0),
-                    (u'005', u'231', 1, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0),
+                    (u'231', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_leaf_first_sibling(self):
         self.node.move(self.target, 'first-sibling')
-        expected = [(u'001', u'231', 1, 0),
-                    (u'002', u'1', 1, 0),
-                    (u'003', u'2', 1, 4),
-                    (u'003001', u'21', 2, 0),
-                    (u'003002', u'22', 2, 0),
-                    (u'003003', u'23', 2, 0),
-                    (u'003004', u'24', 2, 0),
-                    (u'004', u'3', 1, 0),
-                    (u'005', u'4', 1, 1),
-                    (u'005001', u'41', 2, 0)]
+        expected = [(u'231', 1, 0),
+                    (u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_leaf_left_sibling(self):
         self.node.move(self.target, 'left')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'231', 1, 0),
-                    (u'003', u'2', 1, 4),
-                    (u'003001', u'21', 2, 0),
-                    (u'003002', u'22', 2, 0),
-                    (u'003003', u'23', 2, 0),
-                    (u'003004', u'24', 2, 0),
-                    (u'004', u'3', 1, 0),
-                    (u'005', u'4', 1, 1),
-                    (u'005001', u'41', 2, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'231', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_leaf_right_sibling(self):
         self.node.move(self.target, 'right')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 4),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'231', 1, 0),
-                    (u'004', u'3', 1, 0),
-                    (u'005', u'4', 1, 1),
-                    (u'005001', u'41', 2, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 0),
+                    (u'24', 2, 0),
+                    (u'231', 1, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -825,31 +814,31 @@ class TestMoveLeaf(TestNonEmptyTree):
 
     def test_move_leaf_last_child(self):
         self.node.move(self.target, 'last-child')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 5),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'002005', u'231', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 0),
+                    (u'24', 2, 0),
+                    (u'231', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_leaf_first_child(self):
         self.node.move(self.target, 'first-child')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 5),
-                    (u'002001', u'231', 2, 0),
-                    (u'002002', u'21', 2, 0),
-                    (u'002003', u'22', 2, 0),
-                    (u'002004', u'23', 2, 0),
-                    (u'002005', u'24', 2, 0),
-                    (u'003', u'3', 1, 0),
-                    (u'004', u'4', 1, 1),
-                    (u'004001', u'41', 2, 0)] 
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'231', 2, 0),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)] 
         self.assertEqual(self.got(), expected)
 
 
@@ -858,97 +847,97 @@ class TestMoveBranch(TestNonEmptyTree):
 
     def setUp(self):
         super(TestMoveBranch, self).setUp()
-        self.node = MPTestNode.objects.get(path='004')
-        self.target = MPTestNode.objects.get(path='002003')
+        self.node = MPTestNode.objects.get(desc='4')
+        self.target = MPTestNode.objects.get(desc='23')
 
 
     def test_move_branch_first_sibling(self):
         self.node.move(self.target, 'first-sibling')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 5),
-                    (u'002001', u'4', 2, 1),
-                    (u'002001001', u'41', 3, 0),
-                    (u'002002', u'21', 2, 0),
-                    (u'002003', u'22', 2, 0),
-                    (u'002004', u'23', 2, 1),
-                    (u'002004001', u'231', 3, 0),
-                    (u'002005', u'24', 2, 0),
-                    (u'003', u'3', 1, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'4', 2, 1),
+                    (u'41', 3, 0),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_branch_last_sibling(self):
         self.node.move(self.target, 'last-sibling')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 5),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 1),
-                    (u'002003001', u'231', 3, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'002005', u'4', 2, 1),
-                    (u'002005001', u'41', 3, 0),
-                    (u'003', u'3', 1, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'4', 2, 1),
+                    (u'41', 3, 0),
+                    (u'3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_branch_left_sibling(self):
         self.node.move(self.target, 'left')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 5),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'4', 2, 1),
-                    (u'002003001', u'41', 3, 0),
-                    (u'002004', u'23', 2, 1),
-                    (u'002004001', u'231', 3, 0),
-                    (u'002005', u'24', 2, 0),
-                    (u'003', u'3', 1, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'4', 2, 1),
+                    (u'41', 3, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_branch_right_sibling(self):
         self.node.move(self.target, 'right')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 5),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 1),
-                    (u'002003001', u'231', 3, 0),
-                    (u'002004', u'4', 2, 1),
-                    (u'002004001', u'41', 3, 0),
-                    (u'002005', u'24', 2, 0),
-                    (u'003', u'3', 1, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'4', 2, 1),
+                    (u'41', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_branch_left_noleft_sibling(self):
         self.node.move(self.target.get_first_sibling(), 'left')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 5),
-                    (u'002001', u'4', 2, 1),
-                    (u'002001001', u'41', 3, 0),
-                    (u'002002', u'21', 2, 0),
-                    (u'002003', u'22', 2, 0),
-                    (u'002004', u'23', 2, 1),
-                    (u'002004001', u'231', 3, 0),
-                    (u'002005', u'24', 2, 0),
-                    (u'003', u'3', 1, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'4', 2, 1),
+                    (u'41', 3, 0),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_branch_right_noright_sibling(self):
         self.node.move(self.target.get_last_sibling(), 'right')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 5),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 1),
-                    (u'002003001', u'231', 3, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'002005', u'4', 2, 1),
-                    (u'002005001', u'41', 3, 0),
-                    (u'003', u'3', 1, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'4', 2, 1),
+                    (u'41', 3, 0),
+                    (u'3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -959,31 +948,31 @@ class TestMoveBranch(TestNonEmptyTree):
 
     def test_move_branch_first_child(self):
         self.node.move(self.target, 'first-child')
-        expected = [(u'001', u'1', 1, 0),
-                    (u'002', u'2', 1, 4),
-                    (u'002001', u'21', 2, 0),
-                    (u'002002', u'22', 2, 0),
-                    (u'002003', u'23', 2, 2),
-                    (u'002003001', u'4', 3, 1),
-                    (u'002003001001', u'41', 4, 0),
-                    (u'002003002', u'231', 3, 0),
-                    (u'002004', u'24', 2, 0),
-                    (u'003', u'3', 1, 0)]
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 2),
+                    (u'4', 3, 1),
+                    (u'41', 4, 0),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_move_branch_last_child(self):
         self.node.move(self.target, 'last-child')
-        expected =  [(u'001', u'1', 1, 0),
-                     (u'002', u'2', 1, 4),
-                     (u'002001', u'21', 2, 0),
-                     (u'002002', u'22', 2, 0),
-                     (u'002003', u'23', 2, 2),
-                     (u'002003001', u'231', 3, 0),
-                     (u'002003002', u'4', 3, 1),
-                     (u'002003002001', u'41', 4, 0),
-                     (u'002004', u'24', 2, 0),
-                     (u'003', u'3', 1, 0)]
+        expected =  [(u'1', 1, 0),
+                     (u'2', 1, 4),
+                     (u'21', 2, 0),
+                     (u'22', 2, 0),
+                     (u'23', 2, 2),
+                     (u'231', 3, 0),
+                     (u'4', 3, 1),
+                     (u'41', 4, 0),
+                     (u'24', 2, 0),
+                     (u'3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -991,7 +980,7 @@ class TestMoveBranch(TestNonEmptyTree):
 class TestTreeSorted(TestCase):
 
     def got(self):
-        return [(o.path, o.val1, o.val2, o.desc, o.depth, o.numchild)
+        return [(o.val1, o.val2, o.desc, o.depth, o.numchild)
                  for o in MPTestNodeSorted.objects.all()]
 
 
@@ -1004,14 +993,14 @@ class TestTreeSorted(TestCase):
         MPTestNodeSorted.add_root(val1=3, val2=3, desc='abc')
         MPTestNodeSorted.add_root(val1=2, val2=2, desc='qwe')
         MPTestNodeSorted.add_root(val1=3, val2=2, desc='vcx')
-        expected = [(u'1', 1, 4, u'bcd', 1, 0),
-                    (u'2', 2, 2, u'qwe', 1, 0),
-                    (u'3', 2, 5, u'zxy', 1, 0),
-                    (u'4', 3, 2, u'vcx', 1, 0),
-                    (u'5', 3, 3, u'abc', 1, 0),
-                    (u'6', 3, 3, u'abc', 1, 0),
-                    (u'7', 3, 3, u'zxy', 1, 0),
-                    (u'8', 4, 1, u'fgh', 1, 0)]
+        expected = [(1, 4, u'bcd', 1, 0),
+                    (2, 2, u'qwe', 1, 0),
+                    (2, 5, u'zxy', 1, 0),
+                    (3, 2, u'vcx', 1, 0),
+                    (3, 3, u'abc', 1, 0),
+                    (3, 3, u'abc', 1, 0),
+                    (3, 3, u'zxy', 1, 0),
+                    (4, 1, u'fgh', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -1025,15 +1014,15 @@ class TestTreeSorted(TestCase):
         root.add_child(val1=3, val2=3, desc='abc')
         root.add_child(val1=2, val2=2, desc='qwe')
         root.add_child(val1=3, val2=2, desc='vcx')
-        expected = [(u'1', 0, 0, u'aaa', 1, 8),
-                    (u'11', 1, 4, u'bcd', 2, 0),
-                    (u'12', 2, 2, u'qwe', 2, 0),
-                    (u'13', 2, 5, u'zxy', 2, 0),
-                    (u'14', 3, 2, u'vcx', 2, 0),
-                    (u'15', 3, 3, u'abc', 2, 0),
-                    (u'16', 3, 3, u'abc', 2, 0),
-                    (u'17', 3, 3, u'zxy', 2, 0),
-                    (u'18', 4, 1, u'fgh', 2, 0)]
+        expected = [(0, 0, u'aaa', 1, 8),
+                    (1, 4, u'bcd', 2, 0),
+                    (2, 2, u'qwe', 2, 0),
+                    (2, 5, u'zxy', 2, 0),
+                    (3, 2, u'vcx', 2, 0),
+                    (3, 3, u'abc', 2, 0),
+                    (3, 3, u'abc', 2, 0),
+                    (3, 3, u'zxy', 2, 0),
+                    (4, 1, u'fgh', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -1050,14 +1039,14 @@ class TestTreeSorted(TestCase):
         target = root_nodes[0]
         for node in root_nodes[1:]:
             node.move(target, 'sorted-child')
-        expected = [(u'1', 1, 4, u'bcd', 1, 7),
-                    (u'11', 2, 2, u'qwe', 2, 0),
-                    (u'12', 2, 5, u'zxy', 2, 0),
-                    (u'13', 3, 2, u'vcx', 2, 0),
-                    (u'14', 3, 3, u'abc', 2, 0),
-                    (u'15', 3, 3, u'abc', 2, 0),
-                    (u'16', 3, 3, u'zxy', 2, 0),
-                    (u'17', 4, 1, u'fgh', 2, 0)]
+        expected = [(1, 4, u'bcd', 1, 7),
+                    (2, 2, u'qwe', 2, 0),
+                    (2, 5, u'zxy', 2, 0),
+                    (3, 2, u'vcx', 2, 0),
+                    (3, 3, u'abc', 2, 0),
+                    (3, 3, u'abc', 2, 0),
+                    (3, 3, u'zxy', 2, 0),
+                    (4, 1, u'fgh', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -1183,7 +1172,8 @@ class TestTreeShortPath(TestCase):
 
 
 class TestFindProblems(TestTreeBase):
-    def setUp(self):
+
+    def test_find_problems(self):
         model = MPTestNodeAlphabet
         model.alphabet = '012'
         model(path='01', depth=1, numchild=0, numval=0).save()
@@ -1194,8 +1184,6 @@ class TestFindProblems(TestTreeBase):
         model(path='0201', depth=2, numchild=0, numval=0).save()
         model(path='020201', depth=3, numchild=0, numval=0).save()
 
-    def test_find_problems(self):
-        model = MPTestNodeAlphabet
         evil_chars, bad_steplen, orphans = model.find_problems()
         self.assertEqual(['abcd', 'qa#$%!'],
             [o.path for o in model.objects.filter(id__in=evil_chars)])
@@ -1208,8 +1196,41 @@ class TestFindProblems(TestTreeBase):
 
 class TestFixTree(TestTreeBase):
 
-    def setUp(self):
-        super(TestFixTree, self).setUp()
+    def got(self, model):
+        return [(o.path, o.desc, o.depth, o.numchild) for o in model.objects.all()]
+
+
+    def test_fix_tree(self):
+        # (o.path, o.desc, o.depth, o.numchild)
+        expected_unsorted = [(u'1', u'b', 1, 2),
+                             (u'11', u'u', 2, 1),
+                             (u'111', u'i', 3, 1),
+                             (u'1111', u'e', 4, 0),
+                             (u'12', u'o', 2, 0),
+                             (u'2', u'd', 1, 0),
+                             (u'3', u'g', 1, 0),
+                             (u'4', u'a', 1, 4),
+                             (u'41', u'a', 2, 0),
+                             (u'42', u'a', 2, 0),
+                             (u'43', u'u', 2, 1),
+                             (u'431', u'i', 3, 1),
+                             (u'4311', u'e', 4, 0),
+                             (u'44', u'o', 2, 0)]
+        expected_sorted = [(u'1', u'a', 1, 4),
+                           (u'11', u'a', 2, 0),
+                           (u'12', u'a', 2, 0),
+                           (u'13', u'o', 2, 0),
+                           (u'14', u'u', 2, 1),
+                           (u'141', u'i', 3, 1), 
+                           (u'1411', u'e', 4, 0),
+                           (u'2', u'b', 1, 2),
+                           (u'21', u'o', 2, 0),
+                           (u'22', u'u', 2, 1),
+                           (u'221', u'i', 3, 1),
+                           (u'2211', u'e', 4, 0),
+                           (u'3', u'd', 1, 0),
+                           (u'4', u'g', 1, 0)]
+
         for model in (MPTestNodeShortPath, TestSortedNodeShortPath):
             model(path='4', depth=2, numchild=2, desc='a').save()
             model(path='13', depth=1000, numchild=0, desc='u').save()
@@ -1225,47 +1246,6 @@ class TestFixTree(TestTreeBase):
             model(path='3', depth=221, numchild=322, desc='g').save()
             model(path='1', depth=10, numchild=3, desc='b').save()
             model(path='2', depth=10, numchild=3, desc='d').save()
-    
-    
-    def got(self, model):
-        return [(o.path, o.desc, o.depth, o.numchild) for o in model.objects.all()]
-
-
-    def test_fix_tree(self):
-        # (o.path, o.desc, o.depth, o.numchild)
-        expected_unsorted = [
-           ('1', 'b', 1, 2),
-           ('11', 'u', 2, 1),
-           ('111', 'i', 3, 1),
-           ('1111', 'e', 4, 0),
-           ('12', 'o', 2, 0),
-           ('2', 'd', 1, 0),
-           ('3', 'g', 1, 0),
-           ('4', 'a', 1, 4),
-           ('41', 'a', 2, 0),
-           ('42', 'a', 2, 0),
-           ('43', 'u', 2, 1),
-           ('431', 'i', 3, 1),
-           ('4311', 'e', 4, 0),
-           ('44', 'o', 2, 0),
-           ]
-        expected_sorted = [
-            ('1', 'a', 1, 4),
-            ('11', 'a', 2, 0),
-            ('12', 'a', 2, 0),
-            ('13', 'o', 2, 0),
-            ('14', 'u', 2, 1),
-            ('141', 'i', 3, 1),
-            ('1411', 'e', 4, 0),
-            ('2', 'b', 1, 2),
-            ('21', 'o', 2, 0),
-            ('22', 'u', 2, 1),
-            ('221', 'i', 3, 1),
-            ('2211', 'e', 4, 0),
-            ('3', 'd', 1, 0),
-            ('4', 'g', 1, 0),
-            ]
-
         MPTestNodeShortPath.fix_tree()
         self.assertEqual(self.got(MPTestNodeShortPath), expected_unsorted)
         
@@ -1282,18 +1262,18 @@ class TestHelpers(TestTreeBase):
         MPTestNode.add_root(desc='5')
 
     def test_descendants_group_count_root(self):
-        expected = [(o.path, o.get_descendants().count())
+        expected = [(o.desc, o.get_descendants().count())
                     for o in MPTestNode.get_root_nodes()]
-        got = [(o.path, o.descendants_count)
+        got = [(o.desc, o.descendants_count)
                for o in MPTestNode.get_descendants_group_count()]
         self.assertEqual(got, expected)
 
 
     def test_descendants_group_count_node(self):
-        parent = MPTestNode.objects.get(path='002')
-        expected = [(o.path, o.get_descendants().count())
+        parent = MPTestNode.objects.filter(depth=1).get(desc='2')
+        expected = [(o.desc, o.get_descendants().count())
                     for o in parent.get_children()]
-        got = [(o.path, o.descendants_count)
+        got = [(o.desc, o.descendants_count)
                for o in MPTestNode.get_descendants_group_count(parent)]
         self.assertEqual(got, expected)
 
