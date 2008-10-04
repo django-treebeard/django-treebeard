@@ -12,7 +12,7 @@
 """
 
 from django.db import models
-from treebeard import MPNode
+from treebeard.mp_tree import MPNode
 try:
     import mptt
 except ImportError:

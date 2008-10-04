@@ -14,7 +14,7 @@
 import os
 from django.test import TestCase
 from django.db import models
-from treebeard import MPNode, InvalidPosition, InvalidMoveToDescendant, \
+from treebeard.mp_tree import MPNode, InvalidPosition, InvalidMoveToDescendant, \
     PathOverflow, MissingNodeOrderBy, numconv
 
 BASE_DATA = [
@@ -118,7 +118,8 @@ class TestEmptyTree(TestTreeBase):
 
 
     def test_load_bulk_empty(self):
-        paths = TestNode.load_bulk(BASE_DATA)
+        ids = TestNode.load_bulk(BASE_DATA)
+        paths = [obj.path for obj in TestNode.objects.filter(id__in=ids)]
         self.assertEqual(paths, [x[0] for x in self.unchanged])
         self.assertEqual(self.got(), self.unchanged)
 
@@ -190,7 +191,7 @@ class TestManagerMethods(TestNonEmptyTree):
                     (u'003', u'3', 1, 0),
                     (u'004', u'4', 1, 1),
                     (u'004001', u'41', 2, 0)]
-        expected_ids = [u'002003001001',
+        expected_paths = [u'002003001001',
                         u'002003001002',
                         u'002003001002001',
                         u'002003001002002',
@@ -200,7 +201,8 @@ class TestManagerMethods(TestNonEmptyTree):
                         u'002003001003',
                         u'002003001004',
                         u'002003001004001']
-        self.assertEqual(ids, expected_ids)
+        paths = [obj.path for obj in TestNode.objects.filter(id__in=ids)]
+        self.assertEqual(paths, expected_paths)
         self.assertEqual(self.got(), expected)
 
 
