@@ -96,6 +96,8 @@ TestSortedNodeShortPath._meta.get_field('path').max_length = 4
 class TestTreeBase(TestCase):
 
     def setUp(self):
+        self.model = MPTestNode
+        self.sorted_model = MPTestNodeSorted
         self.unchanged = [(u'1', 1, 0),
                           (u'2', 1, 4),
                           (u'21', 2, 0),
@@ -108,43 +110,45 @@ class TestTreeBase(TestCase):
                           (u'41', 2, 0)]
 
     def got(self):
-        return [(o.desc, o.depth, o.numchild) for o in MPTestNode.objects.all()]
+        return [(o.desc, o.depth, o.numchild)
+                for o in self.model.objects.all()]
 
 
 
 class TestEmptyTree(TestTreeBase):
 
     def test_load_bulk_empty(self):
-        ids = MPTestNode.load_bulk(BASE_DATA)
-        got_descs = [obj.desc for obj in MPTestNode.objects.filter(id__in=ids)]
+        ids = self.model.load_bulk(BASE_DATA)
+        got_descs = [obj.desc
+                     for obj in self.model.objects.filter(id__in=ids)]
         expected_descs = [x[0] for x in self.unchanged]
         self.assertEqual(sorted(got_descs), sorted(expected_descs))
         self.assertEqual(self.got(), self.unchanged)
 
     
     def test_dump_bulk_empty(self):
-        self.assertEqual(MPTestNode.dump_bulk(), [])
+        self.assertEqual(self.model.dump_bulk(), [])
 
 
     def test_add_root_empty(self):
-        obj = MPTestNode.add_root(desc='1')
+        obj = self.model.add_root(desc='1')
         expected = [(u'1', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
     def test_get_root_nodes_empty(self):
-        got = MPTestNode.get_root_nodes()
+        got = self.model.get_root_nodes()
         expected = []
         self.assertEqual([node.desc for node in got], expected)
 
 
     def test_get_first_root_node_empty(self):
-        got = MPTestNode.get_first_root_node()
+        got = self.model.get_first_root_node()
         self.assertEqual(got, None)
 
 
     def test_get_last_root_node_empty(self):
-        got = MPTestNode.get_last_root_node()
+        got = self.model.get_last_root_node()
         self.assertEqual(got, None)
 
 
@@ -153,9 +157,9 @@ class TestNonEmptyTree(TestTreeBase):
 
     def setUp(self):
         super(TestNonEmptyTree, self).setUp()
-        MPTestNode.load_bulk(BASE_DATA)
-        self.leafnode = MPTestNode.objects.get(desc=u'231')
-        self.node_children = MPTestNode.objects.get(desc=u'2')
+        self.model.load_bulk(BASE_DATA)
+        self.leafnode = self.model.objects.get(desc=u'231')
+        self.node_children = self.model.objects.get(desc=u'2')
 
 
 class TestManagerMethods(TestNonEmptyTree):
@@ -168,7 +172,7 @@ class TestManagerMethods(TestNonEmptyTree):
 
         # inserting on an existing node
 
-        ids = MPTestNode.load_bulk(BASE_DATA, self.leafnode)
+        ids = self.model.load_bulk(BASE_DATA, self.leafnode)
         expected = [(u'1', 1, 0),
                     (u'2', 1, 4),
                     (u'21', 2, 0),
@@ -191,42 +195,43 @@ class TestManagerMethods(TestNonEmptyTree):
                     (u'41', 2, 0)]
         expected_descs = [u'1', u'2', u'21', u'22', u'23', u'231', u'24', u'3',
                           u'4', u'41']
-        got_descs = [obj.desc for obj in MPTestNode.objects.filter(id__in=ids)]
+        got_descs = [obj.desc
+                     for obj in self.model.objects.filter(id__in=ids)]
         self.assertEqual(sorted(got_descs), sorted(expected_descs))
         self.assertEqual(self.got(), expected)
 
 
     def test_dump_bulk_all(self):
-        self.assertEqual(MPTestNode.dump_bulk(keep_ids=False), BASE_DATA)
+        self.assertEqual(self.model.dump_bulk(keep_ids=False), BASE_DATA)
 
 
     def test_dump_bulk_node(self):
-        MPTestNode.load_bulk(BASE_DATA, self.leafnode)
+        self.model.load_bulk(BASE_DATA, self.leafnode)
         expected = [{'data':{'desc':u'231'}, 'children':BASE_DATA}]
-        self.assertEqual(MPTestNode.dump_bulk(self.leafnode, False), expected)
+        self.assertEqual(self.model.dump_bulk(self.leafnode, False), expected)
 
 
     def test_load_and_dump_bulk_keeping_ids(self):
-        exp = MPTestNode.dump_bulk(keep_ids=True)
-        MPTestNode.objects.all().delete()
-        MPTestNode.load_bulk(exp, None, True)
-        got = MPTestNode.dump_bulk(keep_ids=True)
+        exp = self.model.dump_bulk(keep_ids=True)
+        self.model.objects.all().delete()
+        self.model.load_bulk(exp, None, True)
+        got = self.model.dump_bulk(keep_ids=True)
         self.assertEqual(got, exp)
 
 
     def test_get_root_nodes(self):
-        got = MPTestNode.get_root_nodes()
+        got = self.model.get_root_nodes()
         expected = ['1', '2', '3', '4']
         self.assertEqual([node.desc for node in got], expected)
 
 
     def test_get_first_root_node(self):
-        got = MPTestNode.get_first_root_node()
+        got = self.model.get_first_root_node()
         self.assertEqual(got.desc, '1')
 
 
     def test_get_last_root_node(self):
-        got = MPTestNode.get_last_root_node()
+        got = self.model.get_last_root_node()
         self.assertEqual(got.desc, '4')
 
 
@@ -725,7 +730,7 @@ class TestMoveErrors(TestNonEmptyTree):
             'first-sibling')
 
     def test_nonsorted_move_in_sorted(self):
-        node = MPTestNodeSorted.add_root(val1=3, val2=3, desc='zxy')
+        node = self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
         self.assertRaises(InvalidPosition, node.move, node, 'left')
 
 
@@ -977,22 +982,22 @@ class TestMoveBranch(TestNonEmptyTree):
 
 
 
-class TestTreeSorted(TestCase):
+class TestTreeSorted(TestTreeBase):
 
     def got(self):
         return [(o.val1, o.val2, o.desc, o.depth, o.numchild)
-                 for o in MPTestNodeSorted.objects.all()]
+                 for o in self.sorted_model.objects.all()]
 
 
     def test_add_root_sorted(self):
-        MPTestNodeSorted.add_root(val1=3, val2=3, desc='zxy')
-        MPTestNodeSorted.add_root(val1=1, val2=4, desc='bcd')
-        MPTestNodeSorted.add_root(val1=2, val2=5, desc='zxy')
-        MPTestNodeSorted.add_root(val1=3, val2=3, desc='abc')
-        MPTestNodeSorted.add_root(val1=4, val2=1, desc='fgh')
-        MPTestNodeSorted.add_root(val1=3, val2=3, desc='abc')
-        MPTestNodeSorted.add_root(val1=2, val2=2, desc='qwe')
-        MPTestNodeSorted.add_root(val1=3, val2=2, desc='vcx')
+        self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
+        self.sorted_model.add_root(val1=1, val2=4, desc='bcd')
+        self.sorted_model.add_root(val1=2, val2=5, desc='zxy')
+        self.sorted_model.add_root(val1=3, val2=3, desc='abc')
+        self.sorted_model.add_root(val1=4, val2=1, desc='fgh')
+        self.sorted_model.add_root(val1=3, val2=3, desc='abc')
+        self.sorted_model.add_root(val1=2, val2=2, desc='qwe')
+        self.sorted_model.add_root(val1=3, val2=2, desc='vcx')
         expected = [(1, 4, u'bcd', 1, 0),
                     (2, 2, u'qwe', 1, 0),
                     (2, 5, u'zxy', 1, 0),
@@ -1005,7 +1010,7 @@ class TestTreeSorted(TestCase):
 
 
     def test_add_child_sorted(self):
-        root = MPTestNodeSorted.add_root(val1=0, val2=0, desc='aaa')
+        root = self.sorted_model.add_root(val1=0, val2=0, desc='aaa')
         root.add_child(val1=3, val2=3, desc='zxy')
         root.add_child(val1=1, val2=4, desc='bcd')
         root.add_child(val1=2, val2=5, desc='zxy')
@@ -1027,15 +1032,15 @@ class TestTreeSorted(TestCase):
 
 
     def test_move_sorted(self):
-        MPTestNodeSorted.add_root(val1=3, val2=3, desc='zxy')
-        MPTestNodeSorted.add_root(val1=1, val2=4, desc='bcd')
-        MPTestNodeSorted.add_root(val1=2, val2=5, desc='zxy')
-        MPTestNodeSorted.add_root(val1=3, val2=3, desc='abc')
-        MPTestNodeSorted.add_root(val1=4, val2=1, desc='fgh')
-        MPTestNodeSorted.add_root(val1=3, val2=3, desc='abc')
-        MPTestNodeSorted.add_root(val1=2, val2=2, desc='qwe')
-        MPTestNodeSorted.add_root(val1=3, val2=2, desc='vcx')
-        root_nodes = MPTestNodeSorted.get_root_nodes()
+        self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
+        self.sorted_model.add_root(val1=1, val2=4, desc='bcd')
+        self.sorted_model.add_root(val1=2, val2=5, desc='zxy')
+        self.sorted_model.add_root(val1=3, val2=3, desc='abc')
+        self.sorted_model.add_root(val1=4, val2=1, desc='fgh')
+        self.sorted_model.add_root(val1=3, val2=3, desc='abc')
+        self.sorted_model.add_root(val1=2, val2=2, desc='qwe')
+        self.sorted_model.add_root(val1=3, val2=2, desc='vcx')
+        root_nodes = self.sorted_model.get_root_nodes()
         target = root_nodes[0]
         for node in root_nodes[1:]:
             node.move(target, 'sorted-child')
@@ -1229,7 +1234,8 @@ class TestMPTreeFix(TestTreeBase):
 
     def test_fix_tree(self):
         # (o.path, o.desc, o.depth, o.numchild)
-        expected_unsorted = [(u'1', u'b', 1, 2),
+        expected = {
+            MPTestNodeShortPath: [(u'1', u'b', 1, 2),
                              (u'11', u'u', 2, 1),
                              (u'111', u'i', 3, 1),
                              (u'1111', u'e', 4, 0),
@@ -1242,8 +1248,8 @@ class TestMPTreeFix(TestTreeBase):
                              (u'43', u'u', 2, 1),
                              (u'431', u'i', 3, 1),
                              (u'4311', u'e', 4, 0),
-                             (u'44', u'o', 2, 0)]
-        expected_sorted = [(u'1', u'a', 1, 4),
+                             (u'44', u'o', 2, 0)],
+            TestSortedNodeShortPath: [(u'1', u'a', 1, 4),
                            (u'11', u'a', 2, 0),
                            (u'12', u'a', 2, 0),
                            (u'13', u'o', 2, 0),
@@ -1256,7 +1262,7 @@ class TestMPTreeFix(TestTreeBase):
                            (u'221', u'i', 3, 1),
                            (u'2211', u'e', 4, 0),
                            (u'3', u'd', 1, 0),
-                           (u'4', u'g', 1, 0)]
+                           (u'4', u'g', 1, 0)]}
 
         for model in (MPTestNodeShortPath, TestSortedNodeShortPath):
             model(path='4', depth=2, numchild=2, desc='a').save()
@@ -1273,10 +1279,8 @@ class TestMPTreeFix(TestTreeBase):
             model(path='3', depth=221, numchild=322, desc='g').save()
             model(path='1', depth=10, numchild=3, desc='b').save()
             model(path='2', depth=10, numchild=3, desc='d').save()
-        MPTestNodeShortPath.fix_tree()
-        self.assertEqual(self.got(MPTestNodeShortPath), expected_unsorted)
-        
-        TestSortedNodeShortPath.fix_tree()
-        self.assertEqual(self.got(TestSortedNodeShortPath), expected_sorted)
+
+            model.fix_tree()
+            self.assertEqual(self.got(model), expected[model])
 
 #~
