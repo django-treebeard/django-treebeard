@@ -135,7 +135,7 @@ class TestEmptyTree(TestTreeBase):
     def test_get_root_nodes_empty(self):
         got = MPTestNode.get_root_nodes()
         expected = []
-        self.assertEqual([node.path for node in got], expected)
+        self.assertEqual([node.desc for node in got], expected)
 
 
     def test_get_first_root_node_empty(self):
@@ -1050,7 +1050,7 @@ class TestTreeSorted(TestCase):
         self.assertEqual(self.got(), expected)
 
 
-class TestTreeAlphabet(TestCase):
+class TestMPTreeAlphabet(TestCase):
 
     def test_alphabet(self):
         if not os.getenv('TREEBEARD_TEST_ALPHABET', False):
@@ -1095,7 +1095,59 @@ class TestTreeAlphabet(TestCase):
 
 
 
-class TestTreeStepOverflow(TestCase):
+class TestHelpers(TestTreeBase):
+
+    def setUp(self):
+        MPTestNode.load_bulk(BASE_DATA)
+        for node in MPTestNode.get_root_nodes():
+            MPTestNode.load_bulk(BASE_DATA, node)
+        MPTestNode.add_root(desc='5')
+
+    def test_descendants_group_count_root(self):
+        expected = [(o.desc, o.get_descendants().count())
+                    for o in MPTestNode.get_root_nodes()]
+        got = [(o.desc, o.descendants_count)
+               for o in MPTestNode.get_descendants_group_count()]
+        self.assertEqual(got, expected)
+
+
+    def test_descendants_group_count_node(self):
+        parent = MPTestNode.objects.filter(depth=1).get(desc='2')
+        expected = [(o.desc, o.get_descendants().count())
+                    for o in parent.get_children()]
+        got = [(o.desc, o.descendants_count)
+               for o in MPTestNode.get_descendants_group_count(parent)]
+        self.assertEqual(got, expected)
+
+
+
+class TestTreeSortedAutoNow(TestCase):
+    """
+    The sorting mechanism used by treebeard when adding a node can fail if the
+    ordering is using an "auto_now" field
+    """
+
+    def test_sorted_by_autonow_workaround(self):
+        """
+        workaround
+        """
+        import datetime
+        for i in range(1, 5):
+            MPTestNodeSortedAutoNow.add_root(desc='node%d' % (i,),
+                                             created=datetime.datetime.now())
+
+    def test_sorted_by_autonow_FAIL(self):
+        """
+        This test asserts that we have a problem.
+        fix this, somehow
+        """
+        MPTestNodeSortedAutoNow.add_root(desc='node1')
+        self.assertRaises(ValueError, MPTestNodeSortedAutoNow.add_root,
+                          desc='node2')
+
+
+
+class TestMPTreeStepOverflow(TestCase):
     
     def test_add_root(self):
         method = MPTestNodeSmallStep.add_root
@@ -1135,32 +1187,7 @@ class TestTreeStepOverflow(TestCase):
 
 
 
-class TestTreeSortedAutoNow(TestCase):
-    """
-    The sorting mechanism used by treebeard when adding a node can fail if the
-    ordering is using an "auto_now" field
-    """
-
-    def test_sorted_by_autonow_workaround(self):
-        """
-        workaround
-        """
-        import datetime
-        for i in range(1, 5):
-            MPTestNodeSortedAutoNow.add_root(desc='node%d' % (i,),
-                                           created=datetime.datetime.now())
-
-    def test_sorted_by_autonow_FAIL(self):
-        """
-        This test asserts that we have a problem.
-        fix this, somehow
-        """
-        MPTestNodeSortedAutoNow.add_root(desc='node1')
-        self.assertRaises(ValueError, MPTestNodeSortedAutoNow.add_root, desc='node2')
-
-
-
-class TestTreeShortPath(TestCase):
+class TestMPTreeShortPath(TestCase):
     """
     Here we test a tree with a very small path field (max_length=4) and a
     steplen of 1
@@ -1171,7 +1198,7 @@ class TestTreeShortPath(TestCase):
 
 
 
-class TestFindProblems(TestTreeBase):
+class TestMPTreeFindProblems(TestTreeBase):
 
     def test_find_problems(self):
         model = MPTestNodeAlphabet
@@ -1194,7 +1221,7 @@ class TestFindProblems(TestTreeBase):
 
 
 
-class TestFixTree(TestTreeBase):
+class TestMPTreeFix(TestTreeBase):
 
     def got(self, model):
         return [(o.path, o.desc, o.depth, o.numchild) for o in model.objects.all()]
@@ -1251,30 +1278,5 @@ class TestFixTree(TestTreeBase):
         
         TestSortedNodeShortPath.fix_tree()
         self.assertEqual(self.got(TestSortedNodeShortPath), expected_sorted)
-
-
-class TestHelpers(TestTreeBase):
-
-    def setUp(self):
-        MPTestNode.load_bulk(BASE_DATA)
-        for node in MPTestNode.get_root_nodes():
-            MPTestNode.load_bulk(BASE_DATA, node)
-        MPTestNode.add_root(desc='5')
-
-    def test_descendants_group_count_root(self):
-        expected = [(o.desc, o.get_descendants().count())
-                    for o in MPTestNode.get_root_nodes()]
-        got = [(o.desc, o.descendants_count)
-               for o in MPTestNode.get_descendants_group_count()]
-        self.assertEqual(got, expected)
-
-
-    def test_descendants_group_count_node(self):
-        parent = MPTestNode.objects.filter(depth=1).get(desc='2')
-        expected = [(o.desc, o.get_descendants().count())
-                    for o in parent.get_children()]
-        got = [(o.desc, o.descendants_count)
-               for o in MPTestNode.get_descendants_group_count(parent)]
-        self.assertEqual(got, expected)
 
 #~
