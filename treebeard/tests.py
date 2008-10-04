@@ -1280,29 +1280,19 @@ class TestHelpers(TestTreeBase):
         TestNode.add_root(desc='5')
 
     def test_descendants_group_count_root(self):
-        got = [(o.path, count)
-               for o, count in TestNode.get_descendants_group_count()]
-        expected = [('001', 10),
-                    ('002', 15),
-                    ('003', 10),
-                    ('004', 11),
-                    ('005', 0)]
+        expected = [(o.path, o.get_descendants().count())
+                    for o in TestNode.get_root_nodes()]
+        got = [(o.path, o.descendants_count)
+               for o in TestNode.get_descendants_group_count()]
         self.assertEqual(got, expected)
 
 
     def test_descendants_group_count_node(self):
         parent = TestNode.objects.get(path='002')
-        got = [(o.path, count)
-               for o, count in TestNode.get_descendants_group_count(parent)]
-        expected = [('002001', 0),
-                    ('002002', 0),
-                    ('002003', 1),
-                    ('002004', 0),
-                    ('002005', 0),
-                    ('002006', 5),
-                    ('002007', 0),
-                    ('002008', 1)]
+        expected = [(o.path, o.get_descendants().count())
+                    for o in parent.get_children()]
+        got = [(o.path, o.descendants_count)
+               for o in TestNode.get_descendants_group_count(parent)]
         self.assertEqual(got, expected)
-
 
 #~
