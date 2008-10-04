@@ -16,6 +16,7 @@ import numconv
 from django.core import serializers
 from django.db import models, transaction, connection
 from django.db.models import Q
+from django.db.models.sql.subqueries import CountQuery
 from django.conf import settings
 
 
@@ -625,30 +626,81 @@ class MPNode(Node):
     @classmethod
     def get_descendants_group_count(cls, parent=None):
         """
-        Helper function for efficient aggregates.
-        FIXME: Needs better docstring.
+        Helper for a very common case: get a group of siblings and the number
+        of *descendants* (not only children) in every sibling.
+
+        :param parent:
+            
+            The parent of the siblings to return. If no parent is given, the
+            root nodes will be returned.
+        
+        :returns:
+
+            A `list` (**NOT** a Queryset) of node objects with an extra
+            attribute: `descendants_count`.
+
+        Example::
+
+            # get a list of the root nodes
+            root_nodes = MyModel.get_descendants_group_count()
+
+            for node in root_nodes:
+                print '%s by %s (%d replies)' % (node.comment, node.author,
+                                                 node.descendants_count)
         """
+
+        #~
+        # disclaimer: this is the FOURTH implementation I wrote for this
+        # function. I really tried to make it return a queryset, but doing so
+        # with a *single* query isn't trivial with Django's ORM.
+
+        # ok, I DID manage to make Django's ORM return a queryset here,
+        # defining two querysets, passing one subquery in the tables parameters
+        # of .extra() of the second queryset, using the undocumented order_by
+        # feature, and using a HORRIBLE hack to avoid django quoting the
+        # subquery as a table, BUT (and there is always a but) the hack didn't
+        # survive turning the QuerySet into a ValuesQuerySet, so I just used
+        # good old SQL.
+        # NOTE: in case there is interest, the hack to avoid django quoting the
+        # subquery as a table, was adding the subquery to the alias cache of
+        # the queryset's query object:
+        # 
+        #     qset.query.quote_cache[subquery] = subquery
+        #
+        # If there is a better way to do this in an UNMODIFIED django 1.0, let
+        # me know.
+        #~
+
         if parent:
             depth = parent.depth + 1
-            sqlparms = cls._get_children_path_interval(parent.path)
+            params = cls._get_children_path_interval(parent.path)
             extrand = 'AND path BETWEEN %s AND %s'
         else:
             depth = 1
-            sqlparms = []
+            params = []
             extrand = ''
-        sql = 'SELECT SUBSTR(path, 0, %d) AS subpath, COUNT(*)-1 AS count ' \
-              ' FROM  %s ' \
-              ' WHERE depth >= %d %s' \
-              ' GROUP BY subpath ORDER BY subpath' % (1+depth*cls.steplen,
-              cls._meta.db_table, depth, extrand)
 
+        sql = 'SELECT * FROM %(table)s AS t1 INNER JOIN ' \
+              ' (SELECT ' \
+              '   SUBSTR(path, 1, %(subpathlen)s) AS subpath, ' \
+              '   COUNT(1)-1 AS count ' \
+              '   FROM %(table)s ' \
+              '   WHERE depth >= %(depth)s %(extrand)s' \
+              '   GROUP BY subpath) AS t2 ' \
+              ' ON t1.path=t2.subpath ' \
+              ' ORDER BY t1.path' % {'table': cls._meta.db_table,
+                                     'subpathlen': depth*cls.steplen,
+                                     'depth': depth,
+                                     'extrand': extrand}
         cursor = connection.cursor()
-        cursor.execute(sql, sqlparms)
-        ret = cursor.fetchall()
-        paths = [path for path, _ in ret]
-        nodes = dict([(obj.path, obj)
-                      for obj in cls.objects.filter(path__in=paths)])
-        ret = [(nodes[path], count) for path, count in ret]
+        cursor.execute(sql, params)
+
+        ret = []
+        field_names = [field[0] for field in cursor.description]
+        for node_data in cursor.fetchall():
+            node = cls(**dict(zip(field_names, node_data[:-2])))
+            node.descendants_count = node_data[-1]
+            ret.append(node)
         transaction.commit_unless_managed()
         return ret
 
@@ -1167,8 +1219,7 @@ class MPNode(Node):
         """
         # call our queryset's delete to handle children removal and updating
         # the parent's numchild
-        self.__class__.objects.filter(
-            path=self.path).delete()
+        self.__class__.objects.filter(path=self.path).delete()
 
 
 
