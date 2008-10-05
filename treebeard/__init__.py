@@ -26,7 +26,7 @@
        3. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your django
           settings file.
        4. Create a new model that inherits from one of ``django-treebeard``'s
-          abstract tree models: :class:`mp_tree.MPNode`
+          abstract tree models: :class:`mp_tree.MP_Node`
        5. Run :command:`python manage.py syncdb`
 
 
@@ -57,14 +57,14 @@ class InvalidMoveToDescendant(Exception):
 class MissingNodeOrderBy(Exception):
     """
     Raised when an operation needs a missing
-    :attr:`~treebeard.MPNode.node_order_by` attribute
+    :attr:`~treebeard.MP_Node.node_order_by` attribute
     """
 
 class PathOverflow(Exception):
     """
     Raised when trying to add or move a node to a position where no more nodes
-    can be added (see :attr:`~treebeard.MPNode.path` and
-    :attr:`~treebeard.MPNode.alphabet` for more info)
+    can be added (see :attr:`~treebeard.MP_Node.path` and
+    :attr:`~treebeard.MP_Node.alphabet` for more info)
     """
 
 

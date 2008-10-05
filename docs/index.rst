@@ -12,9 +12,12 @@
       .. automethod:: add_child
       .. automethod:: add_sibling
       .. automethod:: delete
+      .. automethod:: get_depth
       .. automethod:: get_ancestors
       .. automethod:: get_children
+      .. automethod:: get_children_count
       .. automethod:: get_descendants
+      .. automethod:: get_descendant_count
       .. automethod:: get_first_child
       .. automethod:: get_first_sibling
       .. automethod:: get_next_sibling
@@ -51,7 +54,7 @@
 
 .. automodule:: treebeard.mp_tree
 
-   .. autoclass:: MPNode
+   .. autoclass:: MP_Node
       :show-inheritance:
 
       .. automethod:: add_root
