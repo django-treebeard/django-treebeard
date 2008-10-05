@@ -16,7 +16,7 @@
     ``CONNECT BY`` or sprocs and triggers for nested intervals.
 
     In a materialized path approach, every node in the tree will have a
-    :attr:`~MPNode.path` attribute, where the full path from the root
+    :attr:`~MP_Node.path` attribute, where the full path from the root
     to the node will be stored. This has the advantage of needing very simple
     and fast queries, at the risk of inconsistency because of the
     denormalization of ``parent``/``child`` foreign keys. This can be prevented
@@ -28,7 +28,7 @@
     problem, every step number is encoded.
 
     Also, two extra fields are stored in every node:
-    :attr:`~MPNode.depth` and :attr:`~MPNode.numchild`.
+    :attr:`~MP_Node.depth` and :attr:`~MP_Node.numchild`.
     This makes the read operations faster, at the cost of a little more
     maintenance on tree updates/inserts/deletes. Don't worry, even with these
     extra steps, materialized path is more efficient than other approaches.
@@ -38,7 +38,7 @@
        The materialized path approach makes heavy use of ``LIKE`` in your
        database, with clauses like ``WHERE path LIKE '002003%'``. If you think
        that ``LIKE`` is too slow, you're right, but in this case the
-       :attr:`~MPNode.path` field is indexed in the database, and all
+       :attr:`~MP_Node.path` field is indexed in the database, and all
        ``LIKE`` clauses that don't **start** with a ``%`` character will use the
        index. This is what makes the materialized path approach so fast.
 
@@ -62,7 +62,7 @@ from treebeard import Node, InvalidPosition, InvalidMoveToDescendant, \
     PathOverflow, MissingNodeOrderBy
 
 
-class MPNodeQuerySet(models.query.QuerySet):
+class MP_NodeQuerySet(models.query.QuerySet):
     """
     Custom queryset for the tree node manager.
 
@@ -81,7 +81,7 @@ class MPNodeQuerySet(models.query.QuerySet):
             # we already know the children, let's call the default django
             # delete method and let it handle the removal of the user's
             # foreign keys...
-            super(MPNodeQuerySet, self).delete()
+            super(MP_NodeQuerySet, self).delete()
         else:
             # we'll have to manually run through all the nodes that are going
             # to be deleted and remove nodes from the list if an ancestor is
@@ -101,7 +101,7 @@ class MPNodeQuerySet(models.query.QuerySet):
 
             # ok, got the minimal list of nodes to remove...
             # we must also remove their children
-            # and update every parent node's childnum attribute
+            # and update every parent node's numchild attribute
             # LOTS OF FUN HERE!
             parents = {}
             toremove = []
@@ -128,7 +128,7 @@ class MPNodeQuerySet(models.query.QuerySet):
 
 
 
-class MPNodeManager(models.Manager):
+class MP_NodeManager(models.Manager):
     """ Custom manager for nodes.
     """
 
@@ -136,10 +136,10 @@ class MPNodeManager(models.Manager):
         """
         Sets the custom queryset as the default.
         """
-        return MPNodeQuerySet(self.model)
+        return MP_NodeQuerySet(self.model)
 
 
-class MPNode(Node):
+class MP_Node(Node):
     """
     Abstract model to create your own tree models.
 
@@ -206,7 +206,7 @@ class MPNode(Node):
              can't just define it since you'd get a django exception, you have
              to modify the already defined attribute::
 
-               class MyNodeModel(MPNode):
+               class MyNodeModel(MP_Node):
                    pass
 
                MyNodeModel._meta.get_field('path').max_length = 1024
@@ -215,7 +215,7 @@ class MPNode(Node):
              a node::
 
                
-               class TestNodeSortedAutoNow(MPNode):
+               class TestNodeSortedAutoNow(MP_Node):
                    desc = models.CharField(max_length=255)
                    created = models.DateTimeField(auto_now_add=True)
                    node_order_by = ['created']
@@ -272,7 +272,7 @@ class MPNode(Node):
 
     Example::
 
-       class SortedNode(MPNode):
+       class SortedNode(MP_Node):
           node_order_by = ['numval', 'strval']
 
           numval = models.IntegerField()
@@ -289,7 +289,7 @@ class MPNode(Node):
     depth = models.PositiveIntegerField()
     numchild = models.PositiveIntegerField(default=0)
 
-    objects = MPNodeManager()
+    objects = MP_NodeManager()
 
 
     @classmethod
@@ -324,38 +324,6 @@ class MPNode(Node):
         newobj.save()
         transaction.commit_unless_managed()
         return newobj
-
-
-    @classmethod
-    def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
-        """
-        Loads a list/dictionary structure to the tree.
-
-        See: :meth:`treebeard.Node.load_bulk`
-        """
-
-        # tree, iterative preorder
-        added = []
-        # stack of nodes to analize
-        stack = [(parent, node) for node in bulk_data[::-1]]
-        while stack:
-            parent, node_struct = stack.pop()
-            # shallow copy of the data strucure so it doesn't persist...
-            node_data = node_struct['data'].copy()
-            if keep_ids:
-                node_data['id'] = node_struct['id']
-            if parent:
-                node_obj = parent.add_child(**node_data)
-            else:
-                node_obj = cls.add_root(**node_data)
-            added.append(node_obj.id)
-            if 'children' in node_struct:
-                # extending the stack with the current node as the parent of
-                # the new nodes
-                stack.extend([(node_obj, node) \
-                    for node in node_struct['children'][::-1]])
-        transaction.commit_unless_managed()
-        return added
 
 
     @classmethod
@@ -496,6 +464,33 @@ class MPNode(Node):
         cls.load_bulk(dump, None, True)
 
 
+    @classmethod
+    def get_tree(cls, parent=None):
+        """
+        :returns: A queryset of nodes ordered as DFS, including the parent. If
+        no parent is given, the entire tree is returned.
+        """
+        if parent is None:
+            # return the entire tree
+            return cls.objects.all()
+        if parent.numchild:
+            return cls.objects.filter(path__startswith=parent.path,
+                                      depth__gte=parent.depth)
+        return cls.objects.none()
+
+
+    @classmethod
+    def get_root_nodes(cls):
+        """
+        :returns: A queryset containing the root nodes in the tree.
+
+        Example::
+
+           MyNodeModel.get_root_nodes()
+        """
+        return cls.objects.filter(depth=1)
+
+
 
     @classmethod
     def get_descendants_group_count(cls, parent=None):
@@ -562,6 +557,15 @@ class MPNode(Node):
         return ret
 
 
+    def get_depth(self):
+        """
+        :returns: the depth (level) of the node
+
+        See: :meth:`treebeard.Node.get_depth`
+        """
+        return self.depth
+
+
     def get_siblings(self):
         """
         :returns: A queryset of all the node's siblings, including the node
@@ -590,6 +594,19 @@ class MPNode(Node):
         return self.__class__.objects.none()
 
 
+    def get_next_sibling(self):
+        """
+        :returns: The next node's sibling, or None if it was the rightmost
+            sibling.
+
+        See: :meth:`treebeard.Node.get_next_sibling`
+        """
+        try:
+            return self.get_siblings().filter(path__gt=self.path)[0]
+        except IndexError:
+            return None
+
+
     def get_descendants(self):
         """
         :returns: A queryset of all the node's descendants as DFS, doesn't
@@ -597,10 +614,7 @@ class MPNode(Node):
 
         See: :meth:`treebeard.Node.get_descendants`
         """
-        if self.numchild:
-            return self.__class__.objects.filter(path__startswith=self.path,
-                                             depth__gt=self.depth)
-        return self.__class__.objects.none()
+        return self.__class__.get_tree(self).exclude(pk=self.id)
 
 
     def get_prev_sibling(self):
@@ -616,17 +630,14 @@ class MPNode(Node):
             return None
 
 
-    def get_next_sibling(self):
+    def get_children_count(self):
         """
-        :returns: The next node's sibling, or None if it was the rightmost
-            sibling.
+        :returns: The number the node's children, calculated in the most
+        efficient possible way.
 
-        See: :meth:`treebeard.Node.get_next_sibling`
+        See: :meth:`treebeard.Node.get_children_count`
         """
-        try:
-            return self.get_siblings().filter(path__gt=self.path)[0]
-        except IndexError:
-            return None
+        return self.numchild
 
 
     def is_sibling_of(self, node):
@@ -694,7 +705,7 @@ class MPNode(Node):
                                    ' and UPDATE your  database')
         # saving the instance before returning it
         newobj.save()
-        newobj._parent_obj = self
+        newobj._cached_parent_obj = self
         self.numchild += 1
         self.save()
         return newobj
@@ -813,14 +824,14 @@ class MPNode(Node):
             return
         try:
             if update:
-                del self._parent_obj
+                del self._cached_parent_obj
             else:
-                return self._parent_obj
+                return self._cached_parent_obj
         except AttributeError:
             pass
         parentpath = self._get_basepath(self.path, depth-1)
-        self._parent_obj = self.__class__.objects.get(path=parentpath)
-        return self._parent_obj
+        self._cached_parent_obj = self.__class__.objects.get(path=parentpath)
+        return self._cached_parent_obj
 
 
 

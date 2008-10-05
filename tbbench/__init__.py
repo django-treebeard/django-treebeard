@@ -35,7 +35,7 @@
 
    For every available library (treebeard and mptt), two models are tested: a
    vanilla model, and a model with a "tree order by" attribute enabled
-   (:attr:`~treebeard.MPNode.node_order_by` in treebeard,
+   (:attr:`~treebeard.MP_Node.node_order_by` in treebeard,
    ``order_insertion_by`` in mptt).
 
    Also, every test will be tested with and without database transactions
@@ -49,7 +49,7 @@
    with better indexing. The Materialized Path Tree approach used by
    ``treebeard`` is *very* sensitive to database indexing, so you'll
    probably want to ``EXPLAIN`` your most common queries involving the
-   :attr:`~treebeard.MPNode.path` field and add proper indexes.
+   :attr:`~treebeard.MP_Node.path` field and add proper indexes.
 
    .. note::
 

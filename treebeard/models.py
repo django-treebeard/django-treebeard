@@ -11,14 +11,14 @@
 
 """
 
-from django.db import models
+from django.db import models, transaction
 
 
 
 class Node(models.Model):
     """ Node class.
 
-    Right now there is only one class that inherits from Node: MPNode for
+    Right now there is only one class that inherits from Node: MP_Node for
     Materialized Path trees.
     """
 
@@ -128,7 +128,29 @@ class Node(models.Model):
               * 41
 
         """
-        raise NotImplementedError
+
+        # tree, iterative preorder
+        added = []
+        # stack of nodes to analize
+        stack = [(parent, node) for node in bulk_data[::-1]]
+        while stack:
+            parent, node_struct = stack.pop()
+            # shallow copy of the data strucure so it doesn't persist...
+            node_data = node_struct['data'].copy()
+            if keep_ids:
+                node_data['id'] = node_struct['id']
+            if parent:
+                node_obj = parent.add_child(**node_data)
+            else:
+                node_obj = cls.add_root(**node_data)
+            added.append(node_obj.id)
+            if 'children' in node_struct:
+                # extending the stack with the current node as the parent of
+                # the new nodes
+                stack.extend([(node_obj, node) \
+                    for node in node_struct['children'][::-1]])
+        transaction.commit_unless_managed()
+        return added
 
 
     @classmethod
@@ -168,7 +190,7 @@ class Node(models.Model):
 
            MyNodeModel.get_root_nodes()
         """
-        return cls.objects.filter(depth=1)
+        raise NotImplementedError
     
 
     @classmethod
@@ -223,6 +245,15 @@ class Node(models.Model):
         raise NotImplementedError
 
 
+    @classmethod
+    def get_tree(cls, parent=None):
+        """
+        :returns: A list of nodes ordered as DFS, including the parent. If
+        no parent is given, the entire tree is returned.
+        """
+        raise NotImplementedError
+
+
 
     @classmethod
     def get_descendants_group_count(cls, parent=None):
@@ -252,6 +283,17 @@ class Node(models.Model):
         raise NotImplementedError
 
 
+    def get_depth(self):
+        """
+        :returns: the depth (level) of the node
+
+        Example::
+
+           node.get_depth()
+        """
+        raise NotImplementedError
+
+
     def get_siblings(self):
         """
         :returns: A queryset of all the node's siblings, including the node
@@ -275,16 +317,41 @@ class Node(models.Model):
         raise NotImplementedError
 
 
+    def get_children_count(self):
+        """
+        :returns: The number of the node's children
+
+        Example::
+
+            node.get_children_count()
+        """
+
+        # this is the last resort, subclasses of Node should implement this in
+        # a efficient way.
+        return self.get_children().count()
+
+
     def get_descendants(self):
         """
-        :returns: A queryset of all the node's descendants as DFS, doesn't
-            include the node itself
+        :returns: A queryset of all the node's descendants, doesn't
+            include the node itself (some subclasses may return a list).
 
         Example::
         
            node.get_descendants()
         """
         raise NotImplementedError
+
+
+    def get_descendant_count(self):
+        """
+        :returns: the number of descendants of a node.
+
+        Example::
+        
+           node.get_descendant_count()
+        """
+        return self.get_descendants().count()
 
 
     def get_first_child(self):
@@ -591,8 +658,8 @@ class Node(models.Model):
         
         .. note::
            
-           call our queryset's delete to handle children removal and updating
-           the parent's numchild
+           Call our queryset's delete to handle children removal. Subclasses
+           will handle extra maintenance.
         """
         self.__class__.objects.filter(id=self.id).delete()
 

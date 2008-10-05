@@ -12,7 +12,7 @@
 """
 
 from django.db import models
-from treebeard.mp_tree import MPNode
+from treebeard.mp_tree import MP_Node
 try:
     import mptt
 except ImportError:
@@ -20,12 +20,12 @@ except ImportError:
 
 
 
-class TbNode(MPNode):
+class TbNode(MP_Node):
     numval = models.IntegerField()
     strval = models.CharField(max_length=255)
 
 
-class TbSortedNode(MPNode):
+class TbSortedNode(MP_Node):
     node_order_by = ['numval', 'strval']
 
     numval = models.IntegerField()
