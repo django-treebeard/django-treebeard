@@ -12,6 +12,7 @@
       .. automethod:: add_child
       .. automethod:: add_sibling
       .. automethod:: delete
+      .. automethod:: get_tree
       .. automethod:: get_depth
       .. automethod:: get_ancestors
       .. automethod:: get_children
@@ -28,6 +29,8 @@
       .. automethod:: is_child_of
       .. automethod:: is_descendant_of
       .. automethod:: is_sibling_of
+      .. automethod:: is_root
+      .. automethod:: is_leaf
       .. automethod:: move
       .. automethod:: save
 
@@ -63,8 +66,20 @@
       .. automethod:: add_sibling
       .. automethod:: move
 
+      .. automethod:: get_tree
+
       .. automethod:: find_problems
       .. automethod:: fix_tree
+
+
+:mod:`treebeard.al_tree` --- Adjacency List tree implementation for Django
+==========================================================================
+
+.. automodule:: treebeard.al_tree
+
+   .. autoclass:: AL_Node
+
+      .. automethod:: get_depth
 
 
 :mod:`tbbench` --- tree

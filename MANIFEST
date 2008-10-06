@@ -4,6 +4,8 @@ README
 setup.py
 treebeard/__init__.py
 treebeard/models.py
+treebeard/al_tree.py
+treebeard/mp_tree.py
 treebeard/numconv.py
 treebeard/tests.py
 docs/conf.py

@@ -18,6 +18,7 @@ from django.db import models, transaction
 from treebeard import InvalidPosition, InvalidMoveToDescendant, \
     PathOverflow, MissingNodeOrderBy, numconv
 from treebeard.mp_tree import MP_Node
+from treebeard.al_tree import AL_Node
 
 BASE_DATA = [
   {'data':{'desc':'1'}},
@@ -46,8 +47,32 @@ class MP_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(MP_TestNode)
 
 
+class AL_TestNode(AL_Node):
+    parent = models.ForeignKey('self',
+                               related_name='children_set',
+                               null=True,
+                               db_index=True)
+    sib_order = models.PositiveIntegerField()
+    desc = models.CharField(max_length=255)
+
+
+class AL_TestNodeSomeDep(models.Model):
+    node = models.ForeignKey(AL_TestNode)
+
+
 class MP_TestNodeSorted(MP_Node):
     steplen = 1
+    node_order_by = ['val1', 'val2', 'desc']
+    val1 = models.IntegerField()
+    val2 = models.IntegerField()
+    desc = models.CharField(max_length=255)
+
+
+class AL_TestNodeSorted(AL_Node):
+    parent = models.ForeignKey('self',
+                               related_name='children_set',
+                               null=True,
+                               db_index=True)
     node_order_by = ['val1', 'val2', 'desc']
     val1 = models.IntegerField()
     val2 = models.IntegerField()
@@ -83,13 +108,13 @@ class MP_TestNodeShortPath(MP_Node):
 MP_TestNodeShortPath._meta.get_field('path').max_length = 4
 
 
-class TestSortedNodeShortPath(MP_Node):
+class MP_TestSortedNodeShortPath(MP_Node):
     steplen = 1
     alphabet = '01234'
     desc = models.CharField(max_length=255)
 
     node_order_by = ['desc']
-TestSortedNodeShortPath._meta.get_field('path').max_length = 4
+MP_TestSortedNodeShortPath._meta.get_field('path').max_length = 4
 
 
 def multi_test():
@@ -101,6 +126,11 @@ def multi_test():
 
                 try:
                     self.set_MP() ; f(self)
+                finally:
+                    transaction.rollback()
+
+                try:
+                    self.set_AL() ; f(self)
                 finally:
                     transaction.rollback()
 
@@ -132,6 +162,12 @@ class TestTreeBase(TestCase):
         self.model = MP_TestNode
         self.sorted_model = MP_TestNodeSorted
         self.dep_model = MP_TestNodeSomeDep
+
+
+    def set_AL(self):
+        self.model = AL_TestNode
+        self.sorted_model = AL_TestNodeSorted
+        self.dep_model = AL_TestNodeSomeDep
 
 
     def got(self):
@@ -183,12 +219,19 @@ class TestEmptyTree(TestTreeBase):
         self.assertEqual(got, None)
 
 
+    @multi_test()
+    def test_get_tree(self):
+        got = list(self.model.get_tree())
+        self.assertEqual(got, [])
+
+
 
 class TestNonEmptyTree(TestTreeBase):
 
     def setUp(self):
         super(TestNonEmptyTree, self).setUp()
         MP_TestNode.load_bulk(BASE_DATA)
+        AL_TestNode.load_bulk(BASE_DATA)
 
 
 class TestClassMethods(TestNonEmptyTree):
@@ -233,16 +276,46 @@ class TestClassMethods(TestNonEmptyTree):
 
 
     @multi_test()
+    def test_get_tree_all(self):
+        got = [(o.desc, o.get_depth(), o.get_children_count())
+                for o in self.model.get_tree()]
+        self.assertEqual(got, self.unchanged)
+
+
+    @multi_test()
     def test_dump_bulk_all(self):
         self.assertEqual(self.model.dump_bulk(keep_ids=False), BASE_DATA)
+
+
+    @multi_test()
+    def test_get_tree_node(self):
+        leafnode = self.model.objects.get(desc=u'231')
+        self.model.load_bulk(BASE_DATA, leafnode)
+
+        got = [(o.desc, o.get_depth(), o.get_children_count())
+                for o in self.model.get_tree(leafnode)]
+        expected = [(u'231', 3, 4),
+                    (u'1', 4, 0),
+                    (u'2', 4, 4),
+                    (u'21', 5, 0),
+                    (u'22', 5, 0),
+                    (u'23', 5, 1),
+                    (u'231', 6, 0),
+                    (u'24', 5, 0),
+                    (u'3', 4, 0),
+                    (u'4', 4, 1),
+                    (u'41', 5, 0)]
+        self.assertEqual(got, expected)
 
 
     @multi_test()
     def test_dump_bulk_node(self):
         leafnode = self.model.objects.get(desc=u'231')
         self.model.load_bulk(BASE_DATA, leafnode)
+
+        got = self.model.dump_bulk(leafnode, False)
         expected = [{'data':{'desc':u'231'}, 'children':BASE_DATA}]
-        self.assertEqual(self.model.dump_bulk(leafnode, False), expected)
+        self.assertEqual(got, expected)
 
 
     @multi_test()
@@ -282,6 +355,34 @@ class TestClassMethods(TestNonEmptyTree):
 
 
 class TestSimpleNodeMethods(TestNonEmptyTree):
+
+    @multi_test()
+    def test_is_root(self):
+        data = [
+            ('2', True),
+            ('1', True),
+            ('4', True),
+            ('21', False),
+            ('24', False),
+            ('22', False),
+            ('231', False),
+        ]
+        for desc, expected in data:
+            got = self.model.objects.get(desc=desc).is_root()
+            self.assertEqual(got, expected)
+
+
+    @multi_test()
+    def test_is_leaf(self):
+        data = [
+            ('2', False),
+            ('23', False),
+            ('231', True),
+        ]
+        for desc, expected in data:
+            got = self.model.objects.get(desc=desc).is_leaf()
+            self.assertEqual(got, expected)
+
 
     @multi_test()
     def test_get_root(self):
@@ -964,7 +1065,7 @@ class TestMoveBranch(TestNonEmptyTree):
 
     @multi_test()
     def test_move_branch_first_sibling(self):
-        MP_TestNode.objects.get(desc='4').move(MP_TestNode.objects.get(desc='23'), 'first-sibling')
+        self.model.objects.get(desc='4').move(self.model.objects.get(desc='23'), 'first-sibling')
         expected = [(u'1', 1, 0),
                     (u'2', 1, 5),
                     (u'4', 2, 1),
@@ -980,7 +1081,7 @@ class TestMoveBranch(TestNonEmptyTree):
 
     @multi_test()
     def test_move_branch_last_sibling(self):
-        MP_TestNode.objects.get(desc='4').move(MP_TestNode.objects.get(desc='23'), 'last-sibling')
+        self.model.objects.get(desc='4').move(self.model.objects.get(desc='23'), 'last-sibling')
         expected = [(u'1', 1, 0),
                     (u'2', 1, 5),
                     (u'21', 2, 0),
@@ -996,7 +1097,7 @@ class TestMoveBranch(TestNonEmptyTree):
 
     @multi_test()
     def test_move_branch_left_sibling(self):
-        MP_TestNode.objects.get(desc='4').move(MP_TestNode.objects.get(desc='23'), 'left')
+        self.model.objects.get(desc='4').move(self.model.objects.get(desc='23'), 'left')
         expected = [(u'1', 1, 0),
                     (u'2', 1, 5),
                     (u'21', 2, 0),
@@ -1012,7 +1113,7 @@ class TestMoveBranch(TestNonEmptyTree):
 
     @multi_test()
     def test_move_branch_right_sibling(self):
-        MP_TestNode.objects.get(desc='4').move(MP_TestNode.objects.get(desc='23'), 'right')
+        self.model.objects.get(desc='4').move(self.model.objects.get(desc='23'), 'right')
         expected = [(u'1', 1, 0),
                     (u'2', 1, 5),
                     (u'21', 2, 0),
@@ -1028,7 +1129,7 @@ class TestMoveBranch(TestNonEmptyTree):
 
     @multi_test()
     def test_move_branch_left_noleft_sibling(self):
-        MP_TestNode.objects.get(desc='4').move(MP_TestNode.objects.get(desc='23').get_first_sibling(), 'left')
+        self.model.objects.get(desc='4').move(self.model.objects.get(desc='23').get_first_sibling(), 'left')
         expected = [(u'1', 1, 0),
                     (u'2', 1, 5),
                     (u'4', 2, 1),
@@ -1044,7 +1145,7 @@ class TestMoveBranch(TestNonEmptyTree):
 
     @multi_test()
     def test_move_branch_right_noright_sibling(self):
-        MP_TestNode.objects.get(desc='4').move(MP_TestNode.objects.get(desc='23').get_last_sibling(), 'right')
+        self.model.objects.get(desc='4').move(self.model.objects.get(desc='23').get_last_sibling(), 'right')
         expected = [(u'1', 1, 0),
                     (u'2', 1, 5),
                     (u'21', 2, 0),
@@ -1060,13 +1161,13 @@ class TestMoveBranch(TestNonEmptyTree):
 
     @multi_test()
     def test_move_branch_left_itself_sibling(self):
-        MP_TestNode.objects.get(desc='4').move(MP_TestNode.objects.get(desc='4'), 'left')
+        self.model.objects.get(desc='4').move(self.model.objects.get(desc='4'), 'left')
         self.assertEqual(self.got(), self.unchanged)
 
 
     @multi_test()
     def test_move_branch_first_child(self):
-        MP_TestNode.objects.get(desc='4').move(MP_TestNode.objects.get(desc='23'), 'first-child')
+        self.model.objects.get(desc='4').move(self.model.objects.get(desc='23'), 'first-child')
         expected = [(u'1', 1, 0),
                     (u'2', 1, 4),
                     (u'21', 2, 0),
@@ -1082,7 +1183,7 @@ class TestMoveBranch(TestNonEmptyTree):
 
     @multi_test()
     def test_move_branch_last_child(self):
-        MP_TestNode.objects.get(desc='4').move(MP_TestNode.objects.get(desc='23'), 'last-child')
+        self.model.objects.get(desc='4').move(self.model.objects.get(desc='23'), 'last-child')
         expected =  [(u'1', 1, 0),
                      (u'2', 1, 4),
                      (u'21', 2, 0),
@@ -1221,7 +1322,7 @@ class TestMP_TreeAlphabet(TestCase):
 class TestHelpers(TestTreeBase):
 
     def setUp(self):
-        for model in (MP_TestNode, ):
+        for model in (MP_TestNode, AL_TestNode):
             model.load_bulk(BASE_DATA)
             for node in model.get_root_nodes():
                 model.load_bulk(BASE_DATA, node)
@@ -1370,7 +1471,7 @@ class TestMP_TreeFix(TestTreeBase):
                              (u'431', u'i', 3, 1),
                              (u'4311', u'e', 4, 0),
                              (u'44', u'o', 2, 0)],
-            TestSortedNodeShortPath: [(u'1', u'a', 1, 4),
+            MP_TestSortedNodeShortPath: [(u'1', u'a', 1, 4),
                            (u'11', u'a', 2, 0),
                            (u'12', u'a', 2, 0),
                            (u'13', u'o', 2, 0),
@@ -1385,7 +1486,7 @@ class TestMP_TreeFix(TestTreeBase):
                            (u'3', u'd', 1, 0),
                            (u'4', u'g', 1, 0)]}
 
-        for model in (MP_TestNodeShortPath, TestSortedNodeShortPath):
+        for model in (MP_TestNodeShortPath, MP_TestSortedNodeShortPath):
             model(path='4', depth=2, numchild=2, desc='a').save()
             model(path='13', depth=1000, numchild=0, desc='u').save()
             model(path='14', depth=4, numchild=500, desc='o').save()
