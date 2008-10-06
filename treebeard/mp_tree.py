@@ -24,7 +24,7 @@
 
     ``django-treebeard`` uses a particular approach: every step in the path has
     a fixed width and has no separators. This makes queries predictable and
-    faster at the cost of using more characters to store a step. To attack this
+    faster at the cost of using more characters to store a step. To address this
     problem, every step number is encoded.
 
     Also, two extra fields are stored in every node:
@@ -58,8 +58,7 @@ from django.db import models, transaction, connection
 from django.db.models import Q
 from django.conf import settings
 
-from treebeard import Node, InvalidPosition, InvalidMoveToDescendant, \
-    PathOverflow, MissingNodeOrderBy
+from treebeard.models import Node, InvalidMoveToDescendant, PathOverflow
 
 
 class MP_NodeQuerySet(models.query.QuerySet):
@@ -141,7 +140,7 @@ class MP_NodeManager(models.Manager):
 
 class MP_Node(Node):
     """
-    Abstract model to create your own tree models.
+    Abstract model to create your own Materialized Path Trees.
 
     .. attribute:: steplen
        
@@ -278,6 +277,9 @@ class MP_Node(Node):
           numval = models.IntegerField()
           strval = models.CharField(max_length=255)
 
+    Read the API reference of :class:`treebeard.Node` for info on methods
+    available in this class, or read the following section for methods with
+    particular arguments or exceptions.
     """
 
     steplen = 4
@@ -467,8 +469,14 @@ class MP_Node(Node):
     @classmethod
     def get_tree(cls, parent=None):
         """
-        :returns: A queryset of nodes ordered as DFS, including the parent. If
-        no parent is given, the entire tree is returned.
+        :returns: A *queryset* of nodes ordered as DFS, including the parent. If
+                  no parent is given, the entire tree is returned.
+
+        See: :meth:`treebeard.Node.get_tree`
+
+        .. note::
+
+            This metod returns a queryset.
         """
         if parent is None:
             # return the entire tree
@@ -746,18 +754,7 @@ class MP_Node(Node):
            node's new position
         """
 
-        if pos is None:
-            if self.node_order_by:
-                pos = 'sorted-sibling'
-            else:
-                pos = 'last-sibling'
-        if pos not in ('first-sibling', 'left', 'right', 'last-sibling', 'sorted-sibling'):
-            raise InvalidPosition('Invalid relative position: %s' % (pos,))
-        if self.node_order_by and pos != 'sorted-sibling':
-            raise InvalidPosition('Must use %s in add_sibling when'
-                                  ' node_order_by is enabled' % ('sorted-sibling',))
-        if pos == 'sorted-sibling' and not self.node_order_by:
-            raise MissingNodeOrderBy('Missing node_order_by attribute.')
+        pos = self._fix_add_sibling_opts(pos)
 
         # creating a new object
         newobj = self.__class__(**kwargs)
@@ -845,20 +842,8 @@ class MP_Node(Node):
         :raise PathOverflow: when the library can't make room for the
            node's new position
         """
-        if pos is None:
-            if self.node_order_by:
-                pos = 'sorted-sibling'
-            else:
-                pos = 'last-sibling'
-        if pos not in ('first-sibling', 'left', 'right', 'last-sibling', 'sorted-sibling',
-                       'first-child', 'last-child', 'sorted-child'):
-            raise InvalidPosition('Invalid relative position: %s' % (pos,))
-        if self.node_order_by and pos not in ('sorted-child', 'sorted-sibling'):
-            raise InvalidPosition('Must use %s or %s in add_sibling when'
-                                  ' node_order_by is enabled' % ('sorted-sibling',
-                                  'sorted-child'))
-        if pos in ('sorted-child', 'sorted-sibling') and not self.node_order_by:
-            raise MissingNodeOrderBy('Missing node_order_by attribute.')
+
+        pos = self._fix_move_opts(pos)
 
         oldpath = self.path
 
@@ -986,11 +971,13 @@ class MP_Node(Node):
 
             if newpos is None:
                 siblings = target.get_siblings()
-                siblings = {'left':siblings.filter(path__gte=target.path),
-                            'right':siblings.filter(path__gt=target.path),
-                            'first-sibling':siblings}[pos]
+                siblings = {'left': siblings.filter(path__gte=target.path),
+                            'right': siblings.filter(path__gt=target.path),
+                            'first-sibling': siblings}[pos]
                 basenum = cls._get_lastpos_in_path(target.path)
-                newpos = {'first-sibling':1, 'left':basenum, 'right':basenum+1}[pos]
+                newpos = {'first-sibling': 1,
+                          'left': basenum,
+                          'right': basenum+1}[pos]
 
             newpath = cls._get_path(target.path, newdepth, newpos)
 
@@ -1032,7 +1019,9 @@ class MP_Node(Node):
             newdepth += 1
             if target.numchild:
                 target = target.get_last_child()
-                pos = {'first-child':'first-sibling', 'last-child':'last-sibling', 'sorted-child':'sorted-sibling'}[pos]
+                pos = {'first-child': 'first-sibling',
+                       'last-child': 'last-sibling',
+                       'sorted-child': 'sorted-sibling'}[pos]
             else:
                 # moving as a target's first child
                 newpos = 1

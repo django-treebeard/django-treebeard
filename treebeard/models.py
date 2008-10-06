@@ -249,7 +249,7 @@ class Node(models.Model):
     def get_tree(cls, parent=None):
         """
         :returns: A list of nodes ordered as DFS, including the parent. If
-        no parent is given, the entire tree is returned.
+                  no parent is given, the entire tree is returned.
         """
         raise NotImplementedError
 
@@ -280,7 +280,17 @@ class Node(models.Model):
                 print '%s by %s (%d replies)' % (node.comment, node.author,
                                                  node.descendants_count)
         """
-        raise NotImplementedError
+
+        # this is the slowest possible implementation, subclasses should do
+        # better
+        if parent is None:
+            qset = cls.get_root_nodes()
+        else:
+            qset = parent.children_set.all()
+        nodes = list(qset)
+        for node in nodes:
+            node.descendants_count = node.get_descendant_count()
+        return nodes
 
 
     def get_depth(self):
@@ -560,15 +570,38 @@ class Node(models.Model):
 
         Example::
 
-           node.get_root()
+          node.get_root()
         """
         raise NotImplementedError
+
+
+    def is_root(self):
+        """
+        :returns: True if the node is a root node (else, returns False)
+
+        Example::
+
+           node.is_root()
+        """
+        return self.get_root() == self
+
+
+    def is_leaf(self):
+        """
+        :returns: True if the node is a leaf node (else, returns False)
+
+        Example::
+
+           node.is_leaf()
+        """
+        return self.get_children_count() == 0
 
 
     def get_ancestors(self):
         """
         :returns: A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
+            (some subclasses may return a list)
 
         Example::
 
@@ -664,9 +697,72 @@ class Node(models.Model):
         self.__class__.objects.filter(id=self.id).delete()
 
 
+    def _fix_add_sibling_opts(self, pos):
+        """
+        prepare the pos variable for the add_sibling method
+        """
+        if pos is None:
+            if self.node_order_by:
+                pos = 'sorted-sibling'
+            else:
+                pos = 'last-sibling'
+        if pos not in ('first-sibling', 'left', 'right', 'last-sibling', 'sorted-sibling'):
+            raise InvalidPosition('Invalid relative position: %s' % (pos,))
+        if self.node_order_by and pos != 'sorted-sibling':
+            raise InvalidPosition('Must use %s in add_sibling when'
+                                  ' node_order_by is enabled' % ('sorted-sibling',))
+        if pos == 'sorted-sibling' and not self.node_order_by:
+            raise MissingNodeOrderBy('Missing node_order_by attribute.')
+        return pos
+
+
+    def _fix_move_opts(self, pos):
+        """
+        prepare the pos var for the move method
+        """
+        if pos is None:
+            if self.node_order_by:
+                pos = 'sorted-sibling'
+            else:
+                pos = 'last-sibling'
+        if pos not in ('first-sibling', 'left', 'right', 'last-sibling', 'sorted-sibling',
+                       'first-child', 'last-child', 'sorted-child'):
+            raise InvalidPosition('Invalid relative position: %s' % (pos,))
+        if self.node_order_by and pos not in ('sorted-child', 'sorted-sibling'):
+            raise InvalidPosition('Must use %s or %s in add_sibling when'
+                                  ' node_order_by is enabled' % ('sorted-sibling',
+                                  'sorted-child'))
+        if pos in ('sorted-child', 'sorted-sibling') and not self.node_order_by:
+            raise MissingNodeOrderBy('Missing node_order_by attribute.')
+        return pos
+
+
     class Meta:
         """
         Abstract model.
         """
         abstract = True
 
+
+class InvalidPosition(Exception):
+    """
+    Raised when passing an invalid pos value
+    """
+
+class InvalidMoveToDescendant(Exception):
+    """
+    Raised when attemping to move a node to one of it's descendants.
+    """
+
+class MissingNodeOrderBy(Exception):
+    """
+    Raised when an operation needs a missing
+    :attr:`~treebeard.MP_Node.node_order_by` attribute
+    """
+
+class PathOverflow(Exception):
+    """
+    Raised when trying to add or move a node to a position where no more nodes
+    can be added (see :attr:`~treebeard.MP_Node.path` and
+    :attr:`~treebeard.MP_Node.alphabet` for more info)
+    """
