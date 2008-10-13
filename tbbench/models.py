@@ -14,6 +14,7 @@
 from django.db import models
 from treebeard.mp_tree import MP_Node
 from treebeard.al_tree import AL_Node
+from treebeard.ns_tree import NS_Node
 try:
     import mptt
 except ImportError:
@@ -49,6 +50,18 @@ class AlSortedNode(AL_Node):
                                null=True,
                                db_index=True)
     node_order_by = ['numval', 'strval']
+    numval = models.IntegerField()
+    strval = models.CharField(max_length=255)
+
+
+class NsNode(NS_Node):
+    numval = models.IntegerField()
+    strval = models.CharField(max_length=255)
+
+
+class NsSortedNode(NS_Node):
+    node_order_by = ['numval', 'strval']
+
     numval = models.IntegerField()
     strval = models.CharField(max_length=255)
 

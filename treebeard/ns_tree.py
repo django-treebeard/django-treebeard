@@ -6,6 +6,7 @@
 """
 
 import operator
+import sys
 
 from django.db.models import Q
 from django.core import serializers
@@ -43,24 +44,9 @@ class NS_NodeQuerySet(models.query.QuerySet):
             # cheaper precalculating the gapsize per intervals, or just do a
             # complete reordering of the tree (uses COUNT)...
             for tree_id, drop_lft, drop_rgt in sorted(removed_ranges, reverse=True):
-                sql = 'UPDATE %(table)s ' \
-                      ' SET lft = CASE ' \
-                      '           WHEN lft > %(drop_lft)d ' \
-                      '           THEN lft - %(gapsize)d ' \
-                      '           ELSE lft END, ' \
-                      '     rgt = CASE ' \
-                      '           WHEN rgt > %(drop_lft)d ' \
-                      '           THEN rgt - %(gapsize)d ' \
-                      '           ELSE rgt END ' \
-                      ' WHERE (lft > %(drop_lft)d ' \
-                      '     OR rgt > %(drop_lft)d) AND '\
-                      '     tree_id=%(tree_id)d' % {
-                          'table': self.model._meta.db_table,
-                          'gapsize': drop_rgt - drop_lft + 1,
-                          'drop_lft': drop_lft,
-                          'tree_id': tree_id
-                      }
-                cursor.execute(sql, [])
+                sql, params = self.model._get_close_gap_sql(drop_lft, drop_rgt,
+                                                            tree_id)
+                cursor.execute(sql, params)
         else:
             # we'll have to manually run through all the nodes that are going
             # to be deleted and remove nodes from the list if an ancestor is
@@ -105,10 +91,10 @@ class NS_NodeManager(models.Manager):
 class NS_Node(Node):
     node_order_by = []
 
-    lft = models.PositiveIntegerField()
-    rgt = models.PositiveIntegerField()
-    tree_id = models.PositiveIntegerField()
-    depth = models.PositiveIntegerField()
+    lft = models.PositiveIntegerField(db_index=True)
+    rgt = models.PositiveIntegerField(db_index=True)
+    tree_id = models.PositiveIntegerField(db_index=True)
+    depth = models.PositiveIntegerField(db_index=True)
 
     objects = NS_NodeManager()
 
@@ -167,26 +153,37 @@ class NS_Node(Node):
 
  
     @classmethod
-    def _move_right(cls, tree_id, rgt, lftmove=False):
+    def _move_right(cls, tree_id, rgt, lftmove=False, incdec=2):
         if lftmove:
             lftop = '>='
         else:
             lftop = '>'
         sql = 'UPDATE %(table)s ' \
               ' SET lft = CASE WHEN lft %(lftop)s %(parent_rgt)d ' \
-              '                THEN lft + 2 ' \
+              '                THEN lft %(incdec)+d ' \
               '                ELSE lft END, ' \
               '     rgt = CASE WHEN rgt >= %(parent_rgt)d ' \
-              '                THEN rgt + 2 ' \
+              '                THEN rgt %(incdec)+d ' \
               '                ELSE rgt END ' \
               ' WHERE rgt >= %(parent_rgt)d AND ' \
               '       tree_id = %(tree_id)s' % {
                   'table': cls._meta.db_table,
                   'parent_rgt': rgt,
                   'tree_id': tree_id,
-                  'lftop': lftop}
+                  'lftop': lftop,
+                  'incdec': incdec}
         return sql, []
 
+
+    @classmethod
+    def _move_tree_right(cls, tree_id):
+        sql = 'UPDATE %(table)s ' \
+              ' SET tree_id = tree_id+1 ' \
+              ' WHERE tree_id >= %(tree_id)d' % {
+                  'table': cls._meta.db_table,
+                  'tree_id': tree_id
+              }
+        return sql, []
 
 
     def add_child(self, **kwargs):
@@ -208,7 +205,8 @@ class NS_Node(Node):
             return last_child.add_sibling(pos, **kwargs)
 
         # we're adding the first child of this node
-        sql, params = self.__class__._move_right(self.tree_id, self.rgt, False)
+        sql, params = self.__class__._move_right(self.tree_id, self.rgt, False,
+                                                 2)
 
         # creating a new object
         newobj = self.__class__(**kwargs)
@@ -268,13 +266,7 @@ class NS_Node(Node):
                 newpos = {'first-sibling': 1,
                           'left': target.tree_id,
                           'right': target.tree_id + 1}[pos]
-                sql = 'UPDATE %(table)s ' \
-                      ' SET tree_id = tree_id+1 ' \
-                      ' WHERE tree_id >= %(newpos)s' % {
-                          'table': target.__class__._meta.db_table,
-                          'newpos': newpos
-                      }
-                params = []
+                sql, params = target.__class__._move_tree_right(newpos)
 
                 newobj.tree_id = newpos
         else:
@@ -310,17 +302,17 @@ class NS_Node(Node):
                 if pos == 'first-sibling':
                     target = siblings[0]
 
-            move_right = target.__class__._move_right
+            move_right = self.__class__._move_right
 
             if pos == 'last-sibling':
                 newpos = target.get_parent().rgt
-                sql, params = move_right(target.tree_id, newpos, False)
+                sql, params = move_right(target.tree_id, newpos, False, 2)
             elif pos == 'first-sibling':
                 newpos = target.lft
-                sql, params = move_right(target.tree_id, newpos-1, False)
+                sql, params = move_right(target.tree_id, newpos-1, False, 2)
             elif pos == 'left':
                 newpos = target.lft
-                sql, params = move_right(target.tree_id, newpos, True)
+                sql, params = move_right(target.tree_id, newpos, True, 2)
 
             newobj.lft = newpos
             newobj.rgt = newpos + 1
@@ -345,8 +337,151 @@ class NS_Node(Node):
         """
 
         pos = self._fix_move_opts(pos)
+        cls = self.__class__
 
-        raise NotImplementedError
+        stmts = []
+        parent = None
+
+        if pos in ('first-child', 'last-child', 'sorted-child'):
+            # moving to a child
+            if target.is_leaf():
+                parent = target
+                pos = 'last-child'
+            else:
+                target = target.get_last_child()
+                pos = {'first-child': 'first-sibling',
+                       'last-child': 'last-sibling',
+                       'sorted-child': 'sorted-sibling'}[pos]
+
+        if target.is_descendant_of(self):
+            raise InvalidMoveToDescendant("Can't move node to a descendant.")
+
+        if self == target and (
+              (pos == 'left') or \
+              (pos in ('right', 'last-sibling') and \
+                target == target.get_last_sibling()) or \
+              (pos == 'first-sibling' and \
+                target == target.get_first_sibling())):
+            # special cases, not actually moving the node so no need to UPDATE
+            return
+
+        if pos == 'sorted-sibling':
+            siblings = list(target.get_sorted_pos_queryset(
+                target.get_siblings(), self))
+            if siblings:
+                pos = 'left'
+                target = siblings[0]
+            else:
+                pos = 'last-sibling'
+        if pos in ('left', 'right', 'first-sibling'):
+            siblings = list(target.get_siblings())
+
+            if pos == 'right':
+                if target == siblings[-1]:
+                    pos = 'last-sibling'
+                else:
+                    pos = 'left'
+                    found = False
+                    for node in siblings:
+                        if found:
+                            target = node
+                            break
+                        elif node == target:
+                            found = True
+            if pos == 'left':
+                if target == siblings[0]:
+                    pos = 'first-sibling'
+            if pos == 'first-sibling':
+                target = siblings[0]
+        
+        # ok let's move this
+        cursor = connection.cursor()
+        move_right = cls._move_right
+        gap = self.rgt - self.lft + 1
+        sql = None
+        target_tree = target.tree_id
+
+        # first make a hole
+        if pos == 'last-child':
+            newpos = parent.rgt
+            sql, params = move_right(target.tree_id, newpos, False, gap)
+        elif target.is_root():
+            newpos = 1
+            if pos == 'last-sibling':
+                target_tree = target.get_siblings().reverse()[0].tree_id + 1
+            elif pos == 'first-sibling':
+                target_tree = 1
+                sql, params = cls._move_tree_right(1)
+            elif pos == 'left':
+                sql, params = cls._move_tree_right(target.tree_id)
+        else:
+            if pos == 'last-sibling':
+                newpos = target.get_parent().rgt
+                sql, params = move_right(target.tree_id, newpos, False, gap)
+            elif pos == 'first-sibling':
+                newpos = target.lft
+                sql, params = move_right(target.tree_id, newpos-1, False, gap)
+            elif pos == 'left':
+                newpos = target.lft
+                sql, params = move_right(target.tree_id, newpos, True, gap)
+
+        if sql:
+            cursor.execute(sql, params)
+
+        # we reload 'self' because lft/rgt may have changed
+
+        fromobj = cls.objects.get(pk=self.id)
+
+        depthdiff = target.depth - fromobj.depth
+        if parent:
+            depthdiff += 1
+
+        # move the tree to the hole
+        sql = "UPDATE %(table)s " \
+              " SET tree_id = %(target_tree)d, " \
+              "     lft = lft + %(jump)d , " \
+              "     rgt = rgt + %(jump)d , " \
+              "     depth = depth + %(depthdiff)d " \
+              " WHERE tree_id = %(from_tree)d AND " \
+              "     lft BETWEEN %(fromlft)d AND %(fromrgt)d" % {
+                  'table': cls._meta.db_table,
+                  'from_tree': fromobj.tree_id,
+                  'target_tree': target_tree,
+                  'jump': newpos - fromobj.lft,
+                  'depthdiff': depthdiff,
+                  'fromlft': fromobj.lft,
+                  'fromrgt': fromobj.rgt
+              }
+        cursor.execute(sql, [])
+
+        # close the gap
+        sql, params = cls._get_close_gap_sql(fromobj.lft,
+            fromobj.rgt, fromobj.tree_id)
+        cursor.execute(sql, params)
+        
+        transaction.commit_unless_managed()
+
+    
+    @classmethod
+    def _get_close_gap_sql(cls, drop_lft, drop_rgt, tree_id):
+        sql = 'UPDATE %(table)s ' \
+              ' SET lft = CASE ' \
+              '           WHEN lft > %(drop_lft)d ' \
+              '           THEN lft - %(gapsize)d ' \
+              '           ELSE lft END, ' \
+              '     rgt = CASE ' \
+              '           WHEN rgt > %(drop_lft)d ' \
+              '           THEN rgt - %(gapsize)d ' \
+              '           ELSE rgt END ' \
+              ' WHERE (lft > %(drop_lft)d ' \
+              '     OR rgt > %(drop_lft)d) AND '\
+              '     tree_id=%(tree_id)d' % {
+                  'table': cls._meta.db_table,
+                  'gapsize': drop_rgt - drop_lft + 1,
+                  'drop_lft': drop_lft,
+                  'tree_id': tree_id
+              }
+        return sql, []
 
 
     @classmethod
@@ -495,6 +630,8 @@ class NS_Node(Node):
         if parent is None:
             # return the entire tree
             return cls.objects.all()
+        if parent.is_leaf():
+            return cls.objects.filter(pk=parent.id)
         return cls.objects.filter(
             tree_id=parent.tree_id,
             lft__range=(parent.lft, parent.rgt-1))
@@ -507,6 +644,8 @@ class NS_Node(Node):
 
         See: :meth:`treebeard.Node.get_descendants`
         """
+        if self.is_leaf():
+            return self.__class__.objects.none()
         return self.__class__.get_tree(self).exclude(pk=self.id)
 
 
@@ -581,5 +720,4 @@ class NS_Node(Node):
         # PROTIP: don't change this
         ordering = ['tree_id', 'lft']
 
-        #unique_together = (('tree_id', 'lft'), ('tree_id', 'rgt'))
 
