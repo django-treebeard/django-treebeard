@@ -286,7 +286,7 @@ class Node(models.Model):
         if parent is None:
             qset = cls.get_root_nodes()
         else:
-            qset = parent.children_set.all()
+            qset = parent.get_children()
         nodes = list(qset)
         for node in nodes:
             node.descendants_count = node.get_descendant_count()

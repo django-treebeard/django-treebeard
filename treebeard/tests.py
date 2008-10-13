@@ -1472,7 +1472,7 @@ class TestMP_TreeAlphabet(TestCase):
 class TestHelpers(TestTreeBase):
 
     def setUp(self):
-        for model in (MP_TestNode, AL_TestNode):
+        for model in (MP_TestNode, AL_TestNode, NS_TestNode):
             model.load_bulk(BASE_DATA)
             for node in model.get_root_nodes():
                 model.load_bulk(BASE_DATA, node)
