@@ -459,7 +459,7 @@ class AL_Node(Node):
 
         if pos in ('first-child', 'last-child', 'sorted-child'):
             # moving to a child
-            if target.get_children_count():
+            if not target.is_leaf():
                 target = target.get_last_child()
                 pos = {'first-child': 'first-sibling',
                        'last-child': 'last-sibling',
