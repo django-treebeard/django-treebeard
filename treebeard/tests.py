@@ -19,6 +19,7 @@ from treebeard import InvalidPosition, InvalidMoveToDescendant, \
     PathOverflow, MissingNodeOrderBy, numconv
 from treebeard.mp_tree import MP_Node
 from treebeard.al_tree import AL_Node
+from treebeard.ns_tree import NS_Node
 
 BASE_DATA = [
   {'data':{'desc':'1'}},
@@ -47,6 +48,14 @@ class MP_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(MP_TestNode)
 
 
+class NS_TestNode(NS_Node):
+    desc = models.CharField(max_length=255)
+
+
+class NS_TestNodeSomeDep(models.Model):
+    node = models.ForeignKey(NS_TestNode)
+
+
 class AL_TestNode(AL_Node):
     parent = models.ForeignKey('self',
                                related_name='children_set',
@@ -62,6 +71,13 @@ class AL_TestNodeSomeDep(models.Model):
 
 class MP_TestNodeSorted(MP_Node):
     steplen = 1
+    node_order_by = ['val1', 'val2', 'desc']
+    val1 = models.IntegerField()
+    val2 = models.IntegerField()
+    desc = models.CharField(max_length=255)
+
+
+class NS_TestNodeSorted(NS_Node):
     node_order_by = ['val1', 'val2', 'desc']
     val1 = models.IntegerField()
     val2 = models.IntegerField()
@@ -124,13 +140,20 @@ def multi_test():
         def _multi_test(self):
             try:
 
-                try:
-                    self.set_MP() ; f(self)
-                finally:
-                    transaction.rollback()
+                if False:
+
+                    try:
+                        self.set_MP() ; f(self)
+                    finally:
+                        transaction.rollback()
+
+                    try:
+                        self.set_AL() ; f(self)
+                    finally:
+                        transaction.rollback()
 
                 try:
-                    self.set_AL() ; f(self)
+                    self.set_NS() ; f(self)
                 finally:
                     transaction.rollback()
 
@@ -162,6 +185,12 @@ class TestTreeBase(TestCase):
         self.model = MP_TestNode
         self.sorted_model = MP_TestNodeSorted
         self.dep_model = MP_TestNodeSomeDep
+    
+        
+    def set_NS(self):
+        self.model = NS_TestNode
+        self.sorted_model = NS_TestNodeSorted
+        self.dep_model = NS_TestNodeSomeDep
 
 
     def set_AL(self):
@@ -171,6 +200,17 @@ class TestTreeBase(TestCase):
 
 
     def got(self):
+        if self.model == NS_TestNode:
+            # this slows down nested sets tests quite a bit, but it has the
+            # advantage that we'll check the node edges are correct
+            d = {}
+            for tree_id, lft, rgt in self.model.objects.values_list('tree_id', 'lft', 'rgt'):
+                d.setdefault(tree_id, []).extend([lft, rgt])
+            for tree_id, got_edges in d.items():
+                self.assertEqual(len(got_edges), max(got_edges))
+                good_edges = range(1, len(got_edges)+1)
+                self.assertEqual(sorted(got_edges), good_edges)
+
         return [(o.desc, o.get_depth(), o.get_children_count())
                 for o in self.model.get_tree()]
 
@@ -232,6 +272,7 @@ class TestNonEmptyTree(TestTreeBase):
         super(TestNonEmptyTree, self).setUp()
         MP_TestNode.load_bulk(BASE_DATA)
         AL_TestNode.load_bulk(BASE_DATA)
+        NS_TestNode.load_bulk(BASE_DATA)
 
 
 class TestClassMethods(TestNonEmptyTree):
@@ -245,8 +286,8 @@ class TestClassMethods(TestNonEmptyTree):
 
         # inserting on an existing node
 
-        leafnode = self.model.objects.get(desc=u'231')
-        ids = self.model.load_bulk(BASE_DATA, leafnode)
+        node = self.model.objects.get(desc=u'231')
+        ids = self.model.load_bulk(BASE_DATA, node)
         expected = [(u'1', 1, 0),
                     (u'2', 1, 4),
                     (u'21', 2, 0),
@@ -289,11 +330,18 @@ class TestClassMethods(TestNonEmptyTree):
 
     @multi_test()
     def test_get_tree_node(self):
-        leafnode = self.model.objects.get(desc=u'231')
-        self.model.load_bulk(BASE_DATA, leafnode)
+        node = self.model.objects.get(desc=u'231')
+        self.model.load_bulk(BASE_DATA, node)
+
+        # this is ONLY needed by the nested set tree model, the rgt value of
+        # the node was updated in a raw query, and it must be updated in
+        # django's object
+        if self.model == NS_TestNode:
+            node = self.model.objects.get(pk=node.id)
+
 
         got = [(o.desc, o.get_depth(), o.get_children_count())
-                for o in self.model.get_tree(leafnode)]
+                for o in self.model.get_tree(node)]
         expected = [(u'231', 3, 4),
                     (u'1', 4, 0),
                     (u'2', 4, 4),
@@ -310,10 +358,16 @@ class TestClassMethods(TestNonEmptyTree):
 
     @multi_test()
     def test_dump_bulk_node(self):
-        leafnode = self.model.objects.get(desc=u'231')
-        self.model.load_bulk(BASE_DATA, leafnode)
+        node = self.model.objects.get(desc=u'231')
+        self.model.load_bulk(BASE_DATA, node)
+        
+        # this is ONLY needed by the nested set tree model, the rgt value of
+        # the node was updated in a raw query, and it must be updated in
+        # django's object
+        if self.model == NS_TestNode:
+            node = self.model.objects.get(pk=node.id)
 
-        got = self.model.dump_bulk(leafnode, False)
+        got = self.model.dump_bulk(node, False)
         expected = [{'data':{'desc':u'231'}, 'children':BASE_DATA}]
         self.assertEqual(got, expected)
 
@@ -718,24 +772,27 @@ class TestAddSibling(TestNonEmptyTree):
     
     
     @multi_test()
-    def test_add_sibling_last(self):
+    def test_add_sibling_last_root(self):
         node_wchildren = self.model.objects.get(desc=u'2')
         obj = node_wchildren.add_sibling('last-sibling', desc='5')
         self.assertEqual(obj.get_depth(), 1)
         self.assertEqual(node_wchildren.get_last_sibling().desc, u'5')
 
-        leafnode = self.model.objects.get(desc=u'231')
-        obj = leafnode.add_sibling('last-sibling', desc='232')
-        self.assertEqual(obj.get_depth(), 3)
-        self.assertEqual(leafnode.get_last_sibling().desc, u'232')
-
-
+    
     @multi_test()
-    def test_add_sibling_first(self):
+    def test_add_sibling_last(self):
+        node = self.model.objects.get(desc=u'231')
+        obj = node.add_sibling('last-sibling', desc='232')
+        self.assertEqual(obj.get_depth(), 3)
+        self.assertEqual(node.get_last_sibling().desc, u'232')
+
+    
+    @multi_test()
+    def test_add_sibling_first_root(self):
         node_wchildren = self.model.objects.get(desc=u'2')
         obj = node_wchildren.add_sibling('first-sibling', desc='new')
         self.assertEqual(obj.get_depth(), 1)
-        expected = [( u'new', 1, 0),
+        expected = [(u'new', 1, 0),
                     (u'1', 1, 0),
                     (u'2', 1, 4),
                     (u'21', 2, 0),
@@ -750,7 +807,26 @@ class TestAddSibling(TestNonEmptyTree):
 
 
     @multi_test()
-    def test_add_sibling_left(self):
+    def test_add_sibling_first(self):
+        node_wchildren = self.model.objects.get(desc=u'23')
+        obj = node_wchildren.add_sibling('first-sibling', desc='new')
+        self.assertEqual(obj.get_depth(), 2)
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'new', 2, 0),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
+        self.assertEqual(self.got(), expected)
+
+
+    @multi_test()
+    def test_add_sibling_left_root(self):
         node_wchildren = self.model.objects.get(desc=u'2')
         obj = node_wchildren.add_sibling('left', desc='new')
         self.assertEqual(obj.get_depth(), 1)
@@ -769,9 +845,47 @@ class TestAddSibling(TestNonEmptyTree):
 
 
     @multi_test()
+    def test_add_sibling_left(self):
+        node_wchildren = self.model.objects.get(desc=u'23')
+        obj = node_wchildren.add_sibling('left', desc='new')
+        self.assertEqual(obj.get_depth(), 2)
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'new', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
+        self.assertEqual(self.got(), expected)
+
+
+    @multi_test()
+    def test_add_sibling_left_noleft_root(self):
+        node = self.model.objects.get(desc=u'1')
+        obj = node.add_sibling('left', desc='new')
+        self.assertEqual(obj.get_depth(), 1)
+        expected = [(u'new', 1, 0),
+                    (u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
+        self.assertEqual(self.got(), expected)
+
+
+    @multi_test()
     def test_add_sibling_left_noleft(self):
-        leafnode = self.model.objects.get(desc=u'231')
-        obj = leafnode.add_sibling('left', desc='new')
+        node = self.model.objects.get(desc=u'231')
+        obj = node.add_sibling('left', desc='new')
         self.assertEqual(obj.get_depth(), 3)
         expected = [(u'1', 1, 0),
                     (u'2', 1, 4),
@@ -788,7 +902,7 @@ class TestAddSibling(TestNonEmptyTree):
 
 
     @multi_test()
-    def test_add_sibling_right(self):
+    def test_add_sibling_right_root(self):
         node_wchildren = self.model.objects.get(desc=u'2')
         obj = node_wchildren.add_sibling('right', desc='new')
         self.assertEqual(obj.get_depth(), 1)
@@ -807,9 +921,47 @@ class TestAddSibling(TestNonEmptyTree):
 
 
     @multi_test()
+    def test_add_sibling_right(self):
+        node_wchildren = self.model.objects.get(desc=u'23')
+        obj = node_wchildren.add_sibling('right', desc='new')
+        self.assertEqual(obj.get_depth(), 2)
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 5),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'new', 2, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0)]
+        self.assertEqual(self.got(), expected)
+
+
+    @multi_test()
+    def test_add_sibling_right_noright_root(self):
+        node = self.model.objects.get(desc=u'4')
+        obj = node.add_sibling('right', desc='new')
+        self.assertEqual(obj.get_depth(), 1)
+        expected = [(u'1', 1, 0),
+                    (u'2', 1, 4),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0),
+                    (u'4', 1, 1),
+                    (u'41', 2, 0),
+                    (u'new', 1, 0)]
+        self.assertEqual(self.got(), expected)
+
+
+    @multi_test()
     def test_add_sibling_right_noright(self):
-        leafnode = self.model.objects.get(desc=u'231')
-        obj = leafnode.add_sibling('right', desc='new')
+        node = self.model.objects.get(desc=u'231')
+        obj = node.add_sibling('right', desc='new')
         self.assertEqual(obj.get_depth(), 3)
         expected = [(u'1', 1, 0),
                     (u'2', 1, 4),
