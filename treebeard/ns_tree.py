@@ -36,7 +36,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
             super(NS_NodeQuerySet, self).delete()
             cursor = connection.cursor()
 
-            # Now closing the gap (Celko's trees book, page 62):
+            # Now closing the gap (Celko's trees book, page 62)
             # We do this for every gap that was left in the tree when the nodes
             # were removed.  If many nodes were removed, we're going to update
             # the same nodes over and over again. This would be probably
@@ -99,6 +99,8 @@ class NS_NodeManager(models.Manager):
         Sets the custom queryset as the default.
         """
         return NS_NodeQuerySet(self.model)
+
+
 
 class NS_Node(Node):
     node_order_by = []
@@ -243,38 +245,52 @@ class NS_Node(Node):
         newobj = self.__class__(**kwargs)
         newobj.depth = self.depth
 
-        if pos == 'sorted-sibling':
-            raise NotImplemented
         sql = None
+        target = self
 
-        if self.is_root():
+        if target.is_root():
             newobj.lft = 1
             newobj.rgt = 2
-            last_root = self.__class__.get_last_root_node()
+            if pos == 'sorted-sibling':
+                siblings = list(target.get_sorted_pos_queryset(
+                    target.get_siblings(), newobj))
+                if siblings:
+                    pos = 'left'
+                    target = siblings[0]
+                else:
+                    pos = 'last-sibling'
+
+            last_root = target.__class__.get_last_root_node()
             if pos == 'last-sibling' \
-                  or (pos == 'right' and self == last_root):
+                  or (pos == 'right' and target == last_root):
                 newobj.tree_id = last_root.tree_id + 1
             else:
                 newpos = {'first-sibling': 1,
-                          'left': self.tree_id,
-                          'right': self.tree_id + 1}[pos]
+                          'left': target.tree_id,
+                          'right': target.tree_id + 1}[pos]
                 sql = 'UPDATE %(table)s ' \
                       ' SET tree_id = tree_id+1 ' \
                       ' WHERE tree_id >= %(newpos)s' % {
-                          'table': self.__class__._meta.db_table,
+                          'table': target.__class__._meta.db_table,
                           'newpos': newpos
                       }
                 params = []
 
                 newobj.tree_id = newpos
         else:
-            newobj.tree_id = self.tree_id
+            newobj.tree_id = target.tree_id
 
-            target = self
+            if pos == 'sorted-sibling':
+                siblings = list(target.get_sorted_pos_queryset(
+                    target.get_siblings(), newobj))
+                if siblings:
+                    pos = 'left'
+                    target = siblings[0]
+                else:
+                    pos = 'last-sibling'
 
             if pos in ('left', 'right', 'first-sibling'):
-
-                siblings = list(self.get_siblings())
+                siblings = list(target.get_siblings())
 
                 if pos == 'right':
                     if target == siblings[-1]:
@@ -286,7 +302,7 @@ class NS_Node(Node):
                             if found:
                                 target = node
                                 break
-                            elif node == self:
+                            elif node == target:
                                 found = True
                 if pos == 'left':
                     if target == siblings[0]:
@@ -294,17 +310,17 @@ class NS_Node(Node):
                 if pos == 'first-sibling':
                     target = siblings[0]
 
-            move_right = self.__class__._move_right
+            move_right = target.__class__._move_right
 
             if pos == 'last-sibling':
                 newpos = target.get_parent().rgt
-                sql, params = move_right(self.tree_id, newpos, False)
+                sql, params = move_right(target.tree_id, newpos, False)
             elif pos == 'first-sibling':
                 newpos = target.lft
-                sql, params = move_right(self.tree_id, newpos-1, False)
+                sql, params = move_right(target.tree_id, newpos-1, False)
             elif pos == 'left':
                 newpos = target.lft
-                sql, params = move_right(self.tree_id, newpos, True)
+                sql, params = move_right(target.tree_id, newpos, True)
 
             newobj.lft = newpos
             newobj.rgt = newpos + 1
@@ -329,6 +345,8 @@ class NS_Node(Node):
         """
 
         pos = self._fix_move_opts(pos)
+
+        raise NotImplementedError
 
 
     @classmethod

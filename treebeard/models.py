@@ -11,6 +11,9 @@
 
 """
 
+import operator
+
+from django.db.models import Q
 from django.db import models, transaction
 
 
@@ -735,6 +738,31 @@ class Node(models.Model):
         if pos in ('sorted-child', 'sorted-sibling') and not self.node_order_by:
             raise MissingNodeOrderBy('Missing node_order_by attribute.')
         return pos
+
+
+    def get_sorted_pos_queryset(self, siblings, newobj):
+        """
+        :returns: The position a new node will be inserted related to the
+        current node, and also a queryset of the nodes that must be moved
+        to the right. Called only for Node models with :attr:`node_order_by`
+
+        This function was taken from django-mptt (BSD licensed) by Jonathan Buchanan:
+        http://code.google.com/p/django-mptt/source/browse/trunk/mptt/signals.py?spec=svn100&r=100#12
+        """
+
+        fields, filters = [], []
+        for field in self.node_order_by:
+            value = getattr(newobj, field)
+            filters.append(Q(*
+                [Q(**{f: v}) for f, v in fields] +
+                [Q(**{'%s__gt' % field: value})]))
+            fields.append((field, value))
+        return siblings.filter(reduce(operator.or_, filters))
+        try:
+            newpos = self._get_lastpos_in_path(siblings.all()[0].path)
+        except IndexError:
+            newpos, siblings = None, []
+        return newpos, siblings
 
 
     class Meta:
