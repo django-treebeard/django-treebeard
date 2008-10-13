@@ -14,8 +14,9 @@
 import collections, time, sys
 from django.conf import settings
 from django.db import transaction
+from treebeard.models import Node
 from tbbench.models import TbNode, TbSortedNode, AlNode, AlSortedNode, \
-    MpttNode, MpttSortedNode
+    NsNode, NsSortedNode, MpttNode, MpttSortedNode
 
 
 ## sample data
@@ -63,7 +64,7 @@ def insertion_test(nodemodel, numnodes):
     niter = nodedata_iter(seed, lorem, ids)
     while len(ids) < numnodes:
         numval, strval, parent_id = niter.next()
-        if nodemodel in (TbNode, TbSortedNode, AlNode, AlSortedNode):
+        if issubclass(nodemodel, Node):
             if parent_id:
                 add_method = nodemodel.objects.get(id=parent_id).add_child
             else:
@@ -98,27 +99,26 @@ def moves_test(nodemodel, numnodes):
     time_start = time.time()
 
     def move(nodemodel, node, target, pos):
-        if nodemodel in (TbNode, TbSortedNode, AlNode, AlSortedNode):
+        if issubclass(nodemodel, Node):
             node.move(target, pos)
         else:
             node.move_to(target, pos)
 
-    if nodemodel in (TbNode, TbSortedNode, AlNode, AlSortedNode):
+    if issubclass(nodemodel, Node):
         root_nodes_func = nodemodel.get_root_nodes
     else:
         root_nodes_func = nodemodel.tree.root_nodes
-    possib = {TbNode: 'right',
-              TbSortedNode: 'sorted-sibling',
-              AlNode: 'right',
-              AlSortedNode: 'sorted-sibling',
-              MpttNode: 'right',
-              MpttSortedNode: 'right'}[nodemodel]
-    poschild = {TbNode: 'last-child',
-                TbSortedNode: 'sorted-child',
-                AlNode: 'last-child',
-                AlSortedNode: 'sorted-child',
-                MpttNode: 'last-child',
-                MpttSortedNode: 'last-child'}[nodemodel]
+
+    if issubclass(nodemodel, Node):
+        if nodemodel in (TbNode, AlNode, NsNode):
+            possib = 'right'
+            poschild = 'last-child'
+        else:
+            possib = 'sorted-sibling'
+            poschild = 'sorted-child'
+    else:
+        possib = 'right'
+        poschild = 'last-child'
 
     # move to root nodes (several times)
     for i in range(numnodes/10):
@@ -156,9 +156,11 @@ TESTS = [('Inserts', insertion_test),
 TREE_MODELS = [
                ('TB MP', TbNode),
                ('TB AL', AlNode),
+               ('TB NS', NsNode),
                ('MPTT', MpttNode),
                ('TB MP Sorted', TbSortedNode),
                ('TB AL Sorted', AlSortedNode),
+               ('TB NS Sorted', NsSortedNode),
                ('MPTT Sorted', MpttSortedNode),
                ]
 
