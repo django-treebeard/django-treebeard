@@ -140,17 +140,15 @@ def multi_test():
         def _multi_test(self):
             try:
 
-                if False:
+                try:
+                    self.set_MP() ; f(self)
+                finally:
+                    transaction.rollback()
 
-                    try:
-                        self.set_MP() ; f(self)
-                    finally:
-                        transaction.rollback()
-
-                    try:
-                        self.set_AL() ; f(self)
-                    finally:
-                        transaction.rollback()
+                try:
+                    self.set_AL() ; f(self)
+                finally:
+                    transaction.rollback()
 
                 try:
                     self.set_NS() ; f(self)
