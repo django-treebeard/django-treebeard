@@ -113,7 +113,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
                     if parent and parent.numchild > 0:
                         parent.numchild -= 1
                         parent.save()
-                if node.numchild:
+                if not node.is_leaf():
                     toremove.append(Q(path__startswith=node.path))
                 else:
                     toremove.append(Q(path=node.path))
@@ -481,7 +481,7 @@ class MP_Node(Node):
         if parent is None:
             # return the entire tree
             return cls.objects.all()
-        if parent.numchild:
+        if not parent.is_leaf():
             return cls.objects.filter(path__startswith=parent.path,
                                       depth__gte=parent.depth)
         return cls.objects.none()
@@ -596,10 +596,10 @@ class MP_Node(Node):
 
         See: :meth:`treebeard.Node.get_children`
         """
-        if self.numchild:
-            return self.__class__.objects.filter(depth=self.depth+1,
-                path__range=self._get_children_path_interval(self.path))
-        return self.__class__.objects.none()
+        if self.is_leaf():
+            return self.__class__.objects.none()
+        return self.__class__.objects.filter(depth=self.depth+1,
+            path__range=self._get_children_path_interval(self.path))
 
 
     def get_next_sibling(self):
@@ -692,7 +692,7 @@ class MP_Node(Node):
         :raise PathOverflow: when no more child nodes can be added
         """
 
-        if self.numchild and self.node_order_by:
+        if not self.is_leaf() and self.node_order_by:
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
             return self.get_last_child().add_sibling('sorted-sibling', **kwargs)
@@ -700,7 +700,7 @@ class MP_Node(Node):
         # creating a new object
         newobj = self.__class__(**kwargs)
         newobj.depth = self.depth + 1
-        if self.numchild:
+        if not self.is_leaf():
             # adding the new child as the last one
             newobj.path = self._inc_path(self.get_last_child().path)
         else:
@@ -1017,16 +1017,16 @@ class MP_Node(Node):
             # moving to a child
             parent = target
             newdepth += 1
-            if target.numchild:
-                target = target.get_last_child()
-                pos = {'first-child': 'first-sibling',
-                       'last-child': 'last-sibling',
-                       'sorted-child': 'sorted-sibling'}[pos]
-            else:
+            if target.is_leaf():
                 # moving as a target's first child
                 newpos = 1
                 pos = 'first-sibling'
                 siblings = self.__class__.objects.none()
+            else:
+                target = target.get_last_child()
+                pos = {'first-child': 'first-sibling',
+                       'last-child': 'last-sibling',
+                       'sorted-child': 'sorted-sibling'}[pos]
             # this is not for save(), since if needed, will be handled with a
             # custom UPDATE, this is only here to update django's object,
             # should be useful in loops
