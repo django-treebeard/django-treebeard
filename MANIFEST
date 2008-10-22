@@ -6,8 +6,10 @@ treebeard/__init__.py
 treebeard/models.py
 treebeard/al_tree.py
 treebeard/mp_tree.py
+treebeard/ns_tree.py
 treebeard/numconv.py
 treebeard/tests.py
+docs/README
 docs/conf.py
 docs/index.rst
 docs/Makefile

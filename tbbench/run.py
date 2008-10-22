@@ -87,7 +87,7 @@ def get_descendants(nodemodel, numnodes):
     time_start = time.time()
     total = 0
     # retrieve all the descendants of all nodes, *lots* of times
-    for i in range(10):
+    for _ in range(10):
         for obj in nodemodel.objects.all():
             total += len(obj.get_descendants())
     return time.time() - time_start
@@ -121,7 +121,7 @@ def moves_test(nodemodel, numnodes):
         poschild = 'last-child'
 
     # move to root nodes (several times)
-    for i in range(numnodes/10):
+    for _ in range(numnodes/10):
         move(nodemodel,
              root_nodes_func()[0],
              root_nodes_func().reverse()[0],
@@ -153,8 +153,7 @@ TESTS = [('Inserts', insertion_test),
          ('Descendants', get_descendants),
          ('Move', moves_test),
          ('Delete', delete_test)]
-TREE_MODELS = [
-               ('TB MP', TbNode),
+TREE_MODELS = [('TB MP', TbNode),
                ('TB AL', AlNode),
                ('TB NS', NsNode),
                ('MPTT', MpttNode),
@@ -164,79 +163,72 @@ TREE_MODELS = [
                ('MPTT Sorted', MpttSortedNode),
                ]
 
-MAXNODES = (100, 1000)
-MAXNODES = (1000,)
+
+NUMNODES = 1000
+
 
 def main():
 
     sys.stderr.write('\nBenchmarking... please wait.\n')
     results = {}
+
     for model_desc, model in TREE_MODELS:
-        for numnodes in MAXNODES:
-            for want_tx in (False, True):
-                for test_desc, test_func in TESTS:
-                    key = (test_desc, numnodes, model_desc)
-                    if not model or \
-                          (test_desc == 'Descendants' and want_tx):
-                        res = 'N/A'
+        if not model:
+            continue
+        for want_tx in (False, True):
+            mod_res = []
+            for test_desc, test_func in TESTS:
+                key = (test_desc, model_desc)
+                if test_desc == 'Descendants' and want_tx:
+                    res = 'N/A'
+                    mod_res.append(-1)
+                else:
+                    if want_tx:
+                        func = transaction.commit_on_success(test_func)
+                        test_desc = '%s+TX' % (test_desc,)
                     else:
-                        if want_tx:
-                            func = transaction.commit_on_success(test_func)
-                        else:
-                            func = test_func
-                        res = func(model, numnodes)
-                    #if model_desc == 'MPTT Sorted' and test_desc == 'Move':
-                    #    res = 'N/A'
-                    sys.stderr.write('.')
-                    sys.stderr.flush()
-                    if key in results:
-                        results[key].append(res)
-                    else:
-                        results[key] = [res]
+                        func = test_func
+                    res = int(func(model, NUMNODES)*1000)
+                    mod_res.append(res)
+
+                sys.stderr.write('.')
+                sys.stderr.flush()
+                results.setdefault(key, []).append(res)
+
     maxlen_test = max([len(test[0]) for test in TESTS])
     maxlen_model = max([len(model[0]) for model in TREE_MODELS])
-    maxlen_num = len(str(max(MAXNODES)))
     maxlen_dur = 7
-    decimals_dur = 3
     output = []
-    prev_test, prev_num = None, None
+    prev_test = None
     for test_desc, test_func in TESTS:
-        for numnodes in MAXNODES:
-            for model_desc, model in TREE_MODELS:
-                ln1, ln2 = [], []
-                if prev_test != test_desc:
-                    ln1.append('+-%s-' % ('-' * maxlen_test,))
-                    ln2.append('| %s ' % (test_desc.ljust(maxlen_test),))
+        for model_desc, model in TREE_MODELS:
+            if not model:
+                continue
+            ln1, ln2 = [], []
+            if prev_test != test_desc:
+                ln1.append('+-%s-' % ('-' * maxlen_test,))
+                ln2.append('| %s ' % (test_desc.ljust(maxlen_test),))
+            else:
+                tmpstr = '| %s ' % (' ' * maxlen_test,)
+                ln1.append(tmpstr)
+                ln2.append(tmpstr)
+            ln1.append('+-%s-' % ('-' * maxlen_model,))
+            ln2.append('| %s ' % (model_desc.ljust(maxlen_model),))
+            res = results[(test_desc, model_desc)]
+            for dur in res:
+                ln1.append('+-%s-' % ('-' * maxlen_dur,))
+                if dur in ('N/A',):
+                    ln2.append('| %s ' % (dur.rjust(maxlen_dur),))
+                elif dur:
+                    ln2.append('| %s ' % ('%%%dd' % (maxlen_dur,) % (dur,)))
                 else:
-                    tmpstr = '| %s ' % (' ' * maxlen_test,)
-                    ln1.append(tmpstr)
-                    ln2.append(tmpstr)
-                if len(MAXNODES) > 1:
-                    if prev_num != numnodes:
-                        ln1.append('+-%s-' % ('-' * maxlen_num,))
-                        ln2.append('| %s ' % (str(numnodes).rjust(maxlen_num),))
-                    else:
-                        tmpstr = '| %s ' % (' ' * maxlen_num,)
-                        ln1.append(tmpstr)
-                        ln2.append(tmpstr)
-                ln1.append('+-%s-' % ('-' * maxlen_model,))
-                ln2.append('| %s ' % (model_desc.ljust(maxlen_model),))
-                for dur in results[(test_desc, numnodes, model_desc)]:
-                    ln1.append('+-%s-' % ('-' * maxlen_dur,))
-                    if dur in ('N/A',):
-                        ln2.append('| %s ' % (dur.rjust(maxlen_dur),))
-                    elif dur:
-                        ln2.append('| %s ' % ('%%%dd' % (maxlen_dur,) % (dur*1000,)))
-                    else:
-                        ln2.append('| %s ' % ('-'.ljust(maxlen_dur),))
-                ln1.append('+')
-                ln2.append('|')
-                output.extend([''.join(ln1), ''.join(ln2)])
-                prev_test, prev_num = test_desc, numnodes
+                    ln2.append('| %s ' % ('-'.ljust(maxlen_dur),))
+            ln1.append('+')
+            ln2.append('|')
+            output.extend([''.join(ln1), ''.join(ln2)])
+            prev_test = test_desc
 
     ln = ['+-%s-' % ('-' * maxlen_test,)]
-    if len(MAXNODES) > 1:
-        ln.append('+-%s-' % ('-' * maxlen_num,))
     ln.extend(['+-%s-' % ('-' * maxlen_model,), 
                '+-%s-' % ('-' * maxlen_dur,),
                '+-%s-+' % ('-' * maxlen_dur,)])

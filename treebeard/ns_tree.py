@@ -3,6 +3,22 @@
 
     treebeard.ns_tree
     -----------------
+
+    Nested Sets Tree.
+
+    :copyright: 2008 by Gustavo Picon
+    :license: Apache License 2.0
+
+    An implementation of Nested Sets trees for Django 1.0+, as described by
+    `Joe Celko`_ in `Trees and Hierarchies in SQL for Smarties`_.
+
+    Nested sets have very efficient reads at the cost of high maintenance on
+    write/delete operations.
+
+
+    .. _`Joe Celko`: http://www.celko.com/
+    .. _`Trees and Hierarchies in SQL for Smarties`:
+      http://www.elsevier.com/wps/find/bookdescription.cws_home/702605/description
 """
 
 import operator
@@ -89,6 +105,35 @@ class NS_NodeManager(models.Manager):
 
 
 class NS_Node(Node):
+    """
+    Abstract model to create your own Nested Sets Trees.
+
+    .. attribute:: node_order_by
+
+       Attribute: a list of model fields that will be used for node
+       ordering. When enabled, all tree operations will assume this ordering.
+
+       Example::
+
+          node_order_by = ['field1', 'field2', 'field3']
+
+    .. attribute:: depth
+
+       ``PositiveIntegerField``, depth of a node in the tree. A root node
+       has a depth of *1*.
+
+    .. attribute:: lft
+
+       ``PositiveIntegerField``
+
+    .. attribute:: rgt
+
+       ``PositiveIntegerField``
+
+    .. attribute:: tree_id
+
+       ``PositiveIntegerField``
+    """
     node_order_by = []
 
     lft = models.PositiveIntegerField(db_index=True)
@@ -192,8 +237,6 @@ class NS_Node(Node):
 
         See: :meth:`treebeard.Node.add_child`
         """
-        
-
         if not self.is_leaf():
             # there are child nodes, delegate insertion to add_sibling
             if self.node_order_by:
@@ -201,6 +244,7 @@ class NS_Node(Node):
             else:
                 pos = 'last-sibling'
             last_child = self.get_last_child()
+            tmp = self.__class__.objects.get(pk=self.id)
             last_child._cached_parent_obj = self
             return last_child.add_sibling(pos, **kwargs)
 
@@ -487,6 +531,9 @@ class NS_Node(Node):
     @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """
+        Loads a list/dictionary structure to the tree.
+
+        See: :meth:`treebeard.Node.move`
         """
 
         # tree, iterative preorder
@@ -647,6 +694,15 @@ class NS_Node(Node):
         if self.is_leaf():
             return self.__class__.objects.none()
         return self.__class__.get_tree(self).exclude(pk=self.id)
+
+
+    def get_descendant_count(self):
+        """
+        :returns: the number of descendants of a node.
+
+        See: :meth:`treebeard.Node.get_descendant_count`
+        """
+        return (self.rgt - self.lft - 1) / 2
 
 
     def get_ancestors(self):

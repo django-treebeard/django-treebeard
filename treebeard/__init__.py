@@ -26,7 +26,9 @@
        3. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your django
           settings file.
        4. Create a new model that inherits from one of ``django-treebeard``'s
-          abstract tree models: :class:`mp_tree.MP_Node`
+          abstract tree models: :class:`mp_tree.MP_Node` (materialized path),
+          :class:`ns_tree.NS_Node` (nested sets) or :class:`al_tree.AL_Node`
+          (adjacency list).
        5. Run :command:`python manage.py syncdb`
 
 

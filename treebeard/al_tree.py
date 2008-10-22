@@ -122,8 +122,6 @@ class AL_Node(Node):
         Adds a root node to the tree.
 
         See: :meth:`treebeard.Node.add_root`
-
-        :raise PathOverflow: when no more root objects can be added
         """
         newobj = cls(**kwargs)
         newobj._cached_depth = 1
