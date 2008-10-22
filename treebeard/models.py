@@ -21,8 +21,13 @@ from django.db import models, transaction
 class Node(models.Model):
     """ Node class.
 
-    Right now there is only one class that inherits from Node: MP_Node for
-    Materialized Path trees.
+    This is the base class that defines the API of all tree models in this
+    library:
+
+        - :class:`mp_tree.MP_Node` (materialized path)
+        - :class:`ns_tree.NS_Node` (nested sets)
+        - :class:`al_tree.AL_Node` (adjacency list)
+
     """
 
 

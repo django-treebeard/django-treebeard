@@ -20,7 +20,7 @@
     to the node will be stored. This has the advantage of needing very simple
     and fast queries, at the risk of inconsistency because of the
     denormalization of ``parent``/``child`` foreign keys. This can be prevented
-    with transactions (and of course you are already using them, right?).
+    with transactions.
 
     ``django-treebeard`` uses a particular approach: every step in the path has
     a fixed width and has no separators. This makes queries predictable and

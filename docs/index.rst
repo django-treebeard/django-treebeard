@@ -1,6 +1,6 @@
 
-:mod:`treebeard` --- Efficient Materialized Path tree implementation for Django
-===============================================================================
+:mod:`treebeard` --- Efficient tree model implementations for Django
+====================================================================
 
 .. automodule:: treebeard
 
@@ -8,7 +8,6 @@
       :show-inheritance:
 
       .. automethod:: add_root
-
       .. automethod:: add_child
       .. automethod:: add_sibling
       .. automethod:: delete
@@ -20,10 +19,12 @@
       .. automethod:: get_descendants
       .. automethod:: get_descendant_count
       .. automethod:: get_first_child
+      .. automethod:: get_last_child
       .. automethod:: get_first_sibling
+      .. automethod:: get_last_sibling
+      .. automethod:: get_prev_sibling
       .. automethod:: get_next_sibling
       .. automethod:: get_parent
-      .. automethod:: get_prev_sibling
       .. automethod:: get_root
       .. automethod:: get_siblings
       .. automethod:: is_child_of
@@ -33,7 +34,6 @@
       .. automethod:: is_leaf
       .. automethod:: move
       .. automethod:: save
-
       .. automethod:: get_first_root_node
       .. automethod:: get_last_root_node
       .. automethod:: get_root_nodes
@@ -52,8 +52,8 @@
    .. autoexception:: MissingNodeOrderBy
 
 
-:mod:`treebeard.mp_tree` --- Efficient Materialized Path tree implementation for Django
-=======================================================================================
+:mod:`treebeard.mp_tree` --- Materialized Path tree
+===================================================
 
 .. automodule:: treebeard.mp_tree
 
@@ -72,20 +72,34 @@
       .. automethod:: fix_tree
 
 
-:mod:`treebeard.al_tree` --- Adjacency List tree implementation for Django
-==========================================================================
+:mod:`treebeard.al_tree` --- Adjacency List tree
+================================================
 
 .. automodule:: treebeard.al_tree
 
    .. autoclass:: AL_Node
+      :show-inheritance:
 
       .. automethod:: get_depth
 
 
-:mod:`tbbench` --- tree
-=======================
+
+:mod:`treebeard.ns_tree` --- Nested Sets tree
+=============================================
+
+.. automodule:: treebeard.ns_tree
+
+   .. autoclass:: NS_Node
+      :show-inheritance:
+
+      .. automethod:: get_tree
+
+
+:mod:`tbbench` --- Benchmarks
+=============================
 
 .. automodule:: tbbench
+
 
 Indices and tables
 ==================
