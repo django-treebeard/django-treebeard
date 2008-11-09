@@ -1,0 +1,21 @@
+<html>
+  <head>
+    <title>Threaded forum example, built with django-treebeard</title>
+  </head>
+
+  <body>
+    
+    <h1>
+    Forum example,
+    built with <a href="http://code.google.com/p/django-treebeard/">django-treebeard</a>
+    </h1>
+
+    Choose a tree model:
+
+    <ul>
+      <li><a href="{% url main-view "al" %}">Adjacency List Tree (AL)</a></li>
+      <li><a href="{% url main-view "mp" %}">Materialized Path Tree (MP)</a></li>
+      <li><a href="{% url main-view "ns" %}">Nested Sets Tree (NS)</a></li>
+    </ul>
+  </body>
+</html>
