@@ -13,9 +13,22 @@
        `treebeard-docs
        <http://django-treebeard.googlecode.com/svn/docs/index.html>`_
     :examples:
+       `treebeard-examples
+       <http://django.gpicon.org/tbexample/>`_
+       (`source
+       <http://code.google.com/p/django-treebeard/source/browse/#svn/trunk/tbexample>`_)
+    :tests:
        `treebeard-tests
        <http://code.google.com/p/django-treebeard/source/browse/trunk/treebeard/tests.py>`_
+    :benchmarks: `treebeard-benchmarks <#module-tbbench>`_
 
+    ``django-treebeard`` is a library that implements efficient tree
+    implementations for the `Django Web Framework 1.0+
+    <http://www.djangoproject.com/>`_. It includes 3 different tree
+    implementations: Adjacency List, Materialized Path and Nested Sets. Each
+    one has it's own strength and weaknesses (see
+    `Benchmarks <#module-tbbench>`_) but share the same
+    API, so it's easy to switch between implementations.
 
     ``django-treebeard`` uses `Django Model Inheritance with abstract classes`_
     to let you define your own models. To use ``django-treebeard``:
