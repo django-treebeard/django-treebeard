@@ -1,0 +1,26 @@
+      <div style="margin-left: {{ node.get_depth }}em;" class="comment"
+           id="comment_{{ node.id }}">
+        <div>
+          {{ node.author }}, on {{ node.created }}, said:
+        </div>
+        <div>
+          {{ node.comment|linebreaks }}
+        </div>
+        <div>
+          {% ifequal node.get_depth 1 %}
+            <a href="{{ node.get_absolute_url }}">#</a>
+            ({{ count }}
+            comment{{ count|pluralize }} in this conversation)
+          {% else %}
+            <a href="#comment_{{ node.id }}">#</a>
+            ({{ count }}
+            repl{{ count|pluralize:"y,ies" }})
+          {% endifequal %}
+          {% if not mainpage %}
+            <a href="#reply-form" class="reply-link"
+               id="reply-{{ node.id }}">reply!</a>
+          {% endif %}
+          (<a href="{{ node.get_absolute_url }}delete/">delete</a>)
+        </div>
+      </div>
+
