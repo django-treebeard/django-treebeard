@@ -1,4 +1,5 @@
 LICENSE
+MANIFEST
 NOTICE
 README
 setup.py
@@ -18,3 +19,18 @@ tbbench/__init__.py
 tbbench/merge.py
 tbbench/models.py
 tbbench/run.py
+tbexample/__init__.py
+tbexample/forms.py
+tbexample/models.py
+tbexample/urls.py
+tbexample/views.py
+tbexample/templates/tbexample/loaddata.html
+tbexample/templates/tbexample/delete.html
+tbexample/templates/tbexample/main.html
+tbexample/templates/tbexample/comment.html
+tbexample/templates/tbexample/choose.html
+tbexample/templates/tbexample/form.html
+tbexample/templates/tbexample/posted.html
+tbexample/templates/tbexample/convo.html
+tbexample/templates/tbexample/loadflood.html
+tbexample/templates/tbexample/base.html
