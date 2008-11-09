@@ -1,0 +1,21 @@
+{% extends "tbexample/base.html" %}
+
+{% block body %}
+    (<a href="{% url load-data treetype %}">load random data</a>)
+    (<a href="{% url delete-all treetype %}">remove all nodes</a>)
+
+    Add a new discussion:
+
+    {% include "tbexample/form.html" %}
+
+    <h2>Conversation list</h2>
+    <p>
+      There are currently
+      {{ nodes|length }} discussion{{ nodes|length|pluralize }}
+      ({{ total_comments }} total comment{{ total_comments|pluralize }}):
+    </p>
+
+    {% for node, count in nodes %}
+        {% include "tbexample/comment.html" %}
+    {% endfor %}
+{% endblock %}

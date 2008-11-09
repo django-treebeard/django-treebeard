@@ -1,0 +1,25 @@
+{% extends "tbexample/base.html" %}
+
+{% block javascript %}
+    <script type="text/javascript"
+      src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js">
+    </script>
+    <script type="text/javascript">
+        $(function() {
+            $(".reply-link").click(function(event) {
+                $("#id_parent").attr("value", $(this).attr("id").substring(6));
+            });
+        })
+    </script>
+{% endblock %}
+
+{% block body %}
+    <h2>Conversation list</h2>
+
+    {% for node, count in nodes %}
+        {% include "tbexample/comment.html" %}
+    {% endfor %}
+
+    {% include "tbexample/form.html" %}
+
+{% endblock %}

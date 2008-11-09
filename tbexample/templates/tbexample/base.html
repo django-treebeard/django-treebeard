@@ -1,0 +1,43 @@
+<html>
+  <head>
+    <title>Threaded forum example, built with django-treebeard</title>
+
+    {% block javascript %}
+    {% endblock %}
+
+    <style type="text/css">
+      div.comment {
+          border-style: solid;
+          border-width: 1px;
+          margin-top: 5px;
+          margin-bottom: 5px;
+          padding: 10px;
+      }
+      form#reply-form {
+          border-style: solid;
+          border-width: 1px;
+          padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>
+    <a href="{% url main-view treetype %}">{{ treetype|upper }} Tree forum example</a>,
+    built with <a href="http://code.google.com/p/django-treebeard/">django-treebeard</a>
+    </h1>
+
+
+    {% block body %}
+    {% endblock %}
+
+    <hr/>
+    SQL queries used to build this page:
+    <br/>
+    <ol>
+    {% for query in sql_queries %}
+      <li>({{ query.time }}s) {{ query.sql }}</li>
+    {% endfor %}
+    </ol>
+  </body>
+</html>
+
