@@ -138,5 +138,7 @@ def convo(request, treetype, node_id=None):
     return render_to_response(template_html, data)
 
 
+def choose(request):
+    return render_to_response('tbexample/choose.html', {})
 
 

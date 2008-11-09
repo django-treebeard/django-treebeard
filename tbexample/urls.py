@@ -1,6 +1,7 @@
 
 from django.conf.urls.defaults import *
 from tbexample.views import convo, load_random_data, delete_node, delete_all
+from tbexample.views import choose
 
 baseurl = r'^(?P<treetype>mp|al|ns)/'
 lurls = [
@@ -16,3 +17,4 @@ lurls = [
 urlpatterns = []
 for pat, view, name in lurls:
     urlpatterns += patterns('', url('%s%s' % (baseurl, pat), view, name=name))
+urlpatterns += patterns('', url('', choose, name='choose-tree'))
