@@ -58,7 +58,8 @@ from django.db import models, transaction, connection
 from django.db.models import Q
 from django.conf import settings
 
-from treebeard.models import Node, InvalidMoveToDescendant, PathOverflow
+from treebeard.models import Node
+from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow
 
 
 class MP_NodeQuerySet(models.query.QuerySet):

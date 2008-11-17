@@ -15,8 +15,9 @@ import os, functools
 from django.test import TestCase
 from django.db import models, transaction
 
-from treebeard import InvalidPosition, InvalidMoveToDescendant, \
-    PathOverflow, MissingNodeOrderBy, numconv
+from treebeard import numconv
+from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
+    PathOverflow, MissingNodeOrderBy
 from treebeard.mp_tree import MP_Node
 from treebeard.al_tree import AL_Node
 from treebeard.ns_tree import NS_Node

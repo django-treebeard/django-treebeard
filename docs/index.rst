@@ -4,6 +4,8 @@
 
 .. automodule:: treebeard
 
+.. automodule:: treebeard.models
+
    .. autoclass:: Node
       :show-inheritance:
 
@@ -42,14 +44,6 @@
       .. automethod:: find_problems
       .. automethod:: fix_tree
       .. automethod:: get_descendants_group_count
-
-   .. autoexception:: InvalidPosition
-
-   .. autoexception:: InvalidMoveToDescendant
-   
-   .. autoexception:: PathOverflow
-
-   .. autoexception:: MissingNodeOrderBy
 
 
 :mod:`treebeard.mp_tree` --- Materialized Path tree
@@ -93,6 +87,20 @@
       :show-inheritance:
 
       .. automethod:: get_tree
+
+
+:mod:`treebeard.exceptions` --- Exceptions
+==========================================
+
+.. automodule:: treebeard.exceptions
+    
+    .. autoexception:: InvalidPosition
+
+    .. autoexception:: InvalidMoveToDescendant
+
+    .. autoexception:: PathOverflow
+
+    .. autoexception:: MissingNodeOrderBy
 
 
 :mod:`tbbench` --- Benchmarks

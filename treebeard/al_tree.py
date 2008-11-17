@@ -30,7 +30,8 @@
 from django.core import serializers
 from django.db import models, transaction, connection
 
-from treebeard.models import Node, InvalidMoveToDescendant
+from treebeard.models import Node
+from treebeard.exceptions import InvalidMoveToDescendant
 
 
 
