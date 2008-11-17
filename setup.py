@@ -5,10 +5,11 @@
 import os
 from distutils.core import setup
 
-version_tuple = (0, 9, 'svn')
+treebeard = __import__('treebeard')
+version_tuple = treebeard.VERSION
 version = "%d.%d" % version_tuple[:2]
 if version_tuple[2] is not None:
-    svnf = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+    svnf = os.path.join(os.path.dirname(os.path.abspath(treebeard.__file__)),
                         '.svn/entries')
     gotdir = False
     version = '%s_%s' % (version, str(version_tuple[2]))

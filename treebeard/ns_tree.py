@@ -28,7 +28,8 @@ from django.db.models import Q
 from django.core import serializers
 from django.db import models, transaction, connection
 
-from treebeard.models import Node, InvalidMoveToDescendant, PathOverflow
+from treebeard.models import Node
+from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow
 
 
 class NS_NodeQuerySet(models.query.QuerySet):

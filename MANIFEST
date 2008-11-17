@@ -2,6 +2,7 @@ LICENSE
 MANIFEST
 NOTICE
 README
+UPDATING
 setup.py
 treebeard/__init__.py
 treebeard/models.py

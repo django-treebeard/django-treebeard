@@ -45,7 +45,7 @@
        5. Run :command:`python manage.py syncdb`
 
 
-    Read the :class:`Node` API reference for detailed info.
+    Read the :class:`models.Node` API reference for detailed info.
 
     .. _`treebeard download page`:
        http://code.google.com/p/django-treebeard/downloads/list
@@ -55,9 +55,4 @@
 """
 
 VERSION = (0, 9, 'svn')
-
-from treebeard.models import Node, InvalidPosition, InvalidMoveToDescendant, \
-    MissingNodeOrderBy, PathOverflow
-
-
 
