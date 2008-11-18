@@ -7,7 +7,7 @@
     :synopsys: Efficient Tree implementations for Django 1.0+
     :copyright: 2008 by `Gustavo Picon <http://gpicon.org>`_
     :license: Apache License 2.0
-    :version: 0.9-svn
+    :version: 1.0
     :url: http://code.google.com/p/django-treebeard/
     :documentation:
        `treebeard-docs
@@ -54,5 +54,5 @@
 
 """
 
-VERSION = (0, 9, 'svn')
+VERSION = (1, 0, None)
 
