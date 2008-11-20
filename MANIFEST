@@ -5,6 +5,7 @@ README
 UPDATING
 setup.py
 treebeard/__init__.py
+treebeard/exceptions.py
 treebeard/models.py
 treebeard/al_tree.py
 treebeard/mp_tree.py
