@@ -134,6 +134,17 @@ class NS_Node(Node):
     .. attribute:: tree_id
 
        ``PositiveIntegerField``
+
+    .. warning::
+       
+       Be very careful if you add a ``Meta`` class in your NS_Node subclass.
+       You must add an ordering attribute with two elements on it::
+
+            class Meta:
+                ordering = ['tree_id', 'lft']
+
+       If you don't, the tree won't work, since NS_Node completely depends on
+       this property.
     """
     node_order_by = []
 
@@ -775,6 +786,8 @@ class NS_Node(Node):
         # at least you'll want to check the first/last/prev/next methods.
         # This ordering assumes you want something... TREEISH
         # PROTIP: don't change this
+        # PROTIP2: Set the ordering property again if you add a Meta in
+        #          your subclass
         ordering = ['tree_id', 'lft']
 
 
