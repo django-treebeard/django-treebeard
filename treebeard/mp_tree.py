@@ -270,6 +270,13 @@ class MP_Node(Node):
          4. Restore your backup using :meth:`load_bulk` with
             ``keep_ids=True`` to keep the same primary keys you had.
 
+    .. warning::
+       
+       Be very careful if you add a ``Meta`` class in your MP_Node subclass.
+       You must add an ordering field with a single element on it: ``['path']``
+       If you don't, the tree won't work, since MP_Node completely depends on
+       this property.
+
     Example::
 
        class SortedNode(MP_Node):
@@ -1128,6 +1135,8 @@ class MP_Node(Node):
         # at least you'll want to check the first/last/prev/next methods.
         # This ordering assumes you want something... TREEISH
         # PROTIP: don't change this
+        # PROTIP2: Set the ordering property again if you add a Meta in
+        #          your subclass
         ordering = ['path']
 
 
