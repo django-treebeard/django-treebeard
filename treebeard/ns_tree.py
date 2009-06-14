@@ -137,14 +137,15 @@ class NS_Node(Node):
 
     .. warning::
        
-       Be very careful if you add a ``Meta`` class in your NS_Node subclass.
+       Be very careful if you add a ``Meta`` class in your
+       :class:`ns_tree.NS_Node` subclass.
        You must add an ordering attribute with two elements on it::
 
             class Meta:
                 ordering = ['tree_id', 'lft']
 
-       If you don't, the tree won't work, since NS_Node completely depends on
-       this property.
+       If you don't, the tree won't work, since :class:`ns_tree.NS_Node`
+       completely depends on this property.
     """
     node_order_by = []
 
