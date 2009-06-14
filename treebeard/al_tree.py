@@ -431,7 +431,8 @@ class AL_Node(Node):
                 sql = 'UPDATE %(table)s' \
                       ' SET sib_order=sib_order+1' \
                       ' WHERE sib_order >= %%s' \
-                      ' AND ' % {'table': cls._meta.db_table}
+                      ' AND ' % {'table':
+                                connection.ops.quote_name(cls._meta.db_table)}
                 params = [min]
                 if target.is_root():
                     sql += 'parent_id IS NULL'

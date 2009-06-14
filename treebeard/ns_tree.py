@@ -225,7 +225,7 @@ class NS_Node(Node):
               '                ELSE rgt END ' \
               ' WHERE rgt >= %(parent_rgt)d AND ' \
               '       tree_id = %(tree_id)s' % {
-                  'table': cls._meta.db_table,
+                  'table': connection.ops.quote_name(cls._meta.db_table),
                   'parent_rgt': rgt,
                   'tree_id': tree_id,
                   'lftop': lftop,
@@ -238,7 +238,7 @@ class NS_Node(Node):
         sql = 'UPDATE %(table)s ' \
               ' SET tree_id = tree_id+1 ' \
               ' WHERE tree_id >= %(tree_id)d' % {
-                  'table': cls._meta.db_table,
+                  'table': connection.ops.quote_name(cls._meta.db_table),
                   'tree_id': tree_id
               }
         return sql, []
@@ -501,7 +501,7 @@ class NS_Node(Node):
               "     depth = depth + %(depthdiff)d " \
               " WHERE tree_id = %(from_tree)d AND " \
               "     lft BETWEEN %(fromlft)d AND %(fromrgt)d" % {
-                  'table': cls._meta.db_table,
+                  'table': connection.ops.quote_name(cls._meta.db_table),
                   'from_tree': fromobj.tree_id,
                   'target_tree': target_tree,
                   'jump': newpos - fromobj.lft,
@@ -533,7 +533,7 @@ class NS_Node(Node):
               ' WHERE (lft > %(drop_lft)d ' \
               '     OR rgt > %(drop_lft)d) AND '\
               '     tree_id=%(tree_id)d' % {
-                  'table': cls._meta.db_table,
+                  'table': connection.ops.quote_name(cls._meta.db_table),
                   'gapsize': drop_rgt - drop_lft + 1,
                   'drop_lft': drop_lft,
                   'tree_id': tree_id
