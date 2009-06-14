@@ -1829,7 +1829,7 @@ class TestMP_TreeFindProblems(TestTreeBase):
 
     def test_find_problems(self):
         model = MP_TestNodeAlphabet
-        model.alphabet = '012'
+        model.alphabet = '01234'
         model(path='01', depth=1, numchild=0, numval=0).save()
         model(path='1', depth=1, numchild=0, numval=0).save()
         model(path='111', depth=1, numchild=0, numval=0).save()
@@ -1837,14 +1837,24 @@ class TestMP_TreeFindProblems(TestTreeBase):
         model(path='qa#$%!', depth=1, numchild=0, numval=0).save()
         model(path='0201', depth=2, numchild=0, numval=0).save()
         model(path='020201', depth=3, numchild=0, numval=0).save()
+        model(path='03', depth=1, numchild=2, numval=0).save()
+        model(path='0301', depth=2, numchild=0, numval=0).save()
+        model(path='030102', depth=3, numchild=10, numval=0).save()
+        model(path='04', depth=10, numchild=1, numval=0).save()
+        model(path='0401', depth=20, numchild=0, numval=0).save()
 
-        evil_chars, bad_steplen, orphans = model.find_problems()
+        evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild = \
+                                                        model.find_problems()
         self.assertEqual(['abcd', 'qa#$%!'],
             [o.path for o in model.objects.filter(id__in=evil_chars)])
         self.assertEqual(['1', '111'],
             [o.path for o in model.objects.filter(id__in=bad_steplen)])
         self.assertEqual(['0201', '020201'],
             [o.path for o in model.objects.filter(id__in=orphans)])
+        self.assertEqual(['03', '0301', '030102'],
+            [o.path for o in model.objects.filter(id__in=wrong_numchild)])
+        self.assertEqual(['04', '0401'],
+            [o.path for o in model.objects.filter(id__in=wrong_depth)])
 
 
 

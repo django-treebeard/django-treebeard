@@ -397,17 +397,26 @@ class MP_Node(Node):
            2. changing the ``steplen`` value in a model (you must :meth:`dump_bulk`
               first, change ``steplen`` and then :meth:`load_bulk`
 
-        :returns: A tuple of three lists:
+        :returns: A tuple of five lists:
                   
                   1. a list of ids of nodes with characters not found in the
                      ``alphabet``
                   2. a list of ids of nodes when a wrong ``path`` length
                      according to ``steplen``
                   3. a list of ids of orphaned nodes
+                  4. a list of ids of nodes with the wrong depth value for
+                     their path
+                  5. a list of ids nodes that report a wrong number of children
 
         .. note::
            
-           These problems can't be solved automatically.
+           A node won't appear in more than one list, even when it exhibits
+           more than one problem. This method stops checking a node when it
+           finds a problem and continues to the next node.
+
+        .. note::
+           
+           Problems 1, 2 and 3 can't be solved automatically.
 
         Example::
 
@@ -415,6 +424,7 @@ class MP_Node(Node):
 
         """
         evil_chars, bad_steplen, orphans = [], [], []
+        wrong_depth, wrong_numchild = [], []
         for node in cls.objects.all():
             found_error = False
             for char in node.path:
@@ -431,8 +441,22 @@ class MP_Node(Node):
                 parent = node.get_parent(True)
             except cls.DoesNotExist:
                 orphans.append(node.id)
+                continue
 
-        return evil_chars, bad_steplen, orphans
+            if node.depth != len(node.path) / cls.steplen:
+                wrong_depth.append(node.id)
+                continue
+
+            real_numchild = cls.objects.filter(
+                path__range=cls._get_children_path_interval(node.path)).extra(
+                    where=['LENGTH(path)/%d=%d' % (cls.steplen, node.depth+1)]
+                ).count()
+            if real_numchild != node.numchild:
+                wrong_numchild.append(node.id)
+                continue
+            
+
+        return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
 
 
     @classmethod
@@ -443,7 +467,7 @@ class MP_Node(Node):
 
         The problems this method solves are:
         
-           1. Nodes with an incorrect ``level`` or ``numchild`` values due to
+           1. Nodes with an incorrect ``depth`` or ``numchild`` values due to
               incorrect code and lack of database transactions.
            2. "Holes" in the tree. This is normal if you move/delete nodes a
               lot. Holes in a tree don't affect performance,
