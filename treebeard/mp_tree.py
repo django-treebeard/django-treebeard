@@ -561,10 +561,11 @@ class MP_Node(Node):
               '   WHERE depth >= %(depth)s %(extrand)s' \
               '   GROUP BY subpath) AS t2 ' \
               ' ON t1.path=t2.subpath ' \
-              ' ORDER BY t1.path' % {'table': cls._meta.db_table,
-                                     'subpathlen': depth*cls.steplen,
-                                     'depth': depth,
-                                     'extrand': extrand}
+              ' ORDER BY t1.path' % {
+                    'table': connection.ops.quote_name(cls._meta.db_table),
+                    'subpathlen': depth*cls.steplen,
+                    'depth': depth,
+                    'extrand': extrand}
         cursor = connection.cursor()
         cursor.execute(sql, params)
 
@@ -1071,7 +1072,8 @@ class MP_Node(Node):
 
         """
         
-        sql1 = "UPDATE %s SET" % (cls._meta.db_table,)
+        sql1 = "UPDATE %s SET" % (
+            connection.ops.quote_name(cls._meta.db_table),)
 
         # <3 "standard" sql
         if settings.DATABASE_ENGINE == 'sqlite3':
@@ -1114,7 +1116,8 @@ class MP_Node(Node):
 
         # Right now this is only used by *sigh* mysql.
         sql = "UPDATE %s SET depth=LENGTH(path)/%%s" \
-              " WHERE path LIKE %%s" % (cls._meta.db_table,)
+              " WHERE path LIKE %%s" % (
+                  connection.ops.quote_name(cls._meta.db_table),)
         vals = [cls.steplen, path+'%']
         return sql, vals
 
@@ -1125,8 +1128,9 @@ class MP_Node(Node):
         :returns: The sql needed the numchild value of a node
         """
         sql = "UPDATE %s SET numchild=numchild%s1" \
-              " WHERE path=%%s" % (cls._meta.db_table,
-                                   {'inc':'+', 'dec':'-'}[incdec])
+              " WHERE path=%%s" % (
+                connection.ops.quote_name(cls._meta.db_table),
+                {'inc':'+', 'dec':'-'}[incdec])
         vals = [path]
         return sql, vals
 
