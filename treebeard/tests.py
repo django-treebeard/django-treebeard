@@ -145,9 +145,6 @@ if HAS_DJANGO_AUTH:
     class MP_TestIssue14(MP_Node):
         name = models.CharField(max_length=255)
         users = models.ManyToManyField(User)
-        
-        def __unicode__(self):
-            return '(%s/%s)' % (self.name, self.path)
 
 
 def multi_test():
