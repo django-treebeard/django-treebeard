@@ -8,7 +8,7 @@ numconv
            strings.
 :copyright: 2008 by Gustavo Picon
 :license: Apache License 2.0
-:version: 1.1-svn
+:version: 1.2.0
 :url: http://code.google.com/p/numconv/
 :documentation:
    `numconv-docs
@@ -18,8 +18,8 @@ numconv
    <http://code.google.com/p/numconv/source/browse/trunk/tests.py>`_
 
 
-:mod:`numconv` converts a string into a number and a number into a string using
-default or user supplied encoding alphabets.
+:mod:`numconv` converts a string into a number and a number into a string
+using default or user supplied encoding alphabets.
 
 constants
 ~~~~~~~~~
@@ -27,8 +27,8 @@ constants
 .. data:: BASE85
 
    Alphabet defined in section 4 of :rfc:`1924`. Supposed to be a joke (it is
-   an April's fools RFC after all), but is quite useful because can be used as
-   a base for the most common numeric conversions.
+   an April's fools RFC after all), but is quite useful because it can be used
+   as a base for the most common numeric conversions.
 
 .. data:: BASE16
           BASE32
@@ -41,7 +41,8 @@ constants
 
 """
 
-VERSION = (1, 1, None)
+
+__version__ = '1.2.0'
 
 # from april fool's rfc 1924
 BASE85 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' \
@@ -80,7 +81,7 @@ def int2str(num, radix=10, alphabet=BASE85):
     :raise ValueError: when *alphabet* has duplicated characters
 
     **Examples** (taken from :file:`tests.py`):
-       
+
        3735928559 to hexadecimal::
 
            >> numconv.int2str(3735928559, 16)
@@ -106,13 +107,16 @@ def int2str(num, radix=10, alphabet=BASE85):
         # just to validate the alphabet
         getcmap(alphabet)
     if int(num) != num:
-        raise TypeError, 'number must be an integer'
+        raise TypeError('number must be an integer')
     if num < 0:
-        raise ValueError, 'number must be positive'
+        raise ValueError('number must be positive')
     if int(radix) != radix:
-        raise TypeError, 'radix must be an integer'
+        raise TypeError('radix must be an integer')
     if not 2 <= radix <= len(alphabet):
-        raise ValueError, 'radix must be >= 2 and <= %d' % (len(alphabet),)
+        raise ValueError('radix must be >= 2 and <= %d' % (len(alphabet), ))
+    if radix in (8, 10, 16) and \
+            alphabet[:radix].lower() == BASE85[:radix].lower():
+        return ({8: '%o', 10: '%d', 16: '%x'}[radix] % num).upper()
     ret = ''
     while True:
         ret = alphabet[num % radix] + ret
@@ -146,7 +150,7 @@ def str2int(num, radix=10, alphabet=BASE85):
     :raise ValueError: when *alphabet* has duplicated characters
 
     **Examples** (taken from :file:`tests.py`):
-       
+
        Hexadecimal 'DEADBEEF' to integer::
 
           >> numconv.str2int('DEADBEEF', 16)
@@ -171,9 +175,9 @@ def str2int(num, radix=10, alphabet=BASE85):
     if alphabet not in CMAPS:
         getcmap(alphabet)
     if int(radix) != radix:
-        raise TypeError, 'radix must be an integer'
+        raise TypeError('radix must be an integer')
     if not 2 <= radix <= len(alphabet):
-        raise ValueError, 'radix must be >= 2 and <= %d' % (len(alphabet),)
+        raise ValueError('radix must be >= 2 and <= %d' % (len(alphabet), ))
     if radix <= 36 and alphabet[:radix].lower() == BASE85[:radix].lower():
         return int(num, radix)
     ret = 0
@@ -181,8 +185,8 @@ def str2int(num, radix=10, alphabet=BASE85):
     lalphabet = alphabet[:radix]
     for char in num:
         if char not in lalphabet:
-            raise ValueError, "invalid literal for radix2int() " \
-                "with radix %d: '%s'" % (radix, num)
+            raise ValueError("invalid literal for radix2int() with radix "
+                             "%d: '%s'" % (radix, num))
         ret = ret * radix + lmap[char]
     return ret
 
@@ -191,7 +195,6 @@ def getcmap(alphabet):
     """Builds an internal alphabet lookup table, to be stored in CMAPS"""
     ret = dict(zip(alphabet, range(len(alphabet))))
     if len(ret) != len(alphabet):
-        raise ValueError, "duplicate characters found in '%s'" % (alphabet,)
+        raise ValueError("duplicate characters found in '%s'" % (alphabet, ))
     CMAPS[alphabet] = ret
     return ret
-
