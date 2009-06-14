@@ -1859,61 +1859,107 @@ class TestMP_TreeFindProblems(TestTreeBase):
 
 
 class TestMP_TreeFix(TestTreeBase):
+    
+    def setUp(self):
+        super(TestMP_TreeFix, self).setUp()
+        self.expected_no_holes = {
+            MP_TestNodeShortPath: [
+                (u'1', u'b', 1, 2),
+                (u'11', u'u', 2, 1),
+                (u'111', u'i', 3, 1),
+                (u'1111', u'e', 4, 0),
+                (u'12', u'o', 2, 0),
+                (u'2', u'd', 1, 0),
+                (u'3', u'g', 1, 0),
+                (u'4', u'a', 1, 4),
+                (u'41', u'a', 2, 0),
+                (u'42', u'a', 2, 0),
+                (u'43', u'u', 2, 1),
+                (u'431', u'i', 3, 1),
+                (u'4311', u'e', 4, 0),
+                (u'44', u'o', 2, 0)],
+            MP_TestSortedNodeShortPath: [
+                (u'1', u'a', 1, 4),
+                (u'11', u'a', 2, 0),
+                (u'12', u'a', 2, 0),
+                (u'13', u'o', 2, 0),
+                (u'14', u'u', 2, 1),
+                (u'141', u'i', 3, 1), 
+                (u'1411', u'e', 4, 0),
+                (u'2', u'b', 1, 2),
+                (u'21', u'o', 2, 0),
+                (u'22', u'u', 2, 1),
+                (u'221', u'i', 3, 1),
+                (u'2211', u'e', 4, 0),
+                (u'3', u'd', 1, 0),
+                (u'4', u'g', 1, 0)]}
+        self.expected_with_holes = {
+            MP_TestNodeShortPath: [
+                (u'1', u'b', 1L, 2L),
+                (u'13', u'u', 2L, 1L),
+                (u'134', u'i', 3L, 1L),
+                (u'1343', u'e', 4L, 0L),
+                (u'14', u'o', 2L, 0L),
+                (u'2', u'd', 1L, 0L),
+                (u'3', u'g', 1L, 0L),
+                (u'4', u'a', 1L, 4L),
+                (u'41', u'a', 2L, 0L),
+                (u'42', u'a', 2L, 0L),
+                (u'43', u'u', 2L, 1L),
+                (u'434', u'i', 3L, 1L),
+                (u'4343', u'e', 4L, 0L),
+                (u'44', u'o', 2L, 0L)],
+            MP_TestSortedNodeShortPath: [
+                (u'1', u'b', 1L, 2L),
+                (u'13', u'u', 2L, 1L),
+                (u'134', u'i', 3L, 1L),
+                (u'1343', u'e', 4L, 0L),
+                (u'14', u'o', 2L, 0L),
+                (u'2', u'd', 1L, 0L),
+                (u'3', u'g', 1L, 0L),
+                (u'4', u'a', 1L, 4L),
+                (u'41', u'a', 2L, 0L),
+                (u'42', u'a', 2L, 0L),
+                (u'43', u'u', 2L, 1L),
+                (u'434', u'i', 3L, 1L),
+                (u'4343', u'e', 4L, 0L),
+                (u'44', u'o', 2L, 0L)]}
 
     def got(self, model):
         return [(o.path, o.desc, o.get_depth(), o.get_children_count())
                 for o in model.get_tree()]
+    
+    def add_broken_test_data(self, model):
+        model(path='4', depth=2, numchild=2, desc='a').save()
+        model(path='13', depth=1000, numchild=0, desc='u').save()
+        model(path='14', depth=4, numchild=500, desc='o').save()
+        model(path='134', depth=321, numchild=543, desc='i').save()
+        model(path='1343', depth=321, numchild=543, desc='e').save()
+        model(path='42', depth=1, numchild=1, desc='a').save()
+        model(path='43', depth=1000, numchild=0, desc='u').save()
+        model(path='44', depth=4, numchild=500, desc='o').save()
+        model(path='434', depth=321, numchild=543, desc='i').save()
+        model(path='4343', depth=321, numchild=543, desc='e').save()
+        model(path='41', depth=1, numchild=1, desc='a').save()
+        model(path='3', depth=221, numchild=322, desc='g').save()
+        model(path='1', depth=10, numchild=3, desc='b').save()
+        model(path='2', depth=10, numchild=3, desc='d').save()
 
-
-    def test_fix_tree(self):
-        expected = {
-            MP_TestNodeShortPath: [(u'1', u'b', 1, 2),
-                             (u'11', u'u', 2, 1),
-                             (u'111', u'i', 3, 1),
-                             (u'1111', u'e', 4, 0),
-                             (u'12', u'o', 2, 0),
-                             (u'2', u'd', 1, 0),
-                             (u'3', u'g', 1, 0),
-                             (u'4', u'a', 1, 4),
-                             (u'41', u'a', 2, 0),
-                             (u'42', u'a', 2, 0),
-                             (u'43', u'u', 2, 1),
-                             (u'431', u'i', 3, 1),
-                             (u'4311', u'e', 4, 0),
-                             (u'44', u'o', 2, 0)],
-            MP_TestSortedNodeShortPath: [(u'1', u'a', 1, 4),
-                           (u'11', u'a', 2, 0),
-                           (u'12', u'a', 2, 0),
-                           (u'13', u'o', 2, 0),
-                           (u'14', u'u', 2, 1),
-                           (u'141', u'i', 3, 1), 
-                           (u'1411', u'e', 4, 0),
-                           (u'2', u'b', 1, 2),
-                           (u'21', u'o', 2, 0),
-                           (u'22', u'u', 2, 1),
-                           (u'221', u'i', 3, 1),
-                           (u'2211', u'e', 4, 0),
-                           (u'3', u'd', 1, 0),
-                           (u'4', u'g', 1, 0)]}
+    def test_fix_tree_non_destructive(self):
 
         for model in (MP_TestNodeShortPath, MP_TestSortedNodeShortPath):
-            model(path='4', depth=2, numchild=2, desc='a').save()
-            model(path='13', depth=1000, numchild=0, desc='u').save()
-            model(path='14', depth=4, numchild=500, desc='o').save()
-            model(path='134', depth=321, numchild=543, desc='i').save()
-            model(path='1343', depth=321, numchild=543, desc='e').save()
-            model(path='42', depth=1, numchild=1, desc='a').save()
-            model(path='43', depth=1000, numchild=0, desc='u').save()
-            model(path='44', depth=4, numchild=500, desc='o').save()
-            model(path='434', depth=321, numchild=543, desc='i').save()
-            model(path='4343', depth=321, numchild=543, desc='e').save()
-            model(path='41', depth=1, numchild=1, desc='a').save()
-            model(path='3', depth=221, numchild=322, desc='g').save()
-            model(path='1', depth=10, numchild=3, desc='b').save()
-            model(path='2', depth=10, numchild=3, desc='d').save()
+            self.add_broken_test_data(model)
+            model.fix_tree(destructive=False)
+            self.assertEqual(self.got(model), self.expected_with_holes[model])
+            model.find_problems()
 
-            model.fix_tree()
-            self.assertEqual(self.got(model), expected[model])
+    def test_fix_tree_destructive(self):
+
+        for model in (MP_TestNodeShortPath, MP_TestSortedNodeShortPath):
+            self.add_broken_test_data(model)
+            model.fix_tree(destructive=True)
+            self.assertEqual(self.got(model), self.expected_no_holes[model])
+            model.find_problems()
 
 
 class TestIssue14(TestCase):
