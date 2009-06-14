@@ -460,7 +460,7 @@ class MP_Node(Node):
 
 
     @classmethod
-    def fix_tree(cls):
+    def fix_tree(cls, destructive=False):
         """
         Solves some problems that can appear when transactions are not used and
         a piece of code breaks, leaving the tree in an inconsistent state.
@@ -476,21 +476,26 @@ class MP_Node(Node):
               ``node_order_by`` is modified after the node is inserted, the
               tree ordering will be inconsistent.
 
-        If these problems don't apply to you, you'll never need to use this
-        method.
+        :param destructive:
+            
+            A boolean value. If True, a more agressive fix_tree method will be
+            attemped. If False (the default), it will use a safe (and fast!)
+            fix approach, but it will only solve the ``depth`` and
+            ``numchild`` nodes, it won't fix the tree holes or broken path
+            ordering.
 
-        .. warning::
-
-           Currently what this method does is:
-
-           1. Backup the tree with :meth:`dump_data`
-           2. Remove all nodes in the tree.
-           3. Restore the tree with :meth:`load_data`
-
-           So, even when the primary keys of your nodes will be preserved, this
-           method isn't foreign-key friendly. That needs complex in-place
-           tree reordering, not available at the moment (hint: patches are
-           welcome).
+            .. warning::
+    
+               Currently what the ``destructive`` method does is:
+    
+               1. Backup the tree with :meth:`dump_data`
+               2. Remove all nodes in the tree.
+               3. Restore the tree with :meth:`load_data`
+    
+               So, even when the primary keys of your nodes will be preserved,
+               this method isn't foreign-key friendly. That needs complex
+               in-place tree reordering, not available at the moment (hint:
+               patches are welcome).
 
         Example::
 
@@ -498,9 +503,56 @@ class MP_Node(Node):
 
 
         """
-        dump = cls.dump_bulk(None, True)
-        cls.objects.all().delete()
-        cls.load_bulk(dump, None, True)
+        if destructive:
+            dump = cls.dump_bulk(None, True)
+            cls.objects.all().delete()
+            cls.load_bulk(dump, None, True)
+        else:
+
+            cursor = connection.cursor()
+
+            # fix the depth field
+            # we need the WHERE to speed up postgres
+            sql = "UPDATE %s " \
+                    "SET depth=LENGTH(path)/%%s " \
+                  "WHERE depth!=LENGTH(path)/%%s" % (
+                      connection.ops.quote_name(cls._meta.db_table),)
+            vals = [cls.steplen, cls.steplen]
+            cursor.execute(sql, vals)
+
+            # fix the numchild field
+            vals = ['_' * cls.steplen]
+            # the cake and sql portability are a lie
+            if settings.DATABASE_ENGINE == 'mysql':
+                sql = "SELECT tbn1.path, tbn1.numchild, (" \
+                              "SELECT COUNT(1) " \
+                              "FROM %(table)s AS tbn2 " \
+                              "WHERE tbn2.path LIKE " \
+                                "CONCAT(tbn1.path, %%s)) AS real_numchild " \
+                      "FROM %(table)s AS tbn1 " \
+                      "HAVING tbn1.numchild != real_numchild" % {
+                        'table': connection.ops.quote_name(cls._meta.db_table)}
+            else:
+                subquery = "(SELECT COUNT(1) FROM %(table)s AS tbn2" \
+                           " WHERE tbn2.path LIKE tbn1.path||%%s)"
+                sql = "SELECT tbn1.path, tbn1.numchild, " + subquery + " " \
+                      "FROM %(table)s AS tbn1 " \
+                      "WHERE tbn1.numchild != " + subquery
+                sql = sql % {
+                        'table': connection.ops.quote_name(cls._meta.db_table)}
+                # we include the subquery twice
+                vals *= 2
+            cursor.execute(sql, vals)
+            field_names = [field[0] for field in cursor.description]
+            sql = "UPDATE %(table)s " \
+                     "SET numchild=%%s " \
+                   "WHERE path=%%s" % {
+                     'table': connection.ops.quote_name(cls._meta.db_table)}
+            for node_data in cursor.fetchall():
+                vals = [node_data[2], node_data[0]]
+                cursor.execute(sql, vals)
+
+            transaction.commit_unless_managed()
 
 
     @classmethod
