@@ -14,6 +14,9 @@
 import os, functools
 from django.test import TestCase
 from django.db import models, transaction
+from django.contrib.auth.models import User, AnonymousUser
+from django.db.models import Q
+from django.conf import settings
 
 from treebeard import numconv
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
@@ -21,6 +24,10 @@ from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
 from treebeard.mp_tree import MP_Node
 from treebeard.al_tree import AL_Node
 from treebeard.ns_tree import NS_Node
+
+# ghetto app detection, there is probably some introspection method,
+# but meh, this works
+HAS_DJANGO_AUTH = 'django.contrib.auth' in settings.INSTALLED_APPS
 
 BASE_DATA = [
   {'data':{'desc':'1'}},
@@ -132,6 +139,15 @@ class MP_TestSortedNodeShortPath(MP_Node):
 
     node_order_by = ['desc']
 MP_TestSortedNodeShortPath._meta.get_field('path').max_length = 4
+
+
+if HAS_DJANGO_AUTH:
+    class MP_TestIssue14(MP_Node):
+        name = models.CharField(max_length=255)
+        users = models.ManyToManyField(User)
+        
+        def __unicode__(self):
+            return '(%s/%s)' % (self.name, self.path)
 
 
 def multi_test():
@@ -1891,5 +1907,67 @@ class TestMP_TreeFix(TestTreeBase):
 
             model.fix_tree()
             self.assertEqual(self.got(model), expected[model])
+
+
+class TestIssue14(TestCase):
+    # http://code.google.com/p/django-treebeard/issues/detail?id=14
+
+    def test_issue_14(self):
+        if not HAS_DJANGO_AUTH:
+            self.fail('this test needs django.contrib.auth in INSTALLED_APPS')
+
+        # Using AnonymousUser() in the querysets will expose non-treebeard
+        # related problems in Django 1.0
+        #
+        # Postgres:
+        #   ProgrammingError: can't adapt
+        # SQLite:
+        #   InterfaceError: Error binding parameter 4 - probably unsupported
+        #   type.
+        # MySQL compared a string to an integer field:
+        #   `treebeard_mp_testissue14_users`.`user_id` = 'AnonymousUser'
+        #
+        # Using a None field instead works (will be translated to IS NULL).
+        #
+        # anonuserobj = AnonymousUser()
+        anonuserobj = None
+
+        def qs_check(qs, expected):
+            self.assertEqual(
+                [o.name for o in qs],
+                expected
+            )
+
+        user = User.objects.create_user('test_user', 'test@example.com',
+                                        'testpasswd')
+        user.save()
+        root = MP_TestIssue14.add_root(name="the root node")
+
+        first = root.add_child(name="first")
+        second = root.add_child(name="second")
+
+        qs_check(root.get_children(), ['first', 'second'])
+        qs_check(root.get_children().filter(Q(name="first")), ['first'])
+        qs_check(root.get_children().filter(Q(users=user)), [])
+        qs_check(
+            root.get_children().filter(Q(name="first") | Q(users=user)),
+            ['first'])
+        
+        user = anonuserobj
+        qs_check(
+            root.get_children().filter(Q(name="first") | Q(users=user)),
+            ['first', 'second'])
+
+        user = User.objects.get(username="test_user")
+        second.users.add(user)
+
+        qs_check(
+            root.get_children().filter(Q(name="first") | Q(users=user)),
+            ['first', 'second'])
+
+        user = anonuserobj
+        qs_check(
+            root.get_children().filter(Q(name="first") | Q(users=user)),
+            ['first'])
 
 #~
