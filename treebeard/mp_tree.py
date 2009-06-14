@@ -273,7 +273,11 @@ class MP_Node(Node):
     .. warning::
        
        Be very careful if you add a ``Meta`` class in your MP_Node subclass.
-       You must add an ordering field with a single element on it: ``['path']``
+       You must add an ordering attribute with a single element on it::
+
+            class Meta:
+                ordering = ['path']
+
        If you don't, the tree won't work, since MP_Node completely depends on
        this property.
 
