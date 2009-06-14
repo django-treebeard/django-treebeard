@@ -455,7 +455,7 @@ class MP_Node(Node):
         If these problems don't apply to you, you'll never need to use this
         method.
 
-        .. note::
+        .. warning::
 
            Currently what this method does is:
 
