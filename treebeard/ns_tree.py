@@ -145,7 +145,7 @@ class NS_Node(Node):
                 ordering = ['tree_id', 'lft']
 
        If you don't, the tree won't work, since :class:`ns_tree.NS_Node`
-       completely depends on this property.
+       completely depends on this attribute.
     """
     node_order_by = []
 

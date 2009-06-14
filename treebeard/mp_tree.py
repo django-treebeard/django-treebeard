@@ -280,7 +280,7 @@ class MP_Node(Node):
                 ordering = ['path']
 
        If you don't, the tree won't work, since :class:`mp_tree.MP_Node`
-       completely depends on this property.
+       completely depends on this attribute.
 
     Example::
 
