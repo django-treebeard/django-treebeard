@@ -156,7 +156,7 @@ class AL_Node(Node):
         :returns: the depth (level) of the node
             Caches the result in the object itself to help in loops.
 
-        :param update: Updates de cached value.
+        :param update: Updates the cached value.
 
         See: :meth:`treebeard.Node.get_depth`
         """
