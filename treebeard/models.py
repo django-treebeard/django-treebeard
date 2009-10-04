@@ -750,8 +750,7 @@ class Node(models.Model):
 
     def get_sorted_pos_queryset(self, siblings, newobj):
         """
-        :returns: The position a new node will be inserted related to the
-        current node, and also a queryset of the nodes that must be moved
+        :returns: A queryset of the nodes that must be moved
         to the right. Called only for Node models with :attr:`node_order_by`
 
         This function was taken from django-mptt (BSD licensed) by Jonathan Buchanan:
@@ -766,11 +765,6 @@ class Node(models.Model):
                 [Q(**{'%s__gt' % field: value})]))
             fields.append((field, value))
         return siblings.filter(reduce(operator.or_, filters))
-        try:
-            newpos = self._get_lastpos_in_path(siblings.all()[0].path)
-        except IndexError:
-            newpos, siblings = None, []
-        return newpos, siblings
 
 
     class Meta:
