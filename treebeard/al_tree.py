@@ -34,7 +34,6 @@ from treebeard.models import Node
 from treebeard.exceptions import InvalidMoveToDescendant
 
 
-
 class AL_NodeManager(models.Manager):
     """ Custom manager for nodes.
     """
@@ -140,7 +139,6 @@ class AL_Node(Node):
         transaction.commit_unless_managed()
         return newobj
 
-
     @classmethod
     def get_root_nodes(cls):
         """
@@ -149,7 +147,6 @@ class AL_Node(Node):
         See: :meth:`treebeard.Node.get_root_nodes`
         """
         return cls.objects.filter(parent__isnull=True)
-
 
     def get_depth(self, update=False):
         """
@@ -180,7 +177,6 @@ class AL_Node(Node):
         self._cached_depth = depth
         return depth
 
-
     def get_children(self):
         """
         :returns: A queryset of all the node's children
@@ -189,7 +185,6 @@ class AL_Node(Node):
         """
         return self.__class__.objects.filter(parent=self)
 
-
     def get_parent(self, update=False):
         """
         :returns: the parent node of the current node object.
@@ -197,7 +192,6 @@ class AL_Node(Node):
         See: :meth:`treebeard.Node.get_parent`
         """
         return self.parent
-
 
     def get_ancestors(self):
         """
@@ -214,7 +208,6 @@ class AL_Node(Node):
         ancestors.reverse()
         return ancestors
 
-
     def get_root(self):
         """
         :returns: the root node for the current node object.
@@ -226,7 +219,6 @@ class AL_Node(Node):
             return ancestors[0]
         return self
 
-        
     def is_descendant_of(self, node):
         """
         :returns: ``True`` if the node if a descendant of another node given
@@ -235,7 +227,6 @@ class AL_Node(Node):
         See: :meth:`treebeard.Node.is_descendant_of`
         """
         return self.pk in [obj.pk for obj in node.get_descendants()]
-
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
@@ -276,9 +267,6 @@ class AL_Node(Node):
             pos += 1
         return ret
 
-        
-
-
     def add_child(self, **kwargs):
         """
         Adds a child to the node.
@@ -305,7 +293,6 @@ class AL_Node(Node):
         transaction.commit_unless_managed()
         return newobj
 
-
     @classmethod
     def _get_tree_recur(cls, ret, parent, depth):
         if parent:
@@ -316,7 +303,6 @@ class AL_Node(Node):
             node._cached_depth = depth
             ret.append(node)
             cls._get_tree_recur(ret, node, depth+1)
-
 
     @classmethod
     def get_tree(cls, parent=None):
@@ -335,7 +321,6 @@ class AL_Node(Node):
         cls._get_tree_recur(ret, parent, depth)
         return ret
 
-
     def get_descendants(self):
         """
         :returns: A *list* of all the node's descendants, doesn't
@@ -345,7 +330,6 @@ class AL_Node(Node):
         """
         return self.__class__.get_tree(parent=self)[1:]
 
-
     def get_descendant_count(self):
         """
         :returns: the number of descendants of a node.
@@ -353,7 +337,6 @@ class AL_Node(Node):
         See: :meth:`treebeard.Node.get_descendant_count`
         """
         return len(self.get_descendants())
-
 
     def get_siblings(self):
         """
@@ -365,7 +348,6 @@ class AL_Node(Node):
         if self.parent:
             return self.__class__.objects.filter(parent=self.parent)
         return self.__class__.get_root_nodes()
-
 
     def add_sibling(self, pos=None, **kwargs):
         """
@@ -400,7 +382,6 @@ class AL_Node(Node):
         newobj.save()
         transaction.commit_unless_managed()
         return newobj
-
 
     @classmethod
     def _move_add_sibling_aux(cls, pos, target, stmts):
@@ -441,7 +422,6 @@ class AL_Node(Node):
                     params.append(target.parent_id)
                 stmts.append((sql, params))
         return sib_order
-
 
     def move(self, target, pos=None):
         """
@@ -509,8 +489,6 @@ class AL_Node(Node):
         self.save()
         transaction.commit_unless_managed()
 
-
-        
     class Meta:
         """
         Abstract model.

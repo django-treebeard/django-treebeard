@@ -20,7 +20,6 @@ from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
     PathOverflow, MissingNodeOrderBy
 
 
-
 class Node(models.Model):
     """ Node class.
 
@@ -33,7 +32,6 @@ class Node(models.Model):
 
     """
 
-
     @classmethod
     def add_root(cls, **kwargs):
         """
@@ -42,8 +40,8 @@ class Node(models.Model):
         position, use :meth:`add_sibling` in an already existing root node
         instead.
 
-        :param \*\*kwargs: object creation data that will be passed to the inherited
-            Node model
+        :param \*\*kwargs: object creation data that will be passed to the
+            inherited Node model
 
         :returns: the created node object. It will be save()d by this method.
 
@@ -55,7 +53,6 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-
     @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """
@@ -63,7 +60,7 @@ class Node(models.Model):
 
 
         :param bulk_data:
-        
+
             The data that will be loaded, the structure is a list of
             dictionaries with 2 keys:
 
@@ -75,7 +72,7 @@ class Node(models.Model):
 
 
         :param parent:
-            
+
             The node that will receive the structure as children, if not
             specified the first level of the structure will be loaded as root
             nodes
@@ -119,7 +116,7 @@ class Node(models.Model):
             ]
             # parent = None
             MyNodeModel.load_data(data, None)
-        
+
         Will create:
 
             * 1
@@ -163,14 +160,13 @@ class Node(models.Model):
         transaction.commit_unless_managed()
         return added
 
-
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
         """
         Dumps a tree branch to a python data structure.
 
         :param parent:
-            
+
             The node whose descendants will be dumped. The node itself will be
             included in the dump. If not given, the entire tree will be dumped.
 
@@ -191,7 +187,6 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-
     @classmethod
     def get_root_nodes(cls):
         """
@@ -202,7 +197,6 @@ class Node(models.Model):
            MyNodeModel.get_root_nodes()
         """
         raise NotImplementedError
-    
 
     @classmethod
     def get_first_root_node(cls):
@@ -218,7 +212,6 @@ class Node(models.Model):
         except IndexError:
             return None
 
-
     @classmethod
     def get_last_root_node(cls):
         """
@@ -233,7 +226,6 @@ class Node(models.Model):
             return cls.get_root_nodes().reverse()[0]
         except IndexError:
             return None
-    
 
     @classmethod
     def find_problems(cls):
@@ -243,7 +235,6 @@ class Node(models.Model):
         Read the documentation of this method on every tree class for details.
         """
         raise NotImplementedError
-
 
     @classmethod
     def fix_tree(cls):
@@ -255,7 +246,6 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-
     @classmethod
     def get_tree(cls, parent=None):
         """
@@ -264,8 +254,6 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-
-
     @classmethod
     def get_descendants_group_count(cls, parent=None):
         """
@@ -273,10 +261,10 @@ class Node(models.Model):
         of *descendants* (not only children) in every sibling.
 
         :param parent:
-            
+
             The parent of the siblings to return. If no parent is given, the
             root nodes will be returned.
-        
+
         :returns:
 
             A `list` (**NOT** a Queryset) of node objects with an extra
@@ -303,7 +291,6 @@ class Node(models.Model):
             node.descendants_count = node.get_descendant_count()
         return nodes
 
-
     def get_depth(self):
         """
         :returns: the depth (level) of the node
@@ -313,7 +300,6 @@ class Node(models.Model):
            node.get_depth()
         """
         raise NotImplementedError
-
 
     def get_siblings(self):
         """
@@ -326,7 +312,6 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-
     def get_children(self):
         """
         :returns: A queryset of all the node's children
@@ -336,7 +321,6 @@ class Node(models.Model):
            node.get_children()
         """
         raise NotImplementedError
-
 
     def get_children_count(self):
         """
@@ -351,29 +335,26 @@ class Node(models.Model):
         # a efficient way.
         return self.get_children().count()
 
-
     def get_descendants(self):
         """
         :returns: A queryset of all the node's descendants, doesn't
             include the node itself (some subclasses may return a list).
 
         Example::
-        
+
            node.get_descendants()
         """
         raise NotImplementedError
-
 
     def get_descendant_count(self):
         """
         :returns: the number of descendants of a node.
 
         Example::
-        
+
            node.get_descendant_count()
         """
         return self.get_descendants().count()
-
 
     def get_first_child(self):
         """
@@ -388,7 +369,6 @@ class Node(models.Model):
         except IndexError:
             return None
 
-
     def get_last_child(self):
         """
         :returns: The rightmost node's child, or None if it has no children.
@@ -402,30 +382,27 @@ class Node(models.Model):
         except IndexError:
             return None
 
-
     def get_first_sibling(self):
         """
         :returns: The leftmost node's sibling, can return the node itself if it
             was the leftmost sibling.
 
         Example::
-         
+
            node.get_first_sibling()
         """
         return self.get_siblings()[0]
 
-
     def get_last_sibling(self):
         """
-        :returns: The rightmost node's sibling, can return the node itself if it
-            was the rightmost sibling.
+        :returns: The rightmost node's sibling, can return the node itself if
+            it was the rightmost sibling.
 
         Example::
 
             node.get_last_sibling()
         """
         return self.get_siblings().reverse()[0]
-
 
     def get_prev_sibling(self):
         """
@@ -444,7 +421,6 @@ class Node(models.Model):
             if idx > 0:
                 return siblings[idx-1]
 
-
     def get_next_sibling(self):
         """
         :returns: The next node's sibling, or None if it was the rightmost
@@ -461,14 +437,13 @@ class Node(models.Model):
             if idx < len(siblings)-1:
                 return siblings[idx+1]
 
-
     def is_sibling_of(self, node):
         """
         :returns: ``True`` if the node if a sibling of another node given as an
             argument, else, returns ``False``
 
         :param node:
-        
+
             The node that will be checked as a sibling
 
         Example::
@@ -476,7 +451,6 @@ class Node(models.Model):
            node.is_sibling_of(node2)
         """
         return len(self.get_siblings().filter(pk__in=[node.pk])) > 0
-
 
     def is_child_of(self, node):
         """
@@ -493,7 +467,6 @@ class Node(models.Model):
         """
         return len(node.get_children().filter(pk__in=[self.pk])) > 0
 
-
     def is_descendant_of(self, node):
         """
         :returns: ``True`` if the node if a descendant of another node given
@@ -509,7 +482,6 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-
     def add_child(self, **kwargs):
         """
         Adds a child to the node. The new node will be the new rightmost
@@ -518,7 +490,7 @@ class Node(models.Model):
         child node instead.
 
         :param \*\*kwargs:
-        
+
             Object creation data that will be passed to the inherited Node
             model
 
@@ -531,7 +503,6 @@ class Node(models.Model):
 
         """
         raise NotImplementedError
-
 
     def add_sibling(self, pos=None, **kwargs):
         """
@@ -550,13 +521,13 @@ class Node(models.Model):
             - ``sorted-sibling``: the new node will be at the right position
               according to the value of node_order_by
 
-        :param \*\*kwargs: 
-        
+        :param \*\*kwargs:
+
             Object creation data that will be passed to the inherited
             Node model
 
         :returns:
-            
+
             The created node object. It will be saved by this method.
 
         :raise InvalidPosition: when passing an invalid ``pos`` parm
@@ -569,11 +540,10 @@ class Node(models.Model):
 
         Examples::
 
-           node.add_sibling('sorted-sibling', numval=1, strval='abcd')
-           node.add_sibling('sorted-sibling', **{'numval': 1, 'strval': 'abcd'})
+           node.add_sibling('sorted-sibling', numval=1, strval='abc')
+           node.add_sibling('sorted-sibling', **{'numval': 1, 'strval': 'abc'})
         """
         raise NotImplementedError
-
 
     def get_root(self):
         """
@@ -585,7 +555,6 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-
     def is_root(self):
         """
         :returns: True if the node is a root node (else, returns False)
@@ -596,7 +565,6 @@ class Node(models.Model):
         """
         return self.get_root() == self
 
-
     def is_leaf(self):
         """
         :returns: True if the node is a leaf node (else, returns False)
@@ -606,7 +574,6 @@ class Node(models.Model):
            node.is_leaf()
         """
         return self.get_children_count() == 0
-
 
     def get_ancestors(self):
         """
@@ -620,12 +587,11 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-
     def get_parent(self, update=False):
         """
         :returns: the parent node of the current node object.
             Caches the result in the object itself to help in loops.
-        
+
         :param update: Updates de cached value.
 
         Example::
@@ -635,12 +601,11 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-
     def move(self, target, pos=None):
         """
         Moves the current node and all it's descendants to a new position
         relative to another node.
-        
+
         .. note:: The node can be moved under another root node.
 
 
@@ -649,7 +614,7 @@ class Node(models.Model):
             The node that will be used as a relative child/sibling when moving
 
         :param pos:
-        
+
             The position, relative to the target node, where the
             current node object will be moved to, can be one of:
 
@@ -659,15 +624,17 @@ class Node(models.Model):
               ``target`` node
             - ``sorted-child``: the new node will be moved as a child of the
               ``target`` node according to the value of :attr:`node_order_by`
-            - ``first-sibling``: the node will be the new leftmost sibling of the
-              ``target`` node
-            - ``left``: the node will take the ``target`` node's place, which will be
-              moved to the right 1 position
-            - ``right``: the node will be moved to the right of the ``target`` node
-            - ``last-sibling``: the node will be the new rightmost sibling of the
-              ``target`` node
-            - ``sorted-sibling``: the new node will be moved as a sibling of the
-              ``target`` node according to the value of :attr:`node_order_by`
+            - ``first-sibling``: the node will be the new leftmost sibling of
+              the ``target`` node
+            - ``left``: the node will take the ``target`` node's place, which
+              will be moved to the right 1 position
+            - ``right``: the node will be moved to the right of the ``target``
+              node
+            - ``last-sibling``: the node will be the new rightmost sibling of
+              the ``target`` node
+            - ``sorted-sibling``: the new node will be moved as a sibling of
+              the ``target`` node according to the value of
+              :attr:`node_order_by`
 
             .. note:: If no ``pos`` is given the library will use
                      ``last-sibling``, or ``sorted-sibling`` if
@@ -685,28 +652,26 @@ class Node(models.Model):
         :raise MissingNodeOrderBy: when passing ``sorted-sibling`` or
            ``sorted-child`` as ``pos`` and the :attr:`node_order_by`
            attribute is missing
-        
+
         Examples::
-           
+
            node.move(node2, 'sorted-child')
-           
+
            node.move(node2, 'prev-sibling')
 
         """
         raise NotImplementedError
 
-
     def delete(self):
         """
         Removes a node and all it's descendants.
-        
+
         .. note::
-           
+
            Call our queryset's delete to handle children removal. Subclasses
            will handle extra maintenance.
         """
         self.__class__.objects.filter(id=self.id).delete()
-
 
     def _fix_add_sibling_opts(self, pos):
         """
@@ -717,15 +682,16 @@ class Node(models.Model):
                 pos = 'sorted-sibling'
             else:
                 pos = 'last-sibling'
-        if pos not in ('first-sibling', 'left', 'right', 'last-sibling', 'sorted-sibling'):
-            raise InvalidPosition('Invalid relative position: %s' % (pos,))
+        if pos not in ('first-sibling', 'left', 'right', 'last-sibling',
+                       'sorted-sibling'):
+            raise InvalidPosition('Invalid relative position: %s' % (pos, ))
         if self.node_order_by and pos != 'sorted-sibling':
             raise InvalidPosition('Must use %s in add_sibling when'
-                                  ' node_order_by is enabled' % ('sorted-sibling',))
+                                  ' node_order_by is enabled' % (
+                                  'sorted-sibling', ))
         if pos == 'sorted-sibling' and not self.node_order_by:
             raise MissingNodeOrderBy('Missing node_order_by attribute.')
         return pos
-
 
     def _fix_move_opts(self, pos):
         """
@@ -736,24 +702,27 @@ class Node(models.Model):
                 pos = 'sorted-sibling'
             else:
                 pos = 'last-sibling'
-        if pos not in ('first-sibling', 'left', 'right', 'last-sibling', 'sorted-sibling',
-                       'first-child', 'last-child', 'sorted-child'):
-            raise InvalidPosition('Invalid relative position: %s' % (pos,))
-        if self.node_order_by and pos not in ('sorted-child', 'sorted-sibling'):
+        if pos not in ('first-sibling', 'left', 'right', 'last-sibling',
+                       'sorted-sibling', 'first-child', 'last-child',
+                       'sorted-child'):
+            raise InvalidPosition('Invalid relative position: %s' % (pos, ))
+        if self.node_order_by and pos not in ('sorted-child',
+                                              'sorted-sibling'):
             raise InvalidPosition('Must use %s or %s in add_sibling when'
-                                  ' node_order_by is enabled' % ('sorted-sibling',
-                                  'sorted-child'))
-        if pos in ('sorted-child', 'sorted-sibling') and not self.node_order_by:
+                                  ' node_order_by is enabled' % (
+                                  'sorted-sibling', 'sorted-child'))
+        if pos in ('sorted-child', 'sorted-sibling') and \
+                not self.node_order_by:
             raise MissingNodeOrderBy('Missing node_order_by attribute.')
         return pos
-
 
     def get_sorted_pos_queryset(self, siblings, newobj):
         """
         :returns: A queryset of the nodes that must be moved
         to the right. Called only for Node models with :attr:`node_order_by`
 
-        This function was taken from django-mptt (BSD licensed) by Jonathan Buchanan:
+        This function was taken from django-mptt (BSD licensed) by Jonathan
+        Buchanan:
         http://code.google.com/p/django-mptt/source/browse/trunk/mptt/signals.py?spec=svn100&r=100#12
         """
 
@@ -766,11 +735,8 @@ class Node(models.Model):
             fields.append((field, value))
         return siblings.filter(reduce(operator.or_, filters))
 
-
     class Meta:
         """
         Abstract model.
         """
         abstract = True
-
-
