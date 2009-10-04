@@ -24,8 +24,8 @@
 
     ``django-treebeard`` uses a particular approach: every step in the path has
     a fixed width and has no separators. This makes queries predictable and
-    faster at the cost of using more characters to store a step. To address this
-    problem, every step number is encoded.
+    faster at the cost of using more characters to store a step. To address
+    this problem, every step number is encoded.
 
     Also, two extra fields are stored in every node:
     :attr:`~MP_Node.depth` and :attr:`~MP_Node.numchild`.
@@ -34,13 +34,13 @@
     extra steps, materialized path is more efficient than other approaches.
 
     .. note::
-       
+
        The materialized path approach makes heavy use of ``LIKE`` in your
        database, with clauses like ``WHERE path LIKE '002003%'``. If you think
        that ``LIKE`` is too slow, you're right, but in this case the
        :attr:`~MP_Node.path` field is indexed in the database, and all
-       ``LIKE`` clauses that don't **start** with a ``%`` character will use the
-       index. This is what makes the materialized path approach so fast.
+       ``LIKE`` clauses that don't **start** with a ``%`` character will use
+       the index. This is what makes the materialized path approach so fast.
 
 
     .. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/
@@ -68,7 +68,6 @@ class MP_NodeQuerySet(models.query.QuerySet):
 
     Needed only for the customized delete method.
     """
-
 
     def delete(self, known_children=False):
         """
@@ -127,7 +126,6 @@ class MP_NodeQuerySet(models.query.QuerySet):
         transaction.commit_unless_managed()
 
 
-
 class MP_NodeManager(models.Manager):
     """ Custom manager for nodes.
     """
@@ -144,7 +142,7 @@ class MP_Node(Node):
     Abstract model to create your own Materialized Path Trees.
 
     .. attribute:: steplen
-       
+
        Attribute that defines the length of each step in the :attr:`path` of
        a node.  The default value of *4* allows a maximum of
        *1679615* children per node. Increase this value if you plan to store
@@ -164,11 +162,11 @@ class MP_Node(Node):
 
        .. note::
 
-          In case you know what you are doing, there is a test that is disabled
-          by default that can tell you the optimal default alphabet in your
-          enviroment. To run the test you must enable the
+          In case you know what you are doing, there is a test that is
+          disabled by default that can tell you the optimal default alphabet
+          in your enviroment. To run the test you must enable the
           :envvar:`TREEBEARD_TEST_ALPHABET` enviroment variable::
-       
+
              $ TREEBEARD_TEST_ALPHABET=1 python manage.py test treebeard.TestTreeAlphabet
 
           On my Ubuntu 8.04.1 system, these are the optimal values for the three
@@ -192,14 +190,14 @@ class MP_Node(Node):
           node_order_by = ['field1', 'field2', 'field3']
 
     .. attribute:: path
-        
+
        ``CharField``, stores the full materialized path for each node. The
        default value of it's max_length, *255*, is the max efficient and
        portable value for a ``varchar``. Increase it to allow deeper trees (max
        depth by default: *63*)
 
        .. note::
-          
+
           `django-treebeard` uses Django's abstract model inheritance, so:
 
           1. To change the max_length value of the path in your model, you
@@ -214,7 +212,7 @@ class MP_Node(Node):
              for sorting, you'll have to manually set the value before creating
              a node::
 
-               
+
                class TestNodeSortedAutoNow(MP_Node):
                    desc = models.CharField(max_length=255)
                    created = models.DateTimeField(auto_now_add=True)
@@ -252,7 +250,7 @@ class MP_Node(Node):
 
 
     .. warning::
-       
+
        Do not change the values of :attr:`path`, :attr:`depth` or
        :attr:`numchild` directly: use one of the included methods instead.
        Consider these values *read-only*.
@@ -262,7 +260,7 @@ class MP_Node(Node):
        Do not change the values of the :attr:`steplen`, :attr:`alphabet` or
        :attr:`node_order_by` after saving your first model. Doing so will
        corrupt the tree. If you *must* do it:
-         
+
          1. Backup the tree with :meth:`dump_bulk`
          2. Empty your model's table
          3. Change :attr:`depth`, :attr:`alphabet` and/or
@@ -271,7 +269,7 @@ class MP_Node(Node):
             ``keep_ids=True`` to keep the same primary keys you had.
 
     .. warning::
-       
+
        Be very careful if you add a ``Meta`` class in your
        :class:`mp_tree.MP_Node` subclass.
        You must add an ordering attribute with a single element on it::
@@ -306,7 +304,6 @@ class MP_Node(Node):
 
     objects = MP_NodeManager()
 
-
     @classmethod
     def add_root(cls, **kwargs):
         """
@@ -340,7 +337,6 @@ class MP_Node(Node):
         transaction.commit_unless_managed()
         return newobj
 
-
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
         """
@@ -370,7 +366,7 @@ class MP_Node(Node):
                 # this happens immediately after a load_bulk
                 del fields['id']
 
-            newobj = {'data':fields}
+            newobj = {'data': fields}
             if keep_ids:
                 newobj['id'] = pyobj['pk']
 
@@ -386,7 +382,6 @@ class MP_Node(Node):
             lnk[path] = newobj
         return ret
 
-
     @classmethod
     def find_problems(cls):
         """
@@ -394,11 +389,12 @@ class MP_Node(Node):
 
            1. your code breaks and you get incomplete transactions (always
               use transactions!)
-           2. changing the ``steplen`` value in a model (you must :meth:`dump_bulk`
-              first, change ``steplen`` and then :meth:`load_bulk`
+           2. changing the ``steplen`` value in a model (you must
+              :meth:`dump_bulk` first, change ``steplen`` and then
+              :meth:`load_bulk`
 
         :returns: A tuple of five lists:
-                  
+
                   1. a list of ids of nodes with characters not found in the
                      ``alphabet``
                   2. a list of ids of nodes when a wrong ``path`` length
@@ -409,13 +405,13 @@ class MP_Node(Node):
                   5. a list of ids nodes that report a wrong number of children
 
         .. note::
-           
+
            A node won't appear in more than one list, even when it exhibits
            more than one problem. This method stops checking a node when it
            finds a problem and continues to the next node.
 
         .. note::
-           
+
            Problems 1, 2 and 3 can't be solved automatically.
 
         Example::
@@ -449,15 +445,14 @@ class MP_Node(Node):
 
             real_numchild = cls.objects.filter(
                 path__range=cls._get_children_path_interval(node.path)).extra(
-                    where=['LENGTH(path)/%d=%d' % (cls.steplen, node.depth+1)]
-                ).count()
+                    where=['LENGTH(path)/%d=%d' % (cls.steplen,
+                                                   node.depth+1)]).count()
             if real_numchild != node.numchild:
                 wrong_numchild.append(node.id)
                 continue
-            
+
 
         return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
-
 
     @classmethod
     def fix_tree(cls, destructive=False):
@@ -466,7 +461,7 @@ class MP_Node(Node):
         a piece of code breaks, leaving the tree in an inconsistent state.
 
         The problems this method solves are:
-        
+
            1. Nodes with an incorrect ``depth`` or ``numchild`` values due to
               incorrect code and lack of database transactions.
            2. "Holes" in the tree. This is normal if you move/delete nodes a
@@ -477,7 +472,7 @@ class MP_Node(Node):
               tree ordering will be inconsistent.
 
         :param destructive:
-            
+
             A boolean value. If True, a more agressive fix_tree method will be
             attemped. If False (the default), it will use a safe (and fast!)
             fix approach, but it will only solve the ``depth`` and
@@ -485,13 +480,13 @@ class MP_Node(Node):
             ordering.
 
             .. warning::
-    
+
                Currently what the ``destructive`` method does is:
-    
+
                1. Backup the tree with :meth:`dump_data`
                2. Remove all nodes in the tree.
                3. Restore the tree with :meth:`load_data`
-    
+
                So, even when the primary keys of your nodes will be preserved,
                this method isn't foreign-key friendly. That needs complex
                in-place tree reordering, not available at the moment (hint:
@@ -516,7 +511,7 @@ class MP_Node(Node):
             sql = "UPDATE %s " \
                     "SET depth=LENGTH(path)/%%s " \
                   "WHERE depth!=LENGTH(path)/%%s" % (
-                      connection.ops.quote_name(cls._meta.db_table),)
+                      connection.ops.quote_name(cls._meta.db_table), )
             vals = [cls.steplen, cls.steplen]
             cursor.execute(sql, vals)
 
@@ -554,12 +549,11 @@ class MP_Node(Node):
 
             transaction.commit_unless_managed()
 
-
     @classmethod
     def get_tree(cls, parent=None):
         """
-        :returns: A *queryset* of nodes ordered as DFS, including the parent. If
-                  no parent is given, the entire tree is returned.
+        :returns: A *queryset* of nodes ordered as DFS, including the parent.
+                  If no parent is given, the entire tree is returned.
 
         See: :meth:`treebeard.Node.get_tree`
 
@@ -575,7 +569,6 @@ class MP_Node(Node):
                                       depth__gte=parent.depth)
         return cls.objects.none()
 
-
     @classmethod
     def get_root_nodes(cls):
         """
@@ -586,8 +579,6 @@ class MP_Node(Node):
            MyNodeModel.get_root_nodes()
         """
         return cls.objects.filter(depth=1)
-
-
 
     @classmethod
     def get_descendants_group_count(cls, parent=None):
@@ -613,7 +604,7 @@ class MP_Node(Node):
         # NOTE: in case there is interest, the hack to avoid django quoting the
         # subquery as a table, was adding the subquery to the alias cache of
         # the queryset's query object:
-        # 
+        #
         #     qset.query.quote_cache[subquery] = subquery
         #
         # If there is a better way to do this in an UNMODIFIED django 1.0, let
@@ -654,7 +645,6 @@ class MP_Node(Node):
         transaction.commit_unless_managed()
         return ret
 
-
     def get_depth(self):
         """
         :returns: the depth (level) of the node
@@ -662,7 +652,6 @@ class MP_Node(Node):
         See: :meth:`treebeard.Node.get_depth`
         """
         return self.depth
-
 
     def get_siblings(self):
         """
@@ -679,7 +668,6 @@ class MP_Node(Node):
                 path__range=self._get_children_path_interval(parentpath))
         return qset
 
-
     def get_children(self):
         """
         :returns: A queryset of all the node's children
@@ -690,7 +678,6 @@ class MP_Node(Node):
             return self.__class__.objects.none()
         return self.__class__.objects.filter(depth=self.depth+1,
             path__range=self._get_children_path_interval(self.path))
-
 
     def get_next_sibling(self):
         """
@@ -704,7 +691,6 @@ class MP_Node(Node):
         except IndexError:
             return None
 
-
     def get_descendants(self):
         """
         :returns: A queryset of all the node's descendants as DFS, doesn't
@@ -713,7 +699,6 @@ class MP_Node(Node):
         See: :meth:`treebeard.Node.get_descendants`
         """
         return self.__class__.get_tree(self).exclude(pk=self.id)
-
 
     def get_prev_sibling(self):
         """
@@ -727,7 +712,6 @@ class MP_Node(Node):
         except IndexError:
             return None
 
-
     def get_children_count(self):
         """
         :returns: The number the node's children, calculated in the most
@@ -736,7 +720,6 @@ class MP_Node(Node):
         See: :meth:`treebeard.Node.get_children_count`
         """
         return self.numchild
-
 
     def is_sibling_of(self, node):
         """
@@ -752,7 +735,6 @@ class MP_Node(Node):
             return aux and node.path.startswith(parentpath)
         return aux
 
-
     def is_child_of(self, node):
         """
         :returns: ``True`` is the node if a child of another node given as an
@@ -762,7 +744,6 @@ class MP_Node(Node):
         """
         return self.path.startswith(node.path) and self.depth == node.depth+1
 
-
     def is_descendant_of(self, node):
         """
         :returns: ``True`` if the node if a descendant of another node given
@@ -771,7 +752,6 @@ class MP_Node(Node):
         See: :meth:`treebeard.Node.is_descendant_of`
         """
         return self.path.startswith(node.path) and self.depth > node.depth
-
 
     def add_child(self, **kwargs):
         """
@@ -785,7 +765,8 @@ class MP_Node(Node):
         if not self.is_leaf() and self.node_order_by:
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
-            return self.get_last_child().add_sibling('sorted-sibling', **kwargs)
+            return self.get_last_child().add_sibling('sorted-sibling',
+                                                     **kwargs)
 
         # creating a new object
         newobj = self.__class__(**kwargs)
@@ -808,7 +789,6 @@ class MP_Node(Node):
         self.save()
         return newobj
 
-
     def add_sibling(self, pos=None, **kwargs):
         """
         Adds a new node as a sibling to the current node object.
@@ -824,7 +804,7 @@ class MP_Node(Node):
         # creating a new object
         newobj = self.__class__(**kwargs)
         newobj.depth = self.depth
-        
+
         if pos == 'sorted-sibling':
             siblings = self.get_sorted_pos_queryset(
                 self.get_siblings(), newobj)
@@ -856,7 +836,6 @@ class MP_Node(Node):
         transaction.commit_unless_managed()
         return newobj
 
-
     def get_root(self):
         """
         :returns: the root node for the current node object.
@@ -865,7 +844,6 @@ class MP_Node(Node):
         """
         return self.__class__.objects.get(path=self.path[0:self.steplen])
 
-
     def get_ancestors(self):
         """
         :returns: A queryset containing the current node object's ancestors,
@@ -873,10 +851,9 @@ class MP_Node(Node):
 
         See: :meth:`treebeard.Node.get_ancestors`
         """
-        paths = [self.path[0:pos] 
+        paths = [self.path[0:pos]
             for pos in range(0, len(self.path), self.steplen)[1:]]
         return self.__class__.objects.filter(path__in=paths).order_by('depth')
-
 
     def get_parent(self, update=False):
         """
@@ -899,15 +876,13 @@ class MP_Node(Node):
         self._cached_parent_obj = self.__class__.objects.get(path=parentpath)
         return self._cached_parent_obj
 
-
-
     def move(self, target, pos=None):
         """
         Moves the current node and all it's descendants to a new position
         relative to another node.
 
         See: :meth:`treebeard.Node.move`
-        
+
         :raise PathOverflow: when the library can't make room for the
            node's new position
         """
@@ -933,7 +908,7 @@ class MP_Node(Node):
                 target.path == target.get_first_sibling().path)):
             # special cases, not actually moving the node so no need to UPDATE
             return
-        
+
         if pos == 'sorted-sibling':
             siblings = self.get_sorted_pos_queryset(
                 target.get_siblings(), self)
@@ -956,7 +931,6 @@ class MP_Node(Node):
             cursor.execute(sql, vals)
         transaction.commit_unless_managed()
 
-
     @classmethod
     def _get_basepath(cls, path, depth):
         """
@@ -965,7 +939,6 @@ class MP_Node(Node):
         if path:
             return path[0:(depth)*cls.steplen]
         return ''
-
 
     @classmethod
     def _get_path(cls, path, depth, newstep):
@@ -980,7 +953,6 @@ class MP_Node(Node):
         key = numconv.int2str(newstep, len(cls.alphabet), cls.alphabet)
         return '%s%s%s' % (parentpath, '0'*(cls.steplen-len(key)), key)
 
-
     @classmethod
     def _inc_path(cls, path):
         """
@@ -990,10 +962,9 @@ class MP_Node(Node):
         newpos = numconv.str2int(path[-cls.steplen:], base, cls.alphabet) + 1
         key = numconv.int2str(newpos, base, cls.alphabet)
         if len(key) > cls.steplen:
-            raise PathOverflow("Path Overflow from: '%s'" % (path,))
+            raise PathOverflow("Path Overflow from: '%s'" % (path, ))
         return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)),
                            key)
-
 
     @classmethod
     def _get_lastpos_in_path(cls, path):
@@ -1002,7 +973,6 @@ class MP_Node(Node):
         """
         return numconv.str2int(path[-cls.steplen:], len(cls.alphabet),
                                cls.alphabet)
-
 
     @classmethod
     def _get_parent_path_from_path(cls, path):
@@ -1013,7 +983,6 @@ class MP_Node(Node):
             return path[0:len(path)-cls.steplen]
         return ''
 
-
     @classmethod
     def _get_children_path_interval(cls, path):
         """
@@ -1022,7 +991,6 @@ class MP_Node(Node):
         return (path+cls.alphabet[0]*cls.steplen,
                 path+cls.alphabet[-1]*cls.steplen)
 
-    
     @classmethod
     def _move_add_sibling_aux(cls, pos, newpos, newdepth, target, siblings,
                               stmts, oldpath=None, movebranch=False):
@@ -1038,7 +1006,8 @@ class MP_Node(Node):
             last = target.get_last_sibling()
             newpath = cls._inc_path(last.path)
             if movebranch:
-                stmts.append(cls._get_sql_newpath_in_branches(oldpath, newpath))
+                stmts.append(cls._get_sql_newpath_in_branches(oldpath,
+                                                              newpath))
         else:
             # do the UPDATE dance
 
@@ -1077,7 +1046,6 @@ class MP_Node(Node):
                                                                newpath))
         return oldpath, newpath
 
-
     def _fix_move_to_child(self, pos, target, newdepth):
         """
         Update preliminar vars in :meth:`move` when moving to a child
@@ -1108,17 +1076,17 @@ class MP_Node(Node):
 
         return pos, target, newdepth, siblings, newpos
 
-
     @classmethod
     def _updates_after_move(cls, oldpath, newpath, stmts):
         """
-        
+
         Updates the list of sql statements needed after moving nodes.
 
         1. :attr:`depth` updates *ONLY* needed by mysql databases (*sigh*)
         2. update the number of children of parent nodes
         """
-        if settings.DATABASE_ENGINE == 'mysql' and len(oldpath) != len(newpath):
+        if (settings.DATABASE_ENGINE == 'mysql' and
+                len(oldpath) != len(newpath)):
             # no words can describe how dumb mysql is
             # we must update the depth of the branch in a different query
             stmts.append(cls._get_sql_update_depth_in_branch(newpath))
@@ -1136,7 +1104,6 @@ class MP_Node(Node):
                 stmts.append(cls._get_sql_update_numchild(newparentpath,
                                                            'inc'))
 
-
     @classmethod
     def _get_sql_newpath_in_branches(cls, oldpath, newpath):
         """
@@ -1147,9 +1114,9 @@ class MP_Node(Node):
            The generated sql will only update the depth values if needed.
 
         """
-        
+
         sql1 = "UPDATE %s SET" % (
-            connection.ops.quote_name(cls._meta.db_table),)
+            connection.ops.quote_name(cls._meta.db_table), )
 
         # <3 "standard" sql
         if settings.DATABASE_ENGINE == 'sqlite3':
@@ -1168,20 +1135,20 @@ class MP_Node(Node):
         else:
             sqlpath = "%s||SUBSTR(path, %s)"
 
-        sql2 = ["path=%s" % (sqlpath,)]
+        sql2 = ["path=%s" % (sqlpath, )]
         vals = [newpath, len(oldpath)+1]
-        if len(oldpath) != len(newpath) and settings.DATABASE_ENGINE != 'mysql':
+        if (len(oldpath) != len(newpath) and
+                settings.DATABASE_ENGINE != 'mysql'):
             # when using mysql, this won't update the depth and it has to be
             # done in another query
             # doesn't even work with sql_mode='ANSI,TRADITIONAL'
             # TODO: FIND OUT WHY?!?? right now I'm just blaming mysql
-            sql2.append("depth=LENGTH(%s)/%%s" % (sqlpath,))
+            sql2.append("depth=LENGTH(%s)/%%s" % (sqlpath, ))
             vals.extend([newpath, len(oldpath)+1, cls.steplen])
-        sql3 = "WHERE path LIKE %s"   
+        sql3 = "WHERE path LIKE %s"
         vals.extend([oldpath+'%'])
         sql = '%s %s %s' % (sql1, ', '.join(sql2), sql3)
         return sql, vals
-
 
     @classmethod
     def _get_sql_update_depth_in_branch(cls, path):
@@ -1193,11 +1160,10 @@ class MP_Node(Node):
         # Right now this is only used by *sigh* mysql.
         sql = "UPDATE %s SET depth=LENGTH(path)/%%s" \
               " WHERE path LIKE %%s" % (
-                  connection.ops.quote_name(cls._meta.db_table),)
+                  connection.ops.quote_name(cls._meta.db_table), )
         vals = [cls.steplen, path+'%']
         return sql, vals
 
-    
     @classmethod
     def _get_sql_update_numchild(cls, path, incdec='inc'):
         """
@@ -1206,10 +1172,9 @@ class MP_Node(Node):
         sql = "UPDATE %s SET numchild=numchild%s1" \
               " WHERE path=%%s" % (
                 connection.ops.quote_name(cls._meta.db_table),
-                {'inc':'+', 'dec':'-'}[incdec])
+                {'inc': '+', 'dec': '-'}[incdec])
         vals = [path]
         return sql, vals
-
 
     class Meta:
         """
@@ -1223,7 +1188,3 @@ class MP_Node(Node):
         # PROTIP2: Set the ordering property again if you add a Meta in
         #          your subclass
         ordering = ['path']
-
-
-
-#~

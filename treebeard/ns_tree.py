@@ -22,7 +22,6 @@
 """
 
 import operator
-import sys
 
 from django.db.models import Q
 from django.core import serializers
@@ -38,7 +37,6 @@ class NS_NodeQuerySet(models.query.QuerySet):
 
     Needed only for the customized delete method.
     """
-
 
     def delete(self, removed_ranges=None):
         """
@@ -60,7 +58,8 @@ class NS_NodeQuerySet(models.query.QuerySet):
             # the same nodes over and over again. This would be probably
             # cheaper precalculating the gapsize per intervals, or just do a
             # complete reordering of the tree (uses COUNT)...
-            for tree_id, drop_lft, drop_rgt in sorted(removed_ranges, reverse=True):
+            for tree_id, drop_lft, drop_rgt in sorted(removed_ranges,
+                                                      reverse=True):
                 sql, params = self.model._get_close_gap_sql(drop_lft, drop_rgt,
                                                             tree_id)
                 cursor.execute(sql, params)
@@ -88,9 +87,9 @@ class NS_NodeQuerySet(models.query.QuerySet):
                 ranges.append((node.tree_id, node.lft, node.rgt))
             if toremove:
                 self.model.objects.filter(
-                    reduce(operator.or_, toremove)).delete(removed_ranges=ranges)
+                    reduce(operator.or_, toremove)).delete(
+                    removed_ranges=ranges)
         transaction.commit_unless_managed()
-
 
 
 class NS_NodeManager(models.Manager):
@@ -102,7 +101,6 @@ class NS_NodeManager(models.Manager):
         Sets the custom queryset as the default.
         """
         return NS_NodeQuerySet(self.model)
-
 
 
 class NS_Node(Node):
@@ -136,7 +134,7 @@ class NS_Node(Node):
        ``PositiveIntegerField``
 
     .. warning::
-       
+
        Be very careful if you add a ``Meta`` class in your
        :class:`ns_tree.NS_Node` subclass.
        You must add an ordering attribute with two elements on it::
@@ -193,7 +191,6 @@ class NS_Node(Node):
         transaction.commit_unless_managed()
         return newobj
 
-
     @classmethod
     def _move_right(cls, tree_id, rgt, lftmove=False, incdec=2):
         if lftmove:
@@ -216,17 +213,14 @@ class NS_Node(Node):
                   'incdec': incdec}
         return sql, []
 
-
     @classmethod
     def _move_tree_right(cls, tree_id):
         sql = 'UPDATE %(table)s ' \
               ' SET tree_id = tree_id+1 ' \
               ' WHERE tree_id >= %(tree_id)d' % {
                   'table': connection.ops.quote_name(cls._meta.db_table),
-                  'tree_id': tree_id
-              }
+                  'tree_id': tree_id}
         return sql, []
-
 
     def add_child(self, **kwargs):
         """
@@ -267,9 +261,8 @@ class NS_Node(Node):
         # saving the instance before returning it
         newobj.save()
         transaction.commit_unless_managed()
-        
-        return newobj
 
+        return newobj
 
     def add_sibling(self, pos=None, **kwargs):
         """
@@ -365,9 +358,8 @@ class NS_Node(Node):
         newobj.save()
 
         transaction.commit_unless_managed()
-        
-        return newobj
 
+        return newobj
 
     def move(self, target, pos=None):
         """
@@ -434,7 +426,7 @@ class NS_Node(Node):
                     pos = 'first-sibling'
             if pos == 'first-sibling':
                 target = siblings[0]
-        
+
         # ok let's move this
         cursor = connection.cursor()
         move_right = cls._move_right
@@ -491,18 +483,16 @@ class NS_Node(Node):
                   'jump': newpos - fromobj.lft,
                   'depthdiff': depthdiff,
                   'fromlft': fromobj.lft,
-                  'fromrgt': fromobj.rgt
-              }
+                  'fromrgt': fromobj.rgt}
         cursor.execute(sql, [])
 
         # close the gap
         sql, params = cls._get_close_gap_sql(fromobj.lft,
             fromobj.rgt, fromobj.tree_id)
         cursor.execute(sql, params)
-        
+
         transaction.commit_unless_managed()
 
-    
     @classmethod
     def _get_close_gap_sql(cls, drop_lft, drop_rgt, tree_id):
         sql = 'UPDATE %(table)s ' \
@@ -520,10 +510,8 @@ class NS_Node(Node):
                   'table': connection.ops.quote_name(cls._meta.db_table),
                   'gapsize': drop_rgt - drop_lft + 1,
                   'drop_lft': drop_lft,
-                  'tree_id': tree_id
-              }
+                  'tree_id': tree_id}
         return sql, []
-
 
     @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
@@ -561,7 +549,6 @@ class NS_Node(Node):
         transaction.commit_unless_managed()
         return added
 
-
     def get_children(self):
         """
         :returns: A queryset of all the node's children
@@ -569,7 +556,6 @@ class NS_Node(Node):
         See: :meth:`treebeard.Node.get_children`
         """
         return self.get_descendants().filter(depth=self.depth+1)
-
 
     def get_depth(self):
         """
@@ -579,7 +565,6 @@ class NS_Node(Node):
         """
         return self.depth
 
-
     def is_leaf(self):
         """
         :returns: True if the node is a leaf node (else, returns False)
@@ -587,7 +572,6 @@ class NS_Node(Node):
         See: :meth:`treebeard.Node.is_leaf`
         """
         return self.rgt - self.lft == 1
-
 
     def get_root(self):
         """
@@ -600,8 +584,6 @@ class NS_Node(Node):
         return self.__class__.objects.get(tree_id=self.tree_id,
                                           lft=1)
 
-    
-    
     def get_siblings(self):
         """
         :returns: A queryset of all the node's siblings, including the node
@@ -612,7 +594,6 @@ class NS_Node(Node):
         if self.lft == 1:
             return self.get_root_nodes()
         return self.get_parent(True).get_children()
-
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
@@ -640,10 +621,10 @@ class NS_Node(Node):
                 # this happens immediately after a load_bulk
                 del fields['id']
 
-            newobj = {'data':fields}
+            newobj = {'data': fields}
             if keep_ids:
                 newobj['id'] = serobj['pk']
-            
+
             if (not parent and depth == 1) or \
                     (parent and depth == parent.depth):
                 ret.append(newobj)
@@ -656,14 +637,11 @@ class NS_Node(Node):
             lnk[pyobj.id] = newobj
         return ret
 
-
-
-
     @classmethod
     def get_tree(cls, parent=None):
         """
-        :returns: A *queryset* of nodes ordered as DFS, including the parent. If
-                  no parent is given, all trees are returned.
+        :returns: A *queryset* of nodes ordered as DFS, including the parent.
+                  If no parent is given, all trees are returned.
 
         See: :meth:`treebeard.Node.get_tree`
 
@@ -680,7 +658,6 @@ class NS_Node(Node):
             tree_id=parent.tree_id,
             lft__range=(parent.lft, parent.rgt-1))
 
-
     def get_descendants(self):
         """
         :returns: A queryset of all the node's descendants as DFS, doesn't
@@ -692,7 +669,6 @@ class NS_Node(Node):
             return self.__class__.objects.none()
         return self.__class__.get_tree(self).exclude(pk=self.id)
 
-
     def get_descendant_count(self):
         """
         :returns: the number of descendants of a node.
@@ -700,7 +676,6 @@ class NS_Node(Node):
         See: :meth:`treebeard.Node.get_descendant_count`
         """
         return (self.rgt - self.lft - 1) / 2
-
 
     def get_ancestors(self):
         """
@@ -716,7 +691,6 @@ class NS_Node(Node):
             lft__lt=self.lft,
             rgt__gt=self.rgt)
 
-
     def is_descendant_of(self, node):
         """
         :returns: ``True`` if the node if a descendant of another node given
@@ -727,7 +701,6 @@ class NS_Node(Node):
         return self.tree_id == node.tree_id and \
                self.lft > node.lft and \
                self.rgt < node.rgt
-
 
     def get_parent(self, update=False):
         """
@@ -748,7 +721,6 @@ class NS_Node(Node):
         # parent = our most direct ancestor
         self._cached_parent_obj = self.get_ancestors().reverse()[0]
         return self._cached_parent_obj
-        
 
     @classmethod
     def get_root_nodes(cls):
@@ -760,7 +732,6 @@ class NS_Node(Node):
            MyNodeModel.get_root_nodes()
         """
         return cls.objects.filter(lft=1)
-
 
     class Meta:
         """
@@ -774,5 +745,3 @@ class NS_Node(Node):
         # PROTIP2: Set the ordering property again if you add a Meta in
         #          your subclass
         ordering = ['tree_id', 'lft']
-
-
