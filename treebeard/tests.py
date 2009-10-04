@@ -1702,20 +1702,14 @@ class TestMP_TreeAlphabet(TestCase):
                 except:
                     got_err = True
                     break
-            if not got_err:
-                got = [obj.path for obj in MP_TestNodeAlphabet.objects.all()]
-                if got != expected:
-                    got_err = True
             if got_err:
                 break
-            else:
-                last_good = alphabet
-        if last_good:
-            print '\nThe best BASE85 based alphabet for your setup is: %s' \
-                % (last_good,)
-        else:
-            # this should never happen
-            self.fail("Couldn't find a default working alphabet for your setup!")
+            got = [obj.path for obj in MP_TestNodeAlphabet.objects.all()]
+            if got != expected:
+                got_err = True
+            last_good = alphabet
+        print '\nThe best BASE85 based alphabet for your setup is: %s' \
+            % (last_good,)
 
 
 
@@ -1966,7 +1960,7 @@ class TestIssue14(TestCase):
     # http://code.google.com/p/django-treebeard/issues/detail?id=14
 
     def test_issue_14(self):
-        if not HAS_DJANGO_AUTH:
+        if not HAS_DJANGO_AUTH: # pragma: no cover
             self.fail('this test needs django.contrib.auth in INSTALLED_APPS')
 
         # Using AnonymousUser() in the querysets will expose non-treebeard
