@@ -195,22 +195,6 @@ class NS_Node(Node):
 
 
     @classmethod
-    def _find_next_node(cls, tree_id, lft1, lft2):
-        last_lft = cls.objects.filter(tree_id=tree_id, lft__gte=lft1,
-                 lft__lt=lft2).order_by('lft').reverse()[0].lft
-        if lft2 - last_lft <= 2:
-            interval = 10
-        else:
-
-            interval = (lft2 - last_lft) / 10
-
-            if interval == 0:
-                interval = 1
-
-        return last_lft + 10, last_lft + 10 * 2
-
- 
-    @classmethod
     def _move_right(cls, tree_id, rgt, lftmove=False, incdec=2):
         if lftmove:
             lftop = '>='
