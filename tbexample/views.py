@@ -53,7 +53,8 @@ def load_random_data(request, treetype):
                     node = tbmodel.objects.get(pk=node.id)
                 meth = node.add_child
             obj = meth(author='author_%d' % (i,),
-                 comment='lorem ipsum!',
+                 comment='lorem ipsum! %d' % (random.randint(1000000000,
+                                                             9999999999), ),
                  created=datetime.datetime.now())
     return render_to_response('tbexample/loaddata.html', data)
 
