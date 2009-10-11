@@ -1,17 +1,17 @@
 from django.contrib import admin
-from treebeard.admin import TreebeardModelAdmin
+from tbadmin.models import TreeAdmin
 
 from tbexample.models import MP_Post, AL_Post, NS_Post
 
 
-class MP_Admin(TreebeardModelAdmin):
+class MP_Admin(TreeAdmin):
     pass
 
 
-class AL_Admin(TreebeardModelAdmin):
+class AL_Admin(TreeAdmin):
     pass
 
-class NS_Admin(TreebeardModelAdmin):
+class NS_Admin(TreeAdmin):
     pass
 
 
