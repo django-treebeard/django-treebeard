@@ -6,14 +6,18 @@ from django.contrib import admin
 class TreeFormAdmin(forms.ModelForm):
     """ Admin for for treebeard model. """
 
-    __position_choices = (
+    __position_choices_sorted = (
+                        ('sorted-child', 'Child of'),
+                        ('sorted-sibling', 'Sibling of'),
+                    )
+
+    __position_choices_unsorted = (
                         ('first-child', 'First child of'),
                         ('left', 'Before'),
                         ('right', 'After'),
                     )
-    _position = forms.ChoiceField( required=True,
-                                    label="Position",
-                                    choices=__position_choices)
+
+    _position = forms.ChoiceField(required=True, label="Position")
 
     _ref_node_id = forms.TypedChoiceField(  required=False,
                                             coerce=int,
@@ -32,7 +36,14 @@ class TreeFormAdmin(forms.ModelForm):
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
                  initial=None, error_class=ErrorList, label_suffix=':',
                  empty_permitted=False, instance=None):
+
         opts = self._meta
+        self.is_sorted = (len(opts.model.node_order_by) > 0)
+
+        if self.is_sorted:
+            self.declared_fields['_position'].choices = self.__class__.__position_choices_sorted
+        else:
+            self.declared_fields['_position'].choices = self.__class__.__position_choices_unsorted
 
         def mk_dropdown_tree(for_node=None):
             """ Creates a tree-like list of choices """
@@ -65,27 +76,36 @@ class TreeFormAdmin(forms.ModelForm):
             self.declared_fields['_ref_node_id'].choices = mk_dropdown_tree()
         else:
             object_data = model_to_dict(instance, opts.fields, opts.exclude)
-            prev_sibling = instance.get_prev_sibling()
-            if prev_sibling is None:
-                if(instance.is_root()):
+            if self.is_sorted:
+                node_parent = instance.get_parent()
+                if node_parent is None:
                     object_data.update({'_ref_node_id': '',
-                                        '_position': 'first-child',
+                                        '_position': 'sorted-child',
                                         })
                 else:
-                    object_data.update({'_ref_node_id': instance.get_parent().pk,
-                                        '_position': 'first-child',
+                    object_data.update({'_ref_node_id': node_parent.pk,
+                                        '_position': 'sorted-child',
                                         })
             else:
-                object_data.update({'_ref_node_id': prev_sibling.pk,
-                                    '_position': 'right',
-                                    })
-
+                prev_sibling = instance.get_prev_sibling()
+                if prev_sibling is None:
+                    if(instance.is_root()):
+                        object_data.update({'_ref_node_id': '',
+                                            '_position': 'first-child',
+                                            })
+                    else:
+                        object_data.update({'_ref_node_id': instance.get_parent().pk,
+                                            '_position': 'first-child',
+                                            })
+                else:
+                    object_data.update({'_ref_node_id': prev_sibling.pk,
+                                        '_position': 'right',
+                                        })
             self.declared_fields['_ref_node_id'].choices = mk_dropdown_tree(for_node=instance)
             self.instance = instance
         # if initial was provided, it should override the values from instance
         if initial is not None:
             object_data.update(initial)
-
         super(BaseModelForm, self).__init__(data, files, auto_id, prefix,
                                             object_data, error_class,
                                             label_suffix, empty_permitted)
@@ -99,22 +119,26 @@ class TreeFormAdmin(forms.ModelForm):
         # delete auxilary fields not belonging to node model
         del self.cleaned_data['_ref_node_id']
         del self.cleaned_data['_position']
-
         if self.instance.pk is None:
             if reference_node_id:
-                parent_node = self.Meta.model.objects.get(pk=reference_node_id)
-                self.instance = parent_node.add_child(** self.cleaned_data)
+                reference_node = self.Meta.model.objects.get(pk=reference_node_id)
+                self.instance = reference_node.add_child(** self.cleaned_data)
+                self.instance.move(reference_node, pos=position_type)
             else:
                 self.instance = self.Meta.model.add_root(** self.cleaned_data)
         else:
             if reference_node_id:
-                parent_node = self.Meta.model.objects.get(pk=reference_node_id)
-                self.instance.move(parent_node, pos=position_type)
+                reference_node = self.Meta.model.objects.get(pk=reference_node_id)
+                self.instance.move(reference_node, pos=position_type)
             else:
-                self.instance.move(self.Meta.model.get_first_root_node(),
+                if self.is_sorted:
+                    self.instance.move(self.Meta.model.get_first_root_node(),
+                                                        pos='sorted-sibling')
+                else:
+                    self.instance.move(self.Meta.model.get_first_root_node(),
                                                             pos='first-sibling')
             # Reload the instance
-            self.instance = self.Meta.model.objects.get(pk=self.instance.pk)
+        self.instance = self.Meta.model.objects.get(pk=self.instance.pk)
         super(TreeFormAdmin, self).save(commit=commit)
         return self.instance
 
