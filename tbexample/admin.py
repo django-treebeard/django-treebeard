@@ -1,5 +1,5 @@
 from django.contrib import admin
-from tbadmin.models import TreeAdmin
+from treebeard.admin import TreeAdmin
 
 from tbexample.models import MP_Post, AL_Post, NS_Post
 
