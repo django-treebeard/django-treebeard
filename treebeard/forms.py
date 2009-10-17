@@ -51,16 +51,16 @@ class TreeFormAdmin(forms.ModelForm):
             # Do actual check only if for_node is provided
             if for_node is not None:
                 is_loop_safe = lambda(possible_parent): not (\
-                            possible_parent.is_descendant_of(for_node) or \
-                            possible_parent == for_node)
+                            possible_parent == for_node) or \
+                            possible_parent.is_descendant_of(for_node)
 
             mk_indent = lambda(level): '. . ' * (level - 1)
 
             def add_subtree(node, options):
                 """ Recursively build options tree. """
-                options.append((node.pk, mk_indent(node.get_depth())+str(node)))
-                for subnode in node.get_children():
-                    if is_loop_safe(subnode):
+                if is_loop_safe(node):
+                    options.append((node.pk, mk_indent(node.get_depth())+str(node)))
+                    for subnode in node.get_children():
                         add_subtree(subnode, options)
 
             options = [(0, '-- root --')]
