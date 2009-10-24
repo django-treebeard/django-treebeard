@@ -9,7 +9,7 @@
     :copyright: 2008, 2009 by Gustavo Picon
     :license: Apache License 2.0
 
-    Original contribution by aleh.fl   
+    Original contribution by aleh.fl
 
 """
 
@@ -33,19 +33,19 @@ class TreeFormAdmin(forms.ModelForm):
 
     _position = forms.ChoiceField(required=True, label="Position")
 
-    _ref_node_id = forms.TypedChoiceField(  required=False,
-                                            coerce=int,
-                                            label="Relative to")
+    _ref_node_id = forms.TypedChoiceField(required=False,
+                                          coerce=int,
+                                          label="Relative to")
 
     class Meta:
-        exclude = ( 'path',
-                    'depth',
-                    'numchild',
-                    'lft',
-                    'rgt',
-                    'tree_id',
-                    'parent',
-                    'sib_order')
+        exclude = ('path',
+                   'depth',
+                   'numchild',
+                   'lft',
+                   'rgt',
+                   'tree_id',
+                   'parent',
+                   'sib_order')
 
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
                  initial=None, error_class=ErrorList, label_suffix=':',
@@ -55,9 +55,11 @@ class TreeFormAdmin(forms.ModelForm):
         self.is_sorted = (len(opts.model.node_order_by) > 0)
 
         if self.is_sorted:
-            self.declared_fields['_position'].choices = self.__class__.__position_choices_sorted
+            self.declared_fields['_position'].choices = \
+                self.__class__.__position_choices_sorted
         else:
-            self.declared_fields['_position'].choices = self.__class__.__position_choices_unsorted
+            self.declared_fields['_position'].choices = \
+                self.__class__.__position_choices_unsorted
 
         def mk_dropdown_tree(for_node=None):
             """ Creates a tree-like list of choices """
@@ -74,7 +76,8 @@ class TreeFormAdmin(forms.ModelForm):
             def add_subtree(node, options):
                 """ Recursively build options tree. """
                 if is_loop_safe(node):
-                    options.append((node.pk, mk_indent(node.get_depth())+str(node)))
+                    options.append(
+                        (node.pk, mk_indent(node.get_depth())+str(node)))
                     for subnode in node.get_children():
                         add_subtree(subnode, options)
 
@@ -108,14 +111,16 @@ class TreeFormAdmin(forms.ModelForm):
                                             '_position': 'first-child',
                                             })
                     else:
-                        object_data.update({'_ref_node_id': instance.get_parent().pk,
-                                            '_position': 'first-child',
-                                            })
+                        object_data.update(
+                            {'_ref_node_id': instance.get_parent().pk,
+                             '_position': 'first-child',
+                            })
                 else:
                     object_data.update({'_ref_node_id': prev_sibling.pk,
                                         '_position': 'right',
                                         })
-            self.declared_fields['_ref_node_id'].choices = mk_dropdown_tree(for_node=instance)
+            self.declared_fields['_ref_node_id'].choices = mk_dropdown_tree(
+                for_node=instance)
             self.instance = instance
         # if initial was provided, it should override the values from instance
         if initial is not None:
@@ -126,7 +131,7 @@ class TreeFormAdmin(forms.ModelForm):
 
     def save(self, commit=True):
         reference_node_id = 0
-        if self.cleaned_data.has_key('_ref_node_id'):
+        if '_ref_node_id' in self.cleaned_data:
             reference_node_id = self.cleaned_data['_ref_node_id']
         position_type = self.cleaned_data['_position']
 
@@ -135,14 +140,16 @@ class TreeFormAdmin(forms.ModelForm):
         del self.cleaned_data['_position']
         if self.instance.pk is None:
             if reference_node_id:
-                reference_node = self.Meta.model.objects.get(pk=reference_node_id)
+                reference_node = self.Meta.model.objects.get(
+                    pk=reference_node_id)
                 self.instance = reference_node.add_child(** self.cleaned_data)
                 self.instance.move(reference_node, pos=position_type)
             else:
                 self.instance = self.Meta.model.add_root(** self.cleaned_data)
         else:
             if reference_node_id:
-                reference_node = self.Meta.model.objects.get(pk=reference_node_id)
+                reference_node = self.Meta.model.objects.get(
+                    pk=reference_node_id)
                 self.instance.move(reference_node, pos=position_type)
             else:
                 if self.is_sorted:
@@ -150,7 +157,7 @@ class TreeFormAdmin(forms.ModelForm):
                                                         pos='sorted-sibling')
                 else:
                     self.instance.move(self.Meta.model.get_first_root_node(),
-                                                            pos='first-sibling')
+                                       pos='first-sibling')
             # Reload the instance
         self.instance = self.Meta.model.objects.get(pk=self.instance.pk)
         super(TreeFormAdmin, self).save(commit=commit)
