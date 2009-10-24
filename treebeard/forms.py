@@ -1,3 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+
+    treebeard.forms
+    ---------------
+
+    Forms for treebeard.
+
+    :copyright: 2008, 2009 by Gustavo Picon
+    :license: Apache License 2.0
+
+    Original contribution by aleh.fl   
+
+"""
+
 from django.forms.models import model_to_dict, ErrorList, BaseModelForm
 from django import forms
 
