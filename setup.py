@@ -19,9 +19,9 @@ classifiers = [
 setup(
     name='django-treebeard',
     version=version,
-    url='http://code.google.com/p/django-treebeard/',
+    url='http://code.tabo.pe/django-treebeard/',
     author='Gustavo Picon',
-    author_email='tabo@gpicon.org',
+    author_email='tabo@tabo.pe',
     license='Apache License 2.0',
     packages=['treebeard'],
     description='Efficient Materialized Path tree implementation for'

@@ -5,21 +5,21 @@
     ---------
 
     :synopsys: Efficient Tree implementations for Django 1.0+
-    :copyright: 2008 by `Gustavo Picon <http://gpicon.org>`_
+    :copyright: 2008-2009 by `Gustavo Picon <http://tabo.pe>`_
     :license: Apache License 2.0
     :version: 1.2a
-    :url: http://code.google.com/p/django-treebeard/
+    :url: http://code.tabo.pe/django-treebeard/
     :documentation:
        `treebeard-docs
-       <http://django-treebeard.googlecode.com/svn/docs/index.html>`_
+       <http://docs.tabo.pe/django-treebeard/tip/>`_
     :examples:
        `treebeard-examples
-       <http://django.gpicon.org/tbexample/>`_
+       <http://django.tabo.pe/tbexample/>`_
        (`source
-       <http://code.google.com/p/django-treebeard/source/browse/#svn/trunk/tbexample>`_)
+       <http://code.tabo.pe/django-treebeard/src/tip/tbexample/>`_)
     :tests:
        `treebeard-tests
-       <http://code.google.com/p/django-treebeard/source/browse/trunk/treebeard/tests.py>`_
+       <http://code.tabo.pe/django-treebeard/src/tip/treebeard/tests.py>`_
     :benchmarks: `treebeard-benchmarks <#module-tbbench>`_
 
     ``django-treebeard`` is a library that implements efficient tree
@@ -34,7 +34,7 @@
     to let you define your own models. To use ``django-treebeard``:
 
        1. Download a release from the `treebeard download page`_ or get a
-          development version from the `treebeard subversion repository`_.
+          development version from the `treebeard mercurial repository`_.
        2. Run :command:`python setup.py install`
        3. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your django
           settings file.
@@ -48,9 +48,9 @@
     Read the :class:`models.Node` API reference for detailed info.
 
     .. _`treebeard download page`:
-       http://code.google.com/p/django-treebeard/downloads/list
-    .. _`treebeard subversion repository`:
-       http://code.google.com/p/django-treebeard/source/checkout
+       http://code.tabo.pe/django-treebeard/downloads/
+    .. _`treebeard mercurial repository`:
+       http://code.tabo.pe/django-treebeard/src/
 
 """
 

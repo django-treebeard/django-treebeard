@@ -6,7 +6,7 @@
 
     Nested Sets Tree.
 
-    :copyright: 2008 by Gustavo Picon
+    :copyright: 2008-2009 by Gustavo Picon
     :license: Apache License 2.0
 
     An implementation of Nested Sets trees for Django 1.0+, as described by
