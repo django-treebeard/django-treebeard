@@ -9,7 +9,7 @@
     :copyright: 2008, 2009 by Gustavo Picon
     :license: Apache License 2.0
 
-    Original contribution by aleh.fl   
+    Original contribution by aleh.fl
 
 """
 
