@@ -24,7 +24,8 @@ help:
 	@echo "  linkcheck to check all external links for integrity"
 
 clean:
-	-rm -rf _build $(HTMLDIR)/*
+#	-rm -rf _build $(HTMLDIR)/*
+	-rm -rf _build _sources _static *.html *.js .buildinfo *.inv
 
 html:
 	mkdir -p $(HTMLDIR) _build/doctrees _static
