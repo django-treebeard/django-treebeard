@@ -1,4 +1,7 @@
-This is the documentation source for sphinx.
+This is the documentation source for django-treebeard.
 You can read the documentation in:
 
-http://django-treebeard.googlecode.com/svn/docs/index.html
+http://docs.tabo.pe/django-treebeard/tip/
+
+Or read the documentation for this version opening index.html in this
+directory.
