@@ -52,7 +52,9 @@ class TreeFormAdmin(forms.ModelForm):
                  empty_permitted=False, instance=None):
 
         opts = self._meta
-        self.is_sorted = (len(opts.model.node_order_by) > 0)
+        self.is_sorted = (hasattr(opts.model, 'node_order_by') and
+                          opts.model.node_order_by)
+        #self.is_sorted = (len(opts.model.node_order_by) > 0)
 
         if self.is_sorted:
             self.declared_fields['_position'].choices = \
