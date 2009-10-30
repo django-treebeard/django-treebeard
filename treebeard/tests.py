@@ -13,6 +13,8 @@
 
 import functools
 import os
+from django.contrib.admin.options import ModelAdmin
+from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
 from django.db import models, transaction
 from django.contrib.auth.models import User, AnonymousUser
@@ -25,6 +27,7 @@ from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
 from treebeard.mp_tree import MP_Node
 from treebeard.al_tree import AL_Node
 from treebeard.ns_tree import NS_Node
+from treebeard.forms import TreeFormAdmin
 
 # ghetto app detection, there is probably some introspection method,
 # but meh, this works
@@ -52,17 +55,29 @@ class MP_TestNode(MP_Node):
 
     desc = models.CharField(max_length=255)
 
+    def __unicode__(self):
+        return 'Node %d' % self.id
+
 
 class MP_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(MP_TestNode)
+
+    def __unicode__(self):
+        return 'Node %d' % self.id
 
 
 class NS_TestNode(NS_Node):
     desc = models.CharField(max_length=255)
 
+    def __unicode__(self):
+        return 'Node %d' % self.id
+
 
 class NS_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(NS_TestNode)
+
+    def __unicode__(self):
+        return 'Node %d' % self.id
 
 
 class AL_TestNode(AL_Node):
@@ -73,9 +88,15 @@ class AL_TestNode(AL_Node):
     sib_order = models.PositiveIntegerField()
     desc = models.CharField(max_length=255)
 
+    def __unicode__(self):
+        return 'Node %d' % self.id
+
 
 class AL_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(AL_TestNode)
+
+    def __unicode__(self):
+        return 'Node %d' % self.id
 
 
 class MP_TestNodeSorted(MP_Node):
@@ -85,12 +106,18 @@ class MP_TestNodeSorted(MP_Node):
     val2 = models.IntegerField()
     desc = models.CharField(max_length=255)
 
+    def __unicode__(self):
+        return 'Node %d' % self.id
+
 
 class NS_TestNodeSorted(NS_Node):
     node_order_by = ['val1', 'val2', 'desc']
     val1 = models.IntegerField()
     val2 = models.IntegerField()
     desc = models.CharField(max_length=255)
+
+    def __unicode__(self):
+        return 'Node %d' % self.id
 
 
 class AL_TestNodeSorted(AL_Node):
@@ -103,16 +130,25 @@ class AL_TestNodeSorted(AL_Node):
     val2 = models.IntegerField()
     desc = models.CharField(max_length=255)
 
+    def __unicode__(self):
+        return 'Node %d' % self.id
+
 
 class MP_TestNodeAlphabet(MP_Node):
     steplen = 2
 
     numval = models.IntegerField()
 
+    def __unicode__(self):
+        return 'Node %d' % self.id
+
 
 class MP_TestNodeSmallStep(MP_Node):
     steplen = 1
     alphabet = '0123456789'
+
+    def __unicode__(self):
+        return 'Node %d' % self.id
 
 
 class MP_TestNodeSortedAutoNow(MP_Node):
@@ -121,11 +157,17 @@ class MP_TestNodeSortedAutoNow(MP_Node):
 
     node_order_by = ['created']
 
+    def __unicode__(self):
+        return 'Node %d' % self.id
+
 
 class MP_TestNodeShortPath(MP_Node):
     steplen = 1
     alphabet = '01234'
     desc = models.CharField(max_length=255)
+
+    def __unicode__(self):
+        return 'Node %d' % self.id
 
 # This is how you change the default fields defined in a Django abstract class
 # (in this case, MP_Node), since Django doesn't allow overriding fields, only
@@ -139,6 +181,10 @@ class MP_TestSortedNodeShortPath(MP_Node):
     desc = models.CharField(max_length=255)
 
     node_order_by = ['desc']
+
+    def __unicode__(self):
+        return 'Node %d' % self.id
+
 MP_TestSortedNodeShortPath._meta.get_field('path').max_length = 4
 
 
@@ -1939,3 +1985,58 @@ class TestIssue14(TestCase):
         qs_check(
             root.get_children().filter(Q(name="first") | Q(users=user)),
             ['first'])
+
+
+class TestModelAdmin(ModelAdmin):
+    form = TreeFormAdmin
+
+
+class TestMoveForm(TestTreeBase):
+
+    @multi_test()
+    def test_form_html(self):
+        tpl = ('<tr><th><label for="id_desc">Desc:</label>'
+               '</th><td><input id="id_desc" type="text" class="vTextField" '
+               'name="desc" maxlength="255" /></td></tr>\n'
+               '<tr><th><label for="id__position">Position:</label>'
+               '</th><td><select name="_position" id="id__position">\n'
+               '<option value="first-child">First child of</option>\n'
+               '<option value="left">Before</option>\n'
+               '<option value="right">After</option>\n'
+               '</select></td></tr>\n'
+               '<tr><th><label for="id__ref_node_id">Relative to:</label>'
+               '</th><td><select name="_ref_node_id" id="id__ref_node_id">\n'
+               '<option value="0">-- root --</option>\n'
+               '<option value="%d">Node %d</option>\n'
+               '<option value="%d">Node %d</option>\n'
+               '<option value="%d">. . Node %d</option>\n'
+               '<option value="%d">. . Node %d</option>\n'
+               '<option value="%d">. . Node %d</option>\n'
+               '<option value="%d">. . . . Node %d</option>\n'
+               '<option value="%d">. . Node %d</option>\n'
+               '<option value="%d">Node %d</option>\n'
+               '<option value="%d">Node %d</option>\n'
+               '<option value="%d">. . Node %d</option>\n'
+               '</select></td></tr>')
+        request = None
+        self.model.load_bulk(BASE_DATA)
+        for node in self.model.objects.all():
+            site = AdminSite()
+            ma = TestModelAdmin(self.model, site)
+            self.assertEqual(
+                ['desc', '_position', '_ref_node_id'],
+                ma.get_form(request).base_fields.keys()
+            )
+            self.assertEqual(
+                [(None, {'fields': ['desc', '_position', '_ref_node_id']})],
+                ma.get_fieldsets(request)
+            )
+            self.assertEqual(
+                [(None, {'fields': ['desc', '_position', '_ref_node_id']})],
+                ma.get_fieldsets(request, node)
+            )
+            form = ma.get_form(request)()
+            ids = []
+            for obj in self.model.get_tree():
+                ids.extend([obj.id]*2)
+            self.assertEqual(tpl % tuple(ids), unicode(form))
