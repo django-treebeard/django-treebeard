@@ -19,7 +19,6 @@ lurls = [
 
 path = os.path.dirname(treebeard.__file__)
 static_path = os.path.normpath(os.path.join(path, 'static/'))
-print 'TBEXAMPLE URLS', static_path
 
 urlpatterns = patterns('',
     (r'^admin/', include(admin.site.urls)),
