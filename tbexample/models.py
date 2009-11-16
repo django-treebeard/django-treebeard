@@ -62,7 +62,7 @@ class AL_Post(AL_Node):
         return ('node-view', ('al', str(self.id),))
 
     def __unicode__(self):
-        return u'MP_Post %d: %s' % (self.id, self.comment)
+        return u'AL_Post %d: %s' % (self.id, self.comment)
 
     class Meta:
         verbose_name = 'Adjacenty List Tree Post'
@@ -82,7 +82,7 @@ class NS_Post(NS_Node):
         return ('node-view', ('ns', str(self.id),))
 
     def __unicode__(self):
-        return u'MP_Post %d: %s' % (self.id, self.comment)
+        return u'NS_Post %d: %s' % (self.id, self.comment)
 
     class Meta:
         verbose_name = 'Nested Set Tree Post'
