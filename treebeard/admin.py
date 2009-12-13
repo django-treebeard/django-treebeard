@@ -15,10 +15,10 @@
 
 from django.contrib import admin
 
-from treebeard.forms import TreeFormAdmin
+from treebeard.forms import MoveNodeForm
 
 
 class TreeAdmin(admin.ModelAdmin):
     """ Manages treebeard model. """
     change_list_template = 'admin/tree_change_list.html'
-    form = TreeFormAdmin
+    form = MoveNodeForm

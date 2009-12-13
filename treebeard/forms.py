@@ -17,7 +17,7 @@ from django.forms.models import model_to_dict, ErrorList, BaseModelForm
 from django import forms
 
 
-class TreeFormAdmin(forms.ModelForm):
+class MoveNodeForm(forms.ModelForm):
     """ Admin for for treebeard model. """
 
     __position_choices_sorted = (
@@ -52,6 +52,8 @@ class TreeFormAdmin(forms.ModelForm):
                  empty_permitted=False, instance=None):
 
         opts = self._meta
+        if instance:
+            opts.model = type(instance)
         self.is_sorted = (hasattr(opts.model, 'node_order_by') and
                           opts.model.node_order_by)
         #self.is_sorted = (len(opts.model.node_order_by) > 0)
@@ -162,5 +164,5 @@ class TreeFormAdmin(forms.ModelForm):
                                        pos='first-sibling')
             # Reload the instance
         self.instance = self.Meta.model.objects.get(pk=self.instance.pk)
-        super(TreeFormAdmin, self).save(commit=commit)
+        super(MoveNodeForm, self).save(commit=commit)
         return self.instance

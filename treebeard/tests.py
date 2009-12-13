@@ -27,7 +27,7 @@ from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
 from treebeard.mp_tree import MP_Node
 from treebeard.al_tree import AL_Node
 from treebeard.ns_tree import NS_Node
-from treebeard.forms import TreeFormAdmin
+from treebeard.forms import MoveNodeForm
 
 # ghetto app detection, there is probably some introspection method,
 # but meh, this works
@@ -1988,18 +1988,69 @@ class TestIssue14(TestCase):
 
 
 class TestModelAdmin(ModelAdmin):
-    form = TreeFormAdmin
+    form = MoveNodeForm
 
 
-class TestMoveForm(TestTreeBase):
+class TestMoveNodeForm(TestTreeBase):
+
+    tpl = (u'<tr><th><label for="id__position">Position:</label></th>'
+           '<td><select name="_position" id="id__position">\n'
+           '<option value="first-child">First child of</option>\n'
+           '<option value="left">Before</option>\n'
+           '<option value="right">After</option>\n'
+           '</select></td></tr>\n'
+           '<tr><th><label for="id__ref_node_id">Relative to:</label>'
+           '</th><td><select name="_ref_node_id" id="id__ref_node_id">\n'
+           '<option value="0">-- root --</option>\n')
 
     @multi_test()
-    def test_form_html(self):
+    def test_form_html_root_node(self):
+        "asserts that the forms are correct for root nodes"
+        self.model.load_bulk(BASE_DATA)
+        node = self.model.get_tree()[0]
+        form = MoveNodeForm(instance=node)
+        rtpl = self.tpl
+        self.assertEqual(
+            ['_position', '_ref_node_id'],
+            form.base_fields.keys()
+        )
+        for obj in self.model.get_tree():
+            if node != obj or obj.is_descendant_of(node):
+                rtpl += '<option value="%d">%sNode %d</option>\n' % (
+                    obj.id, '. . ' * (obj.get_depth()-1), obj.id
+                )
+        rtpl += '</select></td></tr>'
+        formstr = unicode(form).replace(u' selected="selected"', u'')
+        self.assertEqual(rtpl, formstr)
+
+    @multi_test()
+    def test_form_html_leaf_node(self):
+        "asserts that the forms are correct for leaf nodes"
+        self.model.load_bulk(BASE_DATA)
+        nodes = list(self.model.get_tree())
+        node = nodes[-1]
+        form = MoveNodeForm(instance=node)
+        rtpl = self.tpl
+        self.assertEqual(
+            ['_position', '_ref_node_id'],
+            form.base_fields.keys()
+        )
+        for obj in self.model.get_tree():
+            if node != obj or obj.is_descendant_of(node):
+                rtpl += '<option value="%d">%sNode %d</option>\n' % (
+                    obj.id, '. . ' * (obj.get_depth()-1), obj.id,
+                )
+        rtpl += '</select></td></tr>'
+        formstr = unicode(form).replace(u' selected="selected"', u'')
+        self.assertEqual(rtpl, formstr)
+
+    @multi_test()
+    def test_admin_html(self):
         tpl = ('<tr><th><label for="id_desc">Desc:</label>'
                '</th><td><input id="id_desc" type="text" class="vTextField" '
                'name="desc" maxlength="255" /></td></tr>\n'
-               '<tr><th><label for="id__position">Position:</label>'
-               '</th><td><select name="_position" id="id__position">\n'
+               '<tr><th><label for="id__position">Position:</label></th>'
+               '<td><select name="_position" id="id__position">\n'
                '<option value="first-child">First child of</option>\n'
                '<option value="left">Before</option>\n'
                '<option value="right">After</option>\n'
