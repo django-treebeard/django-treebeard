@@ -4,7 +4,7 @@ import os
 from distutils.command.install import INSTALL_SCHEMES
 from distutils.core import setup
 
-version = '1.2a'
+version = '1.5'
 
 def fullsplit(path, result=None):
     """

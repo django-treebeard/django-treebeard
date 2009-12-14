@@ -18,7 +18,16 @@ from django import forms
 
 
 class MoveNodeForm(forms.ModelForm):
-    """ Admin for for treebeard model. """
+    """Form to handle moving a node in a tree.
+    
+    Handles sorted/unsorted trees.
+    
+    Read the `Django Form objects documentation`_ for reference.
+    
+    
+    .. _`Django Form objects documentation`:
+       http://docs.djangoproject.com/en/dev/topics/forms/#form-objects
+    """
 
     __position_choices_sorted = (
                         ('sorted-child', 'Child of'),

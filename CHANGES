@@ -1,0 +1,64 @@
+
+Release 1.5 (Dec 15, 2009)
+--------------------------
+
+New features added
+******************
+
+* Forms
+
+  - Added MoveNodeForm
+
+* Django Admin
+
+  - Added TreeAdmin
+
+* MP_Node
+
+  - Added 2 new checks in MP_Node.find_problems():
+
+    4. a list of ids of nodes with the wrong depth value for
+       their path
+    5. a list of ids nodes that report a wrong number of children
+
+  - Added a new (safer and faster but less comprehensive) MP_Node.fix_tree()
+    approach.
+
+* Documentation
+
+  - Added warnings in the documentation when subclassing MP_Node or NS_Node
+    and adding a new Meta.
+
+  - HTML documentation is now included in the package.
+  
+  - CHANGES file and section in the docs.
+
+* Other changes:
+
+  - script to build documentation
+
+  - updated numconv.py
+  
+
+Bugs fixed
+**********
+
+  - Added table quoting to all the sql queries that bypass the ORM.
+    Solves bug in postgres when the table isn't created by syncdb.
+
+  - removing unused method NS_Node._find_next_node
+
+
+Release 1.1 (Nov 20, 2008)
+--------------------------
+
+Bugs fixed
+**********
+
+* Added exceptions.py
+
+
+Release 1.0 (Nov 19, 2008)
+--------------------------
+
+* First public release.
