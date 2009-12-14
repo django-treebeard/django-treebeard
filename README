@@ -2,10 +2,25 @@
 django-treebeard
 ================
 
-To install, run this command:
+django-treebeard is a library that implements efficient tree
+implementations for the Django Web Framework 1.0+. It includes 3 different
+tree implementations: Adjacency List, Materialized Path and Nested Sets.
+Each one has it's own strength and weaknesses but share the same
+API, so it's easy to switch between implementations.
 
-    python setup.py install
+django-treebeard uses Django Model Inheritance with abstract classes
+to let you define your own models. To use django-treebeard:
+
+   1. Download a release from the treebeard download page or get a
+      development version from the treebeard mercurial repository.
+   2. Run python setup.py install
+   3. Add 'treebeard' to the INSTALLED_APPS section in your django
+      settings file.
+   4. Create a new model that inherits from one of django-treebeard's
+      abstract tree models: mp_tree.MP_Node (materialized path),
+      ns_tree.NS_Node (nested sets) or al_tree.AL_Node (adjacency list).
+   5. Run python manage.py syncdb
 
 You can find the documentation in
 
-    http://django-treebeard.googlecode.com/svn/docs/index.html
+    http://docs.tabo.pe/django-treebeard/tip/
