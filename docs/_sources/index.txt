@@ -89,6 +89,24 @@
       .. automethod:: get_tree
 
 
+:mod:`treebeard.admin` --- Admin
+================================
+
+.. automodule:: treebeard.admin
+
+   .. autoclass:: TreeAdmin
+
+
+
+:mod:`treebeard.forms` --- Forms
+================================
+
+.. automodule:: treebeard.forms
+
+   .. autoclass:: MoveNodeForm
+
+
+
 :mod:`treebeard.exceptions` --- Exceptions
 ==========================================
 
@@ -107,6 +125,12 @@
 =============================
 
 .. automodule:: tbbench
+
+
+Changes in django-treebeard
+===========================
+
+.. include:: ../CHANGES
 
 
 Indices and tables

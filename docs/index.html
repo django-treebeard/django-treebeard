@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>treebeard — Efficient tree model implementations for Django &mdash; django-treebeard v1.2a documentation</title>
+    <title>treebeard — Efficient tree model implementations for Django &mdash; django-treebeard v1.5 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '1.2a',
+        VERSION:     '1.5',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="django-treebeard v1.2a documentation" href="" /> 
+    <link rel="top" title="django-treebeard v1.5 documentation" href="" /> 
   </head>
   <body>
     <div class="related">
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
-        <li><a href="">django-treebeard v1.2a documentation</a> &raquo;</li> 
+        <li><a href="">django-treebeard v1.5 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -1532,6 +1532,57 @@ If no parent is given, all trees are returned.</td>
 
 </div>
 </div>
+<div class="section" id="module-treebeard.admin">
+<h1><tt class="xref docutils literal"><span class="pre">treebeard.admin</span></tt> &#8212; Admin<a class="headerlink" href="#module-treebeard.admin" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="treebeard-admin">
+<h2>treebeard.admin<a class="headerlink" href="#treebeard-admin" title="Permalink to this headline">¶</a></h2>
+<p>Django admin support.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">copyright:</th><td class="field-body">2008-2009 by Gustavo Picon</td>
+</tr>
+<tr class="field"><th class="field-name">license:</th><td class="field-body">Apache License 2.0</td>
+</tr>
+</tbody>
+</table>
+<p>Original contribution by aleh.fl</p>
+<dl class="class">
+<dt id="treebeard.admin.TreeAdmin">
+<em class="property">class </em><tt class="descclassname">treebeard.admin.</tt><tt class="descname">TreeAdmin</tt><big>(</big><em>model</em>, <em>admin_site</em><big>)</big><a class="headerlink" href="#treebeard.admin.TreeAdmin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Django Admin class for treebeard</p>
+<p>To be used by Django&#8217;s admin.site.register</p>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-treebeard.forms">
+<h1><tt class="xref docutils literal"><span class="pre">treebeard.forms</span></tt> &#8212; Forms<a class="headerlink" href="#module-treebeard.forms" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="treebeard-forms">
+<h2>treebeard.forms<a class="headerlink" href="#treebeard-forms" title="Permalink to this headline">¶</a></h2>
+<p>Forms for treebeard.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">copyright:</th><td class="field-body">2008-2009 by Gustavo Picon</td>
+</tr>
+<tr class="field"><th class="field-name">license:</th><td class="field-body">Apache License 2.0</td>
+</tr>
+</tbody>
+</table>
+<p>Original contribution by aleh.fl</p>
+<dl class="class">
+<dt id="treebeard.forms.MoveNodeForm">
+<em class="property">class </em><tt class="descclassname">treebeard.forms.</tt><tt class="descname">MoveNodeForm</tt><big>(</big><em>data=None</em>, <em>files=None</em>, <em>auto_id='id_%s'</em>, <em>prefix=None</em>, <em>initial=None</em>, <em>error_class=&lt;class 'django.forms.util.ErrorList'&gt;</em>, <em>label_suffix=':'</em>, <em>empty_permitted=False</em>, <em>instance=None</em><big>)</big><a class="headerlink" href="#treebeard.forms.MoveNodeForm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Form to handle moving a node in a tree.</p>
+<p>Handles sorted/unsorted trees.</p>
+<p>Read the <a class="reference external" href="http://docs.djangoproject.com/en/dev/topics/forms/#form-objects">Django Form objects documentation</a> for reference.</p>
+</dd></dl>
+
+</div>
+</div>
 <div class="section" id="module-treebeard.exceptions">
 <h1><tt class="xref docutils literal"><span class="pre">treebeard.exceptions</span></tt> &#8212; Exceptions<a class="headerlink" href="#module-treebeard.exceptions" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="treebeard-exceptions">
@@ -2079,6 +2130,73 @@ but as <em>&#8220;both X and Y are very fast&#8221;</em>.</p>
 </div>
 </div>
 </div>
+<div class="section" id="changes-in-django-treebeard">
+<h1>Changes in django-treebeard<a class="headerlink" href="#changes-in-django-treebeard" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="release-1-5-dec-15-2009">
+<h2>Release 1.5 (Dec 15, 2009)<a class="headerlink" href="#release-1-5-dec-15-2009" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="new-features-added">
+<h3>New features added<a class="headerlink" href="#new-features-added" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Forms<ul>
+<li>Added MoveNodeForm</li>
+</ul>
+</li>
+<li>Django Admin<ul>
+<li>Added TreeAdmin</li>
+</ul>
+</li>
+<li>MP_Node<ul>
+<li>Added 2 new checks in MP_Node.find_problems():<ol class="arabic" start="4">
+<li>a list of ids of nodes with the wrong depth value for
+their path</li>
+<li>a list of ids nodes that report a wrong number of children</li>
+</ol>
+</li>
+<li>Added a new (safer and faster but less comprehensive) MP_Node.fix_tree()
+approach.</li>
+</ul>
+</li>
+<li>Documentation<ul>
+<li>Added warnings in the documentation when subclassing MP_Node or NS_Node
+and adding a new Meta.</li>
+<li>HTML documentation is now included in the package.</li>
+<li>CHANGES file and section in the docs.</li>
+</ul>
+</li>
+<li>Other changes:<ul>
+<li>script to build documentation</li>
+<li>updated numconv.py</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="bugs-fixed">
+<h3>Bugs fixed<a class="headerlink" href="#bugs-fixed" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<ul class="simple">
+<li>Added table quoting to all the sql queries that bypass the ORM.
+Solves bug in postgres when the table isn&#8217;t created by syncdb.</li>
+<li>removing unused method NS_Node._find_next_node</li>
+</ul>
+</blockquote>
+</div>
+</div>
+<div class="section" id="release-1-1-nov-20-2008">
+<h2>Release 1.1 (Nov 20, 2008)<a class="headerlink" href="#release-1-1-nov-20-2008" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>Bugs fixed<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Added exceptions.py</li>
+</ul>
+</div>
+</div>
+<div class="section" id="release-1-0-nov-19-2008">
+<h2>Release 1.0 (Nov 19, 2008)<a class="headerlink" href="#release-1-0-nov-19-2008" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>First public release.</li>
+</ul>
+</div>
+</div>
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
@@ -2113,12 +2231,33 @@ but as <em>&#8220;both X and Y are very fast&#8221;</em>.</p>
 <li><a class="reference external" href="#treebeard-ns-tree">treebeard.ns_tree</a></li>
 </ul>
 </li>
+<li><a class="reference external" href="#module-treebeard.admin"><tt class="docutils literal"><span class="pre">treebeard.admin</span></tt> &#8212; Admin</a><ul>
+<li><a class="reference external" href="#treebeard-admin">treebeard.admin</a></li>
+</ul>
+</li>
+<li><a class="reference external" href="#module-treebeard.forms"><tt class="docutils literal"><span class="pre">treebeard.forms</span></tt> &#8212; Forms</a><ul>
+<li><a class="reference external" href="#treebeard-forms">treebeard.forms</a></li>
+</ul>
+</li>
 <li><a class="reference external" href="#module-treebeard.exceptions"><tt class="docutils literal"><span class="pre">treebeard.exceptions</span></tt> &#8212; Exceptions</a><ul>
 <li><a class="reference external" href="#treebeard-exceptions">treebeard.exceptions</a></li>
 </ul>
 </li>
 <li><a class="reference external" href="#module-tbbench"><tt class="docutils literal"><span class="pre">tbbench</span></tt> &#8212; Benchmarks</a><ul>
 <li><a class="reference external" href="#tbbench-lies-damn-lies-and-benchmarks-for-treebeard">tbbench - Lies, damn lies, and benchmarks for treebeard</a></li>
+</ul>
+</li>
+<li><a class="reference external" href="#changes-in-django-treebeard">Changes in django-treebeard</a><ul>
+<li><a class="reference external" href="#release-1-5-dec-15-2009">Release 1.5 (Dec 15, 2009)</a><ul>
+<li><a class="reference external" href="#new-features-added">New features added</a></li>
+<li><a class="reference external" href="#bugs-fixed">Bugs fixed</a></li>
+</ul>
+</li>
+<li><a class="reference external" href="#release-1-1-nov-20-2008">Release 1.1 (Nov 20, 2008)</a><ul>
+<li><a class="reference external" href="#id1">Bugs fixed</a></li>
+</ul>
+</li>
+<li><a class="reference external" href="#release-1-0-nov-19-2008">Release 1.0 (Nov 19, 2008)</a></li>
 </ul>
 </li>
 <li><a class="reference external" href="#indices-and-tables">Indices and tables</a></li>
@@ -2155,7 +2294,7 @@ but as <em>&#8220;both X and Y are very fast&#8221;</em>.</p>
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              >modules</a> |</li>
-        <li><a href="">django-treebeard v1.2a documentation</a> &raquo;</li> 
+        <li><a href="">django-treebeard v1.5 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

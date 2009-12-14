@@ -1,11 +1,13 @@
 # Sphinx inventory version 1
 # Project: django-treebeard
-# Version: 1.2
+# Version: 1.5
 treebeard.models mod index.html
 treebeard.al_tree mod index.html
+treebeard.admin mod index.html
 tbbench mod index.html
 treebeard.ns_tree mod index.html
 treebeard.mp_tree mod index.html
+treebeard.forms mod index.html
 treebeard mod index.html
 treebeard.exceptions mod index.html
 treebeard.models.Node.fix_tree classmethod index.html
@@ -30,6 +32,7 @@ treebeard.models.Node.get_children_count method index.html
 treebeard.mp_tree.MP_Node.move method index.html
 treebeard.models.Node.get_last_root_node classmethod index.html
 treebeard.ns_tree.NS_Node.node_order_by attribute index.html
+treebeard.admin.TreeAdmin class index.html
 treebeard.ns_tree.NS_Node.tree_id attribute index.html
 treebeard.models.Node.is_root method index.html
 treebeard.models.Node.is_sibling_of method index.html
@@ -72,5 +75,6 @@ treebeard.ns_tree.NS_Node.lft attribute index.html
 treebeard.models.Node.get_first_sibling method index.html
 treebeard.models.Node.load_bulk classmethod index.html
 treebeard.models.Node.get_root method index.html
+treebeard.forms.MoveNodeForm class index.html
 treebeard.mp_tree.MP_Node.add_child method index.html
 treebeard.ns_tree.NS_Node.get_tree classmethod index.html
