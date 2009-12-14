@@ -25,7 +25,7 @@ help:
 
 clean:
 #	-rm -rf _build $(HTMLDIR)/*
-	-rm -rf _build _sources _static *.html *.js .buildinfo *.inv
+	-rm -rf _build _sources _static *.html *.js .buildinfo *.inv *.orig
 
 html:
 	mkdir -p $(HTMLDIR) _build/doctrees _static
