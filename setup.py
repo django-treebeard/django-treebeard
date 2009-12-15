@@ -60,6 +60,8 @@ classifiers = [
     "Framework :: Django",
 ]
 
+long_desc = open(root_dir if root_dir else '.'+'/README').read()
+
 setup(
     name='django-treebeard',
     version=version,
@@ -72,6 +74,6 @@ setup(
     description='Efficient Materialized Path tree implementation for'
                 ' Django 1.0+',
     classifiers=classifiers,
-    #long_description=__doc__,
+    long_description=long_desc,
 )
 

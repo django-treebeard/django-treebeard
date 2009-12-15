@@ -11,15 +11,15 @@
     :url: http://code.tabo.pe/django-treebeard/
     :documentation:
        `treebeard-docs
-       <http://docs.tabo.pe/django-treebeard/tip/>`_
+       <http://docs.tabo.pe/django-treebeard/1.5/>`_
     :examples:
        `treebeard-examples
        <http://django.tabo.pe/tbexample/>`_
        (`source
-       <http://code.tabo.pe/django-treebeard/src/tip/tbexample/>`_)
+       <http://code.tabo.pe/django-treebeard/src/1.5/tbexample/>`_)
     :tests:
        `treebeard-tests
-       <http://code.tabo.pe/django-treebeard/src/tip/treebeard/tests.py>`_
+       <http://code.tabo.pe/django-treebeard/src/1.5/treebeard/tests.py>`_
     :benchmarks: `treebeard-benchmarks <#module-tbbench>`_
 
     ``django-treebeard`` is a library that implements efficient tree
