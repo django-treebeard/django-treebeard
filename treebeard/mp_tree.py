@@ -51,7 +51,7 @@
 """
 
 import operator
-import numconv
+from numconv import NumConv
 
 from django.core import serializers
 from django.db import models, transaction, connection
@@ -237,7 +237,7 @@ class MP_Node(Node):
        .. note::
 
           treebeard uses **numconv** for path encoding:
-          http://code.google.com/p/numconv/
+          http://code.tabo.pe/numconv/
 
     .. attribute:: depth
 
@@ -303,6 +303,22 @@ class MP_Node(Node):
     numchild = models.PositiveIntegerField(default=0)
 
     objects = MP_NodeManager()
+    
+    numconv_obj_ = None
+ 
+    @classmethod
+    def _int2str(cls, num):
+        return cls.numconv_obj().int2str(num)
+
+    @classmethod
+    def _str2int(cls, num):
+        return cls.numconv_obj().str2int(num)
+
+    @classmethod
+    def numconv_obj(cls):
+        if cls.numconv_obj_ is None:
+            cls.numconv_obj_ = NumConv(len(cls.alphabet), cls.alphabet)
+        return cls.numconv_obj_
 
     @classmethod
     def add_root(cls, **kwargs):
@@ -950,7 +966,7 @@ class MP_Node(Node):
         :param newstep: the value (integer) of the new step
         """
         parentpath = cls._get_basepath(path, depth-1)
-        key = numconv.int2str(newstep, len(cls.alphabet), cls.alphabet)
+        key = cls._int2str(newstep)
         return '%s%s%s' % (parentpath, '0'*(cls.steplen-len(key)), key)
 
     @classmethod
@@ -958,9 +974,8 @@ class MP_Node(Node):
         """
         :returns: The path of the next sibling of a given node path.
         """
-        base = len(cls.alphabet)
-        newpos = numconv.str2int(path[-cls.steplen:], base, cls.alphabet) + 1
-        key = numconv.int2str(newpos, base, cls.alphabet)
+        newpos = cls._str2int(path[-cls.steplen:]) + 1
+        key = cls._int2str(newpos)
         if len(key) > cls.steplen:
             raise PathOverflow("Path Overflow from: '%s'" % (path, ))
         return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)),
@@ -971,8 +986,7 @@ class MP_Node(Node):
         """
         :returns: The integer value of the last step in a path.
         """
-        return numconv.str2int(path[-cls.steplen:], len(cls.alphabet),
-                               cls.alphabet)
+        return cls._str2int(path[-cls.steplen:])
 
     @classmethod
     def _get_parent_path_from_path(cls, path):
