@@ -5,3 +5,8 @@ syntax: glob
 *.pyc
 *.orig
 .coverage
+build
+dist
+_build
+MANIFEST
+
