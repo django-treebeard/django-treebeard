@@ -58,12 +58,12 @@
 </tr>
 <tr class="field"><th class="field-name">url:</th><td class="field-body"><a class="reference external" href="http://code.tabo.pe/django-treebeard/">http://code.tabo.pe/django-treebeard/</a></td>
 </tr>
-<tr class="field"><th class="field-name">documentation:</th><td class="field-body"><a class="reference external" href="http://docs.tabo.pe/django-treebeard/tip/">treebeard-docs</a></td>
+<tr class="field"><th class="field-name">documentation:</th><td class="field-body"><a class="reference external" href="http://docs.tabo.pe/django-treebeard/1.5/">treebeard-docs</a></td>
 </tr>
 <tr class="field"><th class="field-name">examples:</th><td class="field-body"><a class="reference external" href="http://django.tabo.pe/tbexample/">treebeard-examples</a>
-(<a class="reference external" href="http://code.tabo.pe/django-treebeard/src/tip/tbexample/">source</a>)</td>
+(<a class="reference external" href="http://code.tabo.pe/django-treebeard/src/1.5/tbexample/">source</a>)</td>
 </tr>
-<tr class="field"><th class="field-name">tests:</th><td class="field-body"><a class="reference external" href="http://code.tabo.pe/django-treebeard/src/tip/treebeard/tests.py">treebeard-tests</a></td>
+<tr class="field"><th class="field-name">tests:</th><td class="field-body"><a class="reference external" href="http://code.tabo.pe/django-treebeard/src/1.5/treebeard/tests.py">treebeard-tests</a></td>
 </tr>
 <tr class="field"><th class="field-name">benchmarks:</th><td class="field-body"><a class="reference external" href="#module-tbbench">treebeard-benchmarks</a></td>
 </tr>
@@ -1081,7 +1081,7 @@ unicode means 3 bytes.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">treebeard uses <strong>numconv</strong> for path encoding:
-<a class="reference external" href="http://code.google.com/p/numconv/">http://code.google.com/p/numconv/</a></p>
+<a class="reference external" href="http://code.tabo.pe/numconv/">http://code.tabo.pe/numconv/</a></p>
 </div>
 </dd></dl>
 
@@ -2177,6 +2177,7 @@ and adding a new Meta.</li>
 <li>Added table quoting to all the sql queries that bypass the ORM.
 Solves bug in postgres when the table isn&#8217;t created by syncdb.</li>
 <li>removing unused method NS_Node._find_next_node</li>
+<li>Fixed MP_Node.get_tree to include the given parent when given a leaf node</li>
 </ul>
 </blockquote>
 </div>
@@ -2299,7 +2300,7 @@ Solves bug in postgres when the table isn&#8217;t created by syncdb.</li>
     </div>
     <div class="footer">
       &copy; Copyright 2008-2009, Gustavo Picon.
-      Last updated on Dec 14, 2009.
+      Last updated on Dec 15, 2009.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.3.
     </div>
   </body>
