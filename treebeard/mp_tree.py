@@ -583,7 +583,7 @@ class MP_Node(Node):
         if not parent.is_leaf():
             return cls.objects.filter(path__startswith=parent.path,
                                       depth__gte=parent.depth)
-        return cls.objects.none()
+        return cls.objects.filter(pk=parent.id)
 
     @classmethod
     def get_root_nodes(cls):
