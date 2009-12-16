@@ -47,6 +47,8 @@ Bugs fixed
     Solves bug in postgres when the table isn't created by syncdb.
 
   - removing unused method NS_Node._find_next_node
+  
+  - Fixed MP_Node.get_tree to include the given parent when given a leaf node
 
 
 Release 1.1 (Nov 20, 2008)
