@@ -60,7 +60,7 @@ classifiers = [
     "Framework :: Django",
 ]
 
-long_desc = open(root_dir if root_dir else '.'+'/README').read()
+long_desc = open((root_dir if root_dir else '.')+'/README').read()
 
 setup(
     name='django-treebeard',
