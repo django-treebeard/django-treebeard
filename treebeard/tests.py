@@ -402,6 +402,16 @@ class TestClassMethods(TestNonEmptyTree):
         self.assertEqual(got, expected)
 
     @multi_test()
+    def test_get_tree_leaf(self):
+        node = self.model.objects.get(desc=u'1')
+
+        self.assertEqual(0, node.get_children_count())
+        got = [(o.desc, o.get_depth(), o.get_children_count())
+                for o in self.model.get_tree(node)]
+        expected = [(u'1', 1, 0)]
+        self.assertEqual(got, expected)
+
+    @multi_test()
     def test_dump_bulk_node(self):
         node = self.model.objects.get(desc=u'231')
         self.model.load_bulk(BASE_DATA, node)
