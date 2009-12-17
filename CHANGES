@@ -1,4 +1,10 @@
 
+Release 1.51 (Dec 16, 2009)
+---------------------------
+
+* Forgot to include treebeard/tempates/*.html in MANIFEST.in
+
+
 Release 1.5 (Dec 15, 2009)
 --------------------------
 
