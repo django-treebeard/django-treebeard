@@ -1,6 +1,6 @@
 # Sphinx inventory version 1
 # Project: django-treebeard
-# Version: 1.5
+# Version: 1.51
 treebeard.models mod index.html
 treebeard.al_tree mod index.html
 treebeard.admin mod index.html
