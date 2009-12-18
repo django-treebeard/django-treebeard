@@ -1,8 +1,4 @@
-include CHANGES
-include LICENSE
-include NOTICE
-include README
-include UPDATING
+include CHANGES LICENSE NOTICE README UPDATING MANIFEST.in
 recursive-include docs *
 recursive-include tbbench tbbench-* *.py
 recursive-include tbexample *.py *.html
