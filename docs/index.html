@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>treebeard — Efficient tree model implementations for Django &mdash; django-treebeard v1.51 documentation</title>
+    <title>treebeard — Efficient tree model implementations for Django &mdash; django-treebeard v1.52 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '1.51',
+        VERSION:     '1.52',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="django-treebeard v1.51 documentation" href="" /> 
+    <link rel="top" title="django-treebeard v1.52 documentation" href="" /> 
   </head>
   <body>
     <div class="related">
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
-        <li><a href="">django-treebeard v1.51 documentation</a> &raquo;</li> 
+        <li><a href="">django-treebeard v1.52 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -54,16 +54,16 @@
 </tr>
 <tr class="field"><th class="field-name">license:</th><td class="field-body">Apache License 2.0</td>
 </tr>
-<tr class="field"><th class="field-name">version:</th><td class="field-body">1.51</td>
+<tr class="field"><th class="field-name">version:</th><td class="field-body">1.52</td>
 </tr>
 <tr class="field"><th class="field-name">url:</th><td class="field-body"><a class="reference external" href="http://code.tabo.pe/django-treebeard/">http://code.tabo.pe/django-treebeard/</a></td>
 </tr>
-<tr class="field"><th class="field-name">documentation:</th><td class="field-body"><a class="reference external" href="http://docs.tabo.pe/django-treebeard/1.51/">treebeard-docs</a></td>
+<tr class="field"><th class="field-name">documentation:</th><td class="field-body"><a class="reference external" href="http://docs.tabo.pe/django-treebeard/1.52/">treebeard-docs</a></td>
 </tr>
 <tr class="field"><th class="field-name">examples:</th><td class="field-body"><a class="reference external" href="http://django.tabo.pe/tbexample/">treebeard-examples</a>
-(<a class="reference external" href="http://code.tabo.pe/django-treebeard/src/1.51/tbexample/">source</a>)</td>
+(<a class="reference external" href="http://code.tabo.pe/django-treebeard/src/1.52/tbexample/">source</a>)</td>
 </tr>
-<tr class="field"><th class="field-name">tests:</th><td class="field-body"><a class="reference external" href="http://code.tabo.pe/django-treebeard/src/1.51/treebeard/tests.py">treebeard-tests</a></td>
+<tr class="field"><th class="field-name">tests:</th><td class="field-body"><a class="reference external" href="http://code.tabo.pe/django-treebeard/src/1.52/treebeard/tests.py">treebeard-tests</a></td>
 </tr>
 <tr class="field"><th class="field-name">benchmarks:</th><td class="field-body"><a class="reference external" href="#module-tbbench">treebeard-benchmarks</a></td>
 </tr>
@@ -79,9 +79,12 @@ API, so it&#8217;s easy to switch between implementations.</p>
 to let you define your own models. To use <tt class="docutils literal"><span class="pre">django-treebeard</span></tt>:</p>
 <blockquote>
 <ol class="arabic simple">
-<li>Download a release from the <a class="reference external" href="http://code.tabo.pe/django-treebeard/downloads/">treebeard download page</a> or get a
-development version from the <a class="reference external" href="http://code.tabo.pe/django-treebeard/src/">treebeard mercurial repository</a>.</li>
-<li>Run <strong>python setup.py install</strong></li>
+<li>Run <strong>easy_install django-treebeard</strong> to install the
+<a class="reference external" href="http://pypi.python.org/pypi/django-treebeard/">latest treebeard version from PyPi</a>
+1.1. If you don&#8217;t like easy_install, download a release from the
+<a class="reference external" href="http://code.tabo.pe/django-treebeard/downloads/">treebeard download page</a> or get a development version
+from the <a class="reference external" href="http://code.tabo.pe/django-treebeard/src/">treebeard mercurial repository</a> and run
+<strong>python setup.py install</strong></li>
 <li>Add <tt class="docutils literal"><span class="pre">'treebeard'</span></tt> to the <tt class="docutils literal"><span class="pre">INSTALLED_APPS</span></tt> section in your django
 settings file.</li>
 <li>Create a new model that inherits from one of <tt class="docutils literal"><span class="pre">django-treebeard</span></tt>&#8216;s
@@ -89,6 +92,15 @@ abstract tree models: <a title="treebeard.mp_tree.MP_Node" class="reference inte
 <a title="treebeard.ns_tree.NS_Node" class="reference internal" href="#treebeard.ns_tree.NS_Node"><tt class="xref docutils literal"><span class="pre">ns_tree.NS_Node</span></tt></a> (nested sets) or <a title="treebeard.al_tree.AL_Node" class="reference internal" href="#treebeard.al_tree.AL_Node"><tt class="xref docutils literal"><span class="pre">al_tree.AL_Node</span></tt></a>
 (adjacency list).</li>
 <li>Run <strong>python manage.py syncdb</strong></li>
+<li>(Optional) If you are going to use the <a title="treebeard.admin.TreeAdmin" class="reference internal" href="#treebeard.admin.TreeAdmin"><tt class="xref docutils literal"><span class="pre">admin.TreeAdmin</span></tt></a>
+class for the django admin, you should install treebeard as a
+directory instead of an egg:
+<strong>easy_install &#8211;always-unzip django-treebeard</strong>.
+If you install treebeard as an egg, you&#8217;ll need to enable
+<tt class="docutils literal"><span class="pre">django.template.loaders.eggs.load_template_source</span></tt> in the
+<tt class="docutils literal"><span class="pre">TEMPLATE_LOADERS</span></tt> setting in your django settings file.
+Either way, you need to add the path (filesystem or python
+namespace) to treebeard&#8217;s templates in <tt class="docutils literal"><span class="pre">TEMPLATE_DIRS</span></tt>.</li>
 </ol>
 </blockquote>
 <p>Read the <a title="treebeard.models.Node" class="reference internal" href="#treebeard.models.Node"><tt class="xref docutils literal"><span class="pre">models.Node</span></tt></a> API reference for detailed info.</p>
@@ -2132,6 +2144,12 @@ but as <em>&#8220;both X and Y are very fast&#8221;</em>.</p>
 </div>
 <div class="section" id="changes-in-django-treebeard">
 <h1>Changes in django-treebeard<a class="headerlink" href="#changes-in-django-treebeard" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="release-1-52-dec-18-2009">
+<h2>Release 1.52 (Dec 18, 2009)<a class="headerlink" href="#release-1-52-dec-18-2009" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Really fixed the installation of templates.</li>
+</ul>
+</div>
 <div class="section" id="release-1-51-dec-16-2009">
 <h2>Release 1.51 (Dec 16, 2009)<a class="headerlink" href="#release-1-51-dec-16-2009" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -2255,6 +2273,7 @@ Solves bug in postgres when the table isn&#8217;t created by syncdb.</li>
 </ul>
 </li>
 <li><a class="reference external" href="#changes-in-django-treebeard">Changes in django-treebeard</a><ul>
+<li><a class="reference external" href="#release-1-52-dec-18-2009">Release 1.52 (Dec 18, 2009)</a></li>
 <li><a class="reference external" href="#release-1-51-dec-16-2009">Release 1.51 (Dec 16, 2009)</a></li>
 <li><a class="reference external" href="#release-1-5-dec-15-2009">Release 1.5 (Dec 15, 2009)</a><ul>
 <li><a class="reference external" href="#new-features-added">New features added</a></li>
@@ -2302,12 +2321,12 @@ Solves bug in postgres when the table isn&#8217;t created by syncdb.</li>
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              >modules</a> |</li>
-        <li><a href="">django-treebeard v1.51 documentation</a> &raquo;</li> 
+        <li><a href="">django-treebeard v1.52 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2008-2009, Gustavo Picon.
-      Last updated on Dec 16, 2009.
+      Last updated on Dec 18, 2009.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.3.
     </div>
   </body>
