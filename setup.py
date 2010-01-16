@@ -19,7 +19,9 @@ classifiers = [
 ]
 
 root_dir = os.path.dirname(__file__)
-long_desc = open((root_dir if root_dir else '.')+'/README').read()
+if not root_dir:
+    root_dir = '.'
+long_desc = open(root_dir + '/README').read()
 
 setup(
     name='django-treebeard',
