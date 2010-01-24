@@ -39,8 +39,8 @@
           `treebeard download page`_ or get a development version
           from the `treebeard mercurial repository`_ and run
           :command:`python setup.py install`
-       2. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your django
-          settings file.
+       2. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your
+          django settings file.
        3. Create a new model that inherits from one of ``django-treebeard``'s
           abstract tree models: :class:`mp_tree.MP_Node` (materialized path),
           :class:`ns_tree.NS_Node` (nested sets) or :class:`al_tree.AL_Node`
@@ -55,6 +55,9 @@
           ``TEMPLATE_LOADERS`` setting in your django settings file.
           Either way, you need to add the path (filesystem or python
           namespace) to treebeard's templates in ``TEMPLATE_DIRS``.
+          Also you need to enable `django-core-context-processors-request`_
+          in the ``TEMPLATE_CONTEXT_PROCESSORS`` setting in your django
+          settings file.
 
 
     Read the :class:`models.Node` API reference for detailed info.
@@ -65,6 +68,8 @@
        http://code.tabo.pe/django-treebeard/src/
     .. _`latest treebeard version from PyPi`:
        http://pypi.python.org/pypi/django-treebeard/
+    .. _`django-core-context-processors-request`:
+       http://docs.djangoproject.com/en/dev/ref/templates/api/#django-core-context-processors-request
 
 """
 

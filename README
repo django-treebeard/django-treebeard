@@ -17,8 +17,8 @@ to let you define your own models. To use django-treebeard:
        treebeard download page or get a development version
        from the treebeard mercurial repository and run
        `python setup.py install`
-    2. Add 'treebeard' to the `INSTALLED_APPS` section in your django
-       settings file.
+    2. Add 'treebeard' to the `INSTALLED_APPS` section in your
+       django settings file.
     3. Create a new model that inherits from one of django-treebeard's
        abstract tree models: mp_tree.MP_Node (materialized path),
        ns_tree.NS_Node (nested sets) or al_tree.AL_Node
@@ -33,6 +33,9 @@ to let you define your own models. To use django-treebeard:
        `TEMPLATE_LOADERS` setting in your django settings file.
        Either way, you need to add the path (filesystem or python
        namespace) to treebeard's templates in `TEMPLATE_DIRS`.
+       Also you need to enable `django-core-context-processors-request`_
+       in the ``TEMPLATE_CONTEXT_PROCESSORS`` setting in your django
+       settings file.
 
 You can find the documentation in
 
