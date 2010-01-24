@@ -4,7 +4,7 @@ import os
 from distutils.command.install import INSTALL_SCHEMES
 from distutils.core import setup
 
-version = '1.52'
+version = '1.53a'
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",

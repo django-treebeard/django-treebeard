@@ -7,7 +7,7 @@
     Adjacency List Tree.
 
 
-    :copyright: 2008-2009 by Gustavo Picon
+    :copyright: 2008-2010 by Gustavo Picon
     :license: Apache License 2.0
 
     This is a simple implementation of the traditional Adjacency List Model for

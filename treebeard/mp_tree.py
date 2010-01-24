@@ -6,7 +6,7 @@
 
     Materialized Path Tree.
 
-    :copyright: 2008-2009 by Gustavo Picon
+    :copyright: 2008-2010 by Gustavo Picon
     :license: Apache License 2.0
 
     This is an efficient implementation of Materialized Path

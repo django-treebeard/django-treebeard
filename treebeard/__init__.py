@@ -5,21 +5,21 @@
     ---------
 
     :synopsys: Efficient Tree implementations for Django 1.0+
-    :copyright: 2008-2009 by `Gustavo Picon <http://tabo.pe>`_
+    :copyright: 2008-2010 by `Gustavo Picon <https://tabo.pe>`_
     :license: Apache License 2.0
-    :version: 1.52
+    :version: 1.53a
     :url: http://code.tabo.pe/django-treebeard/
     :documentation:
        `treebeard-docs
-       <http://docs.tabo.pe/django-treebeard/1.52/>`_
+       <http://docs.tabo.pe/django-treebeard/tip/>`_
     :examples:
        `treebeard-examples
        <http://django.tabo.pe/tbexample/>`_
        (`source
-       <http://code.tabo.pe/django-treebeard/src/1.52/tbexample/>`_)
+       <http://code.tabo.pe/django-treebeard/src/tip/tbexample/>`_)
     :tests:
        `treebeard-tests
-       <http://code.tabo.pe/django-treebeard/src/1.52/treebeard/tests.py>`_
+       <http://code.tabo.pe/django-treebeard/src/tip/treebeard/tests.py>`_
     :benchmarks: `treebeard-benchmarks <#module-tbbench>`_
 
     ``django-treebeard`` is a library that implements efficient tree
@@ -73,5 +73,5 @@
 
 """
 
-__version__ = '1.52'
+__version__ = '1.53a'
 
