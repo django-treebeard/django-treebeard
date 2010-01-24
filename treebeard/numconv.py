@@ -6,7 +6,7 @@ numconv
 
 :synopsys: Python library to convert strings to numbers and numbers to
            strings.
-:copyright: 2008-2009 by Gustavo Picon
+:copyright: 2008-2010 by Gustavo Picon
 :license: Apache License 2.0
 :version: 2.0
 :url: http://code.tabo.pe/numconv/

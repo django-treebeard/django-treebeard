@@ -5,7 +5,7 @@
    -------------------------------------------------------
 
    :synopsys: Benchmarks for ``treebeard``
-   :copyright: 2008-2009 by Gustavo Picon
+   :copyright: 2008-2010 by Gustavo Picon
    :license: Apache License 2.0
 
    tbbench is a django app that isn't installed by default. I wrote it to find
