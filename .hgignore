@@ -9,4 +9,6 @@ build
 dist
 _build
 MANIFEST
-
+.project
+.pydevproject
+.settings
