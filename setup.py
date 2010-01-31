@@ -33,8 +33,7 @@ setup(
     packages = ['treebeard', 'treebeard.templatetags'],
     package_dir={'treebeard': 'treebeard'},
     package_data={'treebeard': ['templates/admin/*.html']},
-    description='Efficient Materialized Path tree implementation for'
-                ' Django 1.0+',
+    description='Efficient tree implementations for Django 1.0+',
     classifiers=classifiers,
     long_description=long_desc,
 )
