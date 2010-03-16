@@ -100,7 +100,7 @@ class NS_NodeManager(models.Manager):
         """
         Sets the custom queryset as the default.
         """
-        return NS_NodeQuerySet(self.model)
+        return NS_NodeQuerySet(self.model).order_by('tree_id', 'lft')
 
 
 class NS_Node(Node):
@@ -132,18 +132,6 @@ class NS_Node(Node):
     .. attribute:: tree_id
 
        ``PositiveIntegerField``
-
-    .. warning::
-
-       Be very careful if you add a ``Meta`` class in your
-       :class:`ns_tree.NS_Node` subclass.
-       You must add an ordering attribute with two elements on it::
-
-            class Meta:
-                ordering = ['tree_id', 'lft']
-
-       If you don't, the tree won't work, since :class:`ns_tree.NS_Node`
-       completely depends on this attribute.
     """
     node_order_by = []
 
@@ -738,10 +726,3 @@ class NS_Node(Node):
         Abstract model.
         """
         abstract = True
-        # By changing the ordering, assume that lots of things will break,
-        # at least you'll want to check the first/last/prev/next methods.
-        # This ordering assumes you want something... TREEISH
-        # PROTIP: don't change this
-        # PROTIP2: Set the ordering property again if you add a Meta in
-        #          your subclass
-        ordering = ['tree_id', 'lft']

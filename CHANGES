@@ -4,6 +4,7 @@ Release tip (??? ??, 2010)
 
 * Added raw id fields support in the admin
 * Fixed setup.py to make it work in 2.4 again
+* The correct ordering in NS/MP trees is now enforced in the queryset.
 
 
 Release 1.52 (Dec 18, 2009)

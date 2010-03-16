@@ -134,7 +134,7 @@ class MP_NodeManager(models.Manager):
         """
         Sets the custom queryset as the default.
         """
-        return MP_NodeQuerySet(self.model)
+        return MP_NodeQuerySet(self.model).order_by('path')
 
 
 class MP_Node(Node):
@@ -267,18 +267,6 @@ class MP_Node(Node):
             :attr:`node_order_by` in your model
          4. Restore your backup using :meth:`load_bulk` with
             ``keep_ids=True`` to keep the same primary keys you had.
-
-    .. warning::
-
-       Be very careful if you add a ``Meta`` class in your
-       :class:`mp_tree.MP_Node` subclass.
-       You must add an ordering attribute with a single element on it::
-
-            class Meta:
-                ordering = ['path']
-
-       If you don't, the tree won't work, since :class:`mp_tree.MP_Node`
-       completely depends on this attribute.
 
     Example::
 
@@ -1195,10 +1183,3 @@ class MP_Node(Node):
         Abstract model.
         """
         abstract = True
-        # By changing the ordering, assume that lots of things will break,
-        # at least you'll want to check the first/last/prev/next methods.
-        # This ordering assumes you want something... TREEISH
-        # PROTIP: don't change this
-        # PROTIP2: Set the ordering property again if you add a Meta in
-        #          your subclass
-        ordering = ['path']
