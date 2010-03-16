@@ -12,3 +12,5 @@ MANIFEST
 .project
 .pydevproject
 .settings
+htmlcov
+coverage.xml
