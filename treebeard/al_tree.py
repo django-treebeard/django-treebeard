@@ -364,8 +364,6 @@ class AL_Node(Node):
         newobj = self.__class__(**kwargs)
 
         if not self.node_order_by:
-            siblings = self.get_siblings()
-
             max = self.get_siblings().order_by(
                       'sib_order').reverse()[0].sib_order
             newobj.sib_order = self.__class__._move_add_sibling_aux(pos,
