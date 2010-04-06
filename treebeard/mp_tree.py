@@ -438,7 +438,7 @@ class MP_Node(Node):
                 bad_steplen.append(node.id)
                 continue
             try:
-                parent = node.get_parent(True)
+                node.get_parent(True)
             except cls.DoesNotExist:
                 orphans.append(node.id)
                 continue
