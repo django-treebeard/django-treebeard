@@ -267,7 +267,7 @@ class TestTreeBase(TestCase):
                 d.setdefault(tree_id, []).extend([lft, rgt])
             for tree_id, got_edges in d.items():
                 self.assertEqual(len(got_edges), max(got_edges))
-                good_edges = range(1, len(got_edges)+1)
+                good_edges = range(1, len(got_edges) + 1)
                 self.assertEqual(sorted(got_edges), good_edges)
 
         return [(o.desc, o.get_depth(), o.get_children_count())
@@ -1668,11 +1668,11 @@ class TestMP_TreeAlphabet(TestCase):
         basealpha = numconv.BASE85
         got_err = False
         last_good = None
-        for alphabetlen in range(35, len(basealpha)+1):
+        for alphabetlen in range(35, len(basealpha) + 1):
             alphabet = basealpha[0:alphabetlen]
-            expected = [alphabet[0]+char for char in alphabet[1:]]
-            expected.extend([alphabet[1]+char for char in alphabet])
-            expected.append(alphabet[2]+alphabet[0])
+            expected = [alphabet[0] + char for char in alphabet[1:]]
+            expected.extend([alphabet[1] + char for char in alphabet])
+            expected.append(alphabet[2] + alphabet[0])
 
             # remove all nodes
             MP_TestNodeAlphabet.objects.all().delete()
@@ -1681,7 +1681,7 @@ class TestMP_TreeAlphabet(TestCase):
             MP_TestNodeAlphabet.alphabet = alphabet
 
             # insert root nodes
-            for pos in range(len(alphabet)*2):
+            for pos in range(len(alphabet) * 2):
                 try:
                     MP_TestNodeAlphabet.add_root(numval=pos)
                 except:
@@ -1940,7 +1940,7 @@ class TestIssue14(TestCase):
     "test for  http://code.google.com/p/django-treebeard/issues/detail?id=14"
 
     def test_issue_14(self):
-        if not HAS_DJANGO_AUTH: # pragma: no cover
+        if not HAS_DJANGO_AUTH:  # pragma: no cover
             self.fail('this test needs django.contrib.auth in INSTALLED_APPS')
 
         # Using AnonymousUser() in the querysets will expose non-treebeard
@@ -2020,15 +2020,12 @@ class TestMoveNodeForm(TestTreeBase):
         node = self.model.get_tree()[0]
         form = MoveNodeForm(instance=node)
         rtpl = self.tpl
-        self.assertEqual(
-            ['_position', '_ref_node_id'],
-            form.base_fields.keys()
-        )
+        self.assertEqual(['_position', '_ref_node_id'],
+                         form.base_fields.keys())
         for obj in self.model.get_tree():
             if node != obj or obj.is_descendant_of(node):
                 rtpl += '<option value="%d">%sNode %d</option>\n' % (
-                    obj.id, '. . ' * (obj.get_depth()-1), obj.id
-                )
+                    obj.id, '. . ' * (obj.get_depth() - 1), obj.id)
         rtpl += '</select></td></tr>'
         formstr = unicode(form).replace(u' selected="selected"', u'')
         self.assertEqual(rtpl, formstr)
@@ -2041,15 +2038,12 @@ class TestMoveNodeForm(TestTreeBase):
         node = nodes[-1]
         form = MoveNodeForm(instance=node)
         rtpl = self.tpl
-        self.assertEqual(
-            ['_position', '_ref_node_id'],
-            form.base_fields.keys()
-        )
+        self.assertEqual(['_position', '_ref_node_id'],
+                         form.base_fields.keys())
         for obj in self.model.get_tree():
             if node != obj or obj.is_descendant_of(node):
                 rtpl += '<option value="%d">%sNode %d</option>\n' % (
-                    obj.id, '. . ' * (obj.get_depth()-1), obj.id,
-                )
+                    obj.id, '. . ' * (obj.get_depth() - 1), obj.id)
         rtpl += '</select></td></tr>'
         formstr = unicode(form).replace(u' selected="selected"', u'')
         self.assertEqual(rtpl, formstr)
@@ -2086,18 +2080,15 @@ class TestMoveNodeForm(TestTreeBase):
             ma = TestModelAdmin(self.model, site)
             self.assertEqual(
                 ['desc', '_position', '_ref_node_id'],
-                ma.get_form(request).base_fields.keys()
-            )
+                ma.get_form(request).base_fields.keys())
             self.assertEqual(
                 [(None, {'fields': ['desc', '_position', '_ref_node_id']})],
-                ma.get_fieldsets(request)
-            )
+                ma.get_fieldsets(request))
             self.assertEqual(
                 [(None, {'fields': ['desc', '_position', '_ref_node_id']})],
-                ma.get_fieldsets(request, node)
-            )
+                ma.get_fieldsets(request, node))
             form = ma.get_form(request)()
             ids = []
             for obj in self.model.get_tree():
-                ids.extend([obj.id]*2)
+                ids.extend([obj.id] * 2)
             self.assertEqual(tpl % tuple(ids), unicode(form))

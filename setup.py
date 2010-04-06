@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-from distutils.command.install import INSTALL_SCHEMES
 from distutils.core import setup
 
 version = '1.53a'
@@ -30,11 +29,10 @@ setup(
     author='Gustavo Picon',
     author_email='tabo@tabo.pe',
     license='Apache License 2.0',
-    packages = ['treebeard', 'treebeard.templatetags'],
+    packages=['treebeard', 'treebeard.templatetags'],
     package_dir={'treebeard': 'treebeard'},
     package_data={'treebeard': ['templates/admin/*.html']},
     description='Efficient tree implementations for Django 1.0+',
     classifiers=classifiers,
     long_description=long_desc,
 )
-

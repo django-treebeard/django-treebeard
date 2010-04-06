@@ -18,7 +18,7 @@
 
     .. _`Joe Celko`: http://www.celko.com/
     .. _`Trees and Hierarchies in SQL for Smarties`:
-      http://www.elsevier.com/wps/find/bookdescription.cws_home/702605/description
+      http://www.elsevier.com/wps/product/cws_home/702605
 """
 
 import operator
@@ -82,8 +82,8 @@ class NS_NodeQuerySet(models.query.QuerySet):
             toremove = []
             ranges = []
             for id, node in removed.items():
-                toremove.append(
-                  Q(lft__range=(node.lft, node.rgt))&Q(tree_id=node.tree_id))
+                toremove.append(Q(lft__range=(node.lft, node.rgt)) &
+                                Q(tree_id=node.tree_id))
                 ranges.append((node.tree_id, node.lft, node.rgt))
             if toremove:
                 self.model.objects.filter(
@@ -228,18 +228,18 @@ class NS_Node(Node):
             return last_child.add_sibling(pos, **kwargs)
 
         # we're adding the first child of this node
-        sql, params = self.__class__._move_right(self.tree_id, self.rgt, False,
-                                                 2)
+        sql, params = self.__class__._move_right(self.tree_id,
+                                                 self.rgt, False, 2)
 
         # creating a new object
         newobj = self.__class__(**kwargs)
         newobj.tree_id = self.tree_id
         newobj.depth = self.depth + 1
-        newobj.lft = self.lft+1
-        newobj.rgt = self.lft+2
+        newobj.lft = self.lft + 1
+        newobj.rgt = self.lft + 2
 
         # this is just to update the cache
-        self.rgt = self.rgt+2
+        self.rgt = self.rgt + 2
 
         newobj._cached_parent_obj = self
 
@@ -331,7 +331,7 @@ class NS_Node(Node):
                 sql, params = move_right(target.tree_id, newpos, False, 2)
             elif pos == 'first-sibling':
                 newpos = target.lft
-                sql, params = move_right(target.tree_id, newpos-1, False, 2)
+                sql, params = move_right(target.tree_id, newpos - 1, False, 2)
             elif pos == 'left':
                 newpos = target.lft
                 sql, params = move_right(target.tree_id, newpos, True, 2)
@@ -441,7 +441,8 @@ class NS_Node(Node):
                 sql, params = move_right(target.tree_id, newpos, False, gap)
             elif pos == 'first-sibling':
                 newpos = target.lft
-                sql, params = move_right(target.tree_id, newpos-1, False, gap)
+                sql, params = move_right(target.tree_id,
+                                         newpos - 1, False, gap)
             elif pos == 'left':
                 newpos = target.lft
                 sql, params = move_right(target.tree_id, newpos, True, gap)
@@ -543,7 +544,7 @@ class NS_Node(Node):
 
         See: :meth:`treebeard.Node.get_children`
         """
-        return self.get_descendants().filter(depth=self.depth+1)
+        return self.get_descendants().filter(depth=self.depth + 1)
 
     def get_depth(self):
         """
@@ -644,7 +645,7 @@ class NS_Node(Node):
             return cls.objects.filter(pk=parent.id)
         return cls.objects.filter(
             tree_id=parent.tree_id,
-            lft__range=(parent.lft, parent.rgt-1))
+            lft__range=(parent.lft, parent.rgt - 1))
 
     def get_descendants(self):
         """

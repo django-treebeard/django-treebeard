@@ -19,12 +19,12 @@ from django import forms
 
 class MoveNodeForm(forms.ModelForm):
     """Form to handle moving a node in a tree.
-    
+
     Handles sorted/unsorted trees.
-    
+
     Read the `Django Form objects documentation`_ for reference.
-    
-    
+
+
     .. _`Django Form objects documentation`:
        http://docs.djangoproject.com/en/dev/topics/forms/#form-objects
     """
@@ -90,7 +90,7 @@ class MoveNodeForm(forms.ModelForm):
                 """ Recursively build options tree. """
                 if is_loop_safe(node):
                     options.append(
-                        (node.pk, mk_indent(node.get_depth())+str(node)))
+                        (node.pk, mk_indent(node.get_depth()) + str(node)))
                     for subnode in node.get_children():
                         add_subtree(subnode, options)
 

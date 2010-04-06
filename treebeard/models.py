@@ -419,7 +419,7 @@ class Node(models.Model):
         if self.pk in ids:
             idx = ids.index(self.pk)
             if idx > 0:
-                return siblings[idx-1]
+                return siblings[idx - 1]
 
     def get_next_sibling(self):
         """
@@ -434,8 +434,8 @@ class Node(models.Model):
         ids = [obj.pk for obj in siblings]
         if self.pk in ids:
             idx = ids.index(self.pk)
-            if idx < len(siblings)-1:
-                return siblings[idx+1]
+            if idx < len(siblings) - 1:
+                return siblings[idx + 1]
 
     def is_sibling_of(self, node):
         """
