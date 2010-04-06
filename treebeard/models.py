@@ -33,7 +33,7 @@ class Node(models.Model):
     """
 
     @classmethod
-    def add_root(cls, **kwargs):
+    def add_root(cls, **kwargs):  # pragma: no cover
         """
         Adds a root node to the tree. The new root node will be the new
         rightmost root node. If you want to insert a root node at a specific
@@ -161,7 +161,7 @@ class Node(models.Model):
         return added
 
     @classmethod
-    def dump_bulk(cls, parent=None, keep_ids=True):
+    def dump_bulk(cls, parent=None, keep_ids=True):  # pragma: no cover
         """
         Dumps a tree branch to a python data structure.
 
@@ -188,7 +188,7 @@ class Node(models.Model):
         raise NotImplementedError
 
     @classmethod
-    def get_root_nodes(cls):
+    def get_root_nodes(cls):  # pragma: no cover
         """
         :returns: A queryset containing the root nodes in the tree.
 
@@ -228,7 +228,7 @@ class Node(models.Model):
             return None
 
     @classmethod
-    def find_problems(cls):
+    def find_problems(cls):  # pragma: no cover
         """
         Checks for problems in the tree structure.
 
@@ -237,7 +237,7 @@ class Node(models.Model):
         raise NotImplementedError
 
     @classmethod
-    def fix_tree(cls):
+    def fix_tree(cls):  # pragma: no cover
         """
         Solves some problems that can appear when transactions are not used and
         a piece of code breaks, leaving the tree in an inconsistent state.
@@ -291,7 +291,7 @@ class Node(models.Model):
             node.descendants_count = node.get_descendant_count()
         return nodes
 
-    def get_depth(self):
+    def get_depth(self):  # pragma: no cover
         """
         :returns: the depth (level) of the node
 
@@ -301,7 +301,7 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-    def get_siblings(self):
+    def get_siblings(self):  # pragma: no cover
         """
         :returns: A queryset of all the node's siblings, including the node
             itself.
@@ -312,7 +312,7 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-    def get_children(self):
+    def get_children(self):  # pragma: no cover
         """
         :returns: A queryset of all the node's children
 
@@ -467,7 +467,7 @@ class Node(models.Model):
         """
         return len(node.get_children().filter(pk__in=[self.pk])) > 0
 
-    def is_descendant_of(self, node):
+    def is_descendant_of(self, node):  # pragma: no cover
         """
         :returns: ``True`` if the node if a descendant of another node given
             as an argument, else, returns ``False``
@@ -482,7 +482,7 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-    def add_child(self, **kwargs):
+    def add_child(self, **kwargs):  # pragma: no cover
         """
         Adds a child to the node. The new node will be the new rightmost
         child. If you want to insert a node at a specific position,
@@ -504,7 +504,7 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-    def add_sibling(self, pos=None, **kwargs):
+    def add_sibling(self, pos=None, **kwargs):  # pragma: no cover
         """
         Adds a new node as a sibling to the current node object.
 
@@ -545,7 +545,7 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-    def get_root(self):
+    def get_root(self):  # pragma: no cover
         """
         :returns: the root node for the current node object.
 
@@ -575,7 +575,7 @@ class Node(models.Model):
         """
         return self.get_children_count() == 0
 
-    def get_ancestors(self):
+    def get_ancestors(self):  # pragma: no cover
         """
         :returns: A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
@@ -587,7 +587,7 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-    def get_parent(self, update=False):
+    def get_parent(self, update=False):  # pragma: no cover
         """
         :returns: the parent node of the current node object.
             Caches the result in the object itself to help in loops.
@@ -601,7 +601,7 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-    def move(self, target, pos=None):
+    def move(self, target, pos=None):  # pragma: no cover
         """
         Moves the current node and all it's descendants to a new position
         relative to another node.
