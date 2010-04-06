@@ -223,7 +223,6 @@ class NS_Node(Node):
             else:
                 pos = 'last-sibling'
             last_child = self.get_last_child()
-            tmp = self.__class__.objects.get(pk=self.id)
             last_child._cached_parent_obj = self
             return last_child.add_sibling(pos, **kwargs)
 
