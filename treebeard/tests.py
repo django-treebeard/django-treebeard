@@ -273,6 +273,12 @@ class TestTreeBase(TestCase):
         return [(o.desc, o.get_depth(), o.get_children_count())
                 for o in self.model.get_tree()]
 
+    def _assert_get_annotated_list(self, expected, parent=None):
+        got = [
+            (obj[0].desc, obj[1]['open'], obj[1]['close'], obj[1]['level'])
+            for obj in self.model.get_annotated_list(parent)]
+        self.assertEqual(expected, got)
+
 
 class TestEmptyTree(TestTreeBase):
 
@@ -315,6 +321,11 @@ class TestEmptyTree(TestTreeBase):
     def test_get_tree(self):
         got = list(self.model.get_tree())
         self.assertEqual(got, [])
+
+    @multi_test()
+    def test_get_annotated_list(self):
+        expected = []
+        self._assert_get_annotated_list(expected)
 
 
 class TestNonEmptyTree(TestTreeBase):
@@ -410,6 +421,29 @@ class TestClassMethods(TestNonEmptyTree):
                 for o in self.model.get_tree(node)]
         expected = [(u'1', 1, 0)]
         self.assertEqual(got, expected)
+
+    @multi_test()
+    def test_get_annotated_list_all(self):
+        expected = [(u'1', True, [], 0), (u'2', False, [], 0),
+                    (u'21', True, [], 1), (u'22', False, [], 1),
+                    (u'23', False, [], 1), (u'231', True, [0], 2),
+                    (u'24', False, [0], 1), (u'3', False, [], 0),
+                    (u'4', False, [], 0), (u'41', True, [0, 1], 1)]
+        self._assert_get_annotated_list(expected)
+
+    @multi_test()
+    def test_get_annotated_list_node(self):
+        node = self.model.objects.get(desc=u'2')
+        expected = [(u'2', True, [], 0), (u'21', True, [], 1),
+                    (u'22', False, [], 1), (u'23', False, [], 1),
+                    (u'231', True, [0], 2), (u'24', False, [0, 1], 1)]
+        self._assert_get_annotated_list(expected, node)
+
+    @multi_test()
+    def test_get_annotated_list_leaf(self):
+        node = self.model.objects.get(desc=u'1')
+        expected = [(u'1', True, [0], 0)]
+        self._assert_get_annotated_list(expected, node)
 
     @multi_test()
     def test_dump_bulk_node(self):
