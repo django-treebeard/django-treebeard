@@ -17,7 +17,7 @@ from django.contrib.admin.options import ModelAdmin
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
 from django.db import models, transaction
-from django.contrib.auth.models import User, AnonymousUser
+from django.contrib.auth.models import User
 from django.db.models import Q
 from django.conf import settings
 
