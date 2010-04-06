@@ -359,7 +359,6 @@ class NS_Node(Node):
         pos = self._fix_move_opts(pos)
         cls = self.__class__
 
-        stmts = []
         parent = None
 
         if pos in ('first-child', 'last-child', 'sorted-child'):
