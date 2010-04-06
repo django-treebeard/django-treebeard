@@ -291,7 +291,7 @@ class TestEmptyTree(TestTreeBase):
 
     @multi_test()
     def test_add_root_empty(self):
-        obj = self.model.add_root(desc='1')
+        self.model.add_root(desc='1')
         expected = [(u'1', 1, 0)]
         self.assertEqual(self.got(), expected)
 
@@ -751,7 +751,7 @@ class TestAddChild(TestNonEmptyTree):
 
     @multi_test()
     def test_add_child_to_leaf(self):
-        obj = self.model.objects.get(desc=u'231').add_child(desc='2311')
+        self.model.objects.get(desc=u'231').add_child(desc='2311')
         expected = [(u'1', 1, 0),
                     (u'2', 1, 4),
                     (u'21', 2, 0),
@@ -767,7 +767,7 @@ class TestAddChild(TestNonEmptyTree):
 
     @multi_test()
     def test_add_child_to_node(self):
-        obj = self.model.objects.get(desc=u'2').add_child(desc='25')
+        self.model.objects.get(desc=u'2').add_child(desc='25')
         expected = [(u'1', 1, 0),
                     (u'2', 1, 5),
                     (u'21', 2, 0),
@@ -1969,7 +1969,7 @@ class TestIssue14(TestCase):
         user.save()
         root = MP_TestIssue14.add_root(name="the root node")
 
-        first = root.add_child(name="first")
+        root.add_child(name="first")
         second = root.add_child(name="second")
 
         qs_check(root.get_children(), ['first', 'second'])
