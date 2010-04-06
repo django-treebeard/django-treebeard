@@ -597,7 +597,6 @@ class NS_Node(Node):
             # django's serializer stores the attributes in 'fields'
             fields = serobj['fields']
             depth = fields['depth']
-            tree_id = fields['tree_id']
             # this will be useless in load_bulk
             del fields['lft']
             del fields['rgt']
