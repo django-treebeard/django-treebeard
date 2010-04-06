@@ -4,6 +4,7 @@ syntax: glob
 .buildinfo
 *.pyc
 *.orig
+*.swp
 .coverage
 build
 dist
@@ -13,4 +14,4 @@ MANIFEST
 .pydevproject
 .settings
 htmlcov
-coverage.xml
+taggable/fixtures/create_fixtures.py
