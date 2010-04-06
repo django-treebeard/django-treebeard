@@ -45,7 +45,7 @@ treebeard.mp_tree.MP_Node.fix_tree classmethod index.html
 treebeard.models.Node.get_first_child method index.html
 treebeard.mp_tree.MP_Node.depth attribute index.html
 treebeard.al_tree.AL_Node.node_order_by attribute index.html
-treebeard.exceptions.PathOverflow exception index.html
+treebeard.models.Node.get_annotated_list classmethod index.html
 treebeard.models.Node.add_child method index.html
 treebeard.models.Node.get_descendant_count method index.html
 treebeard.models.Node.get_depth method index.html
@@ -68,6 +68,7 @@ treebeard.models.Node.get_ancestors method index.html
 treebeard.models.Node.get_root_nodes classmethod index.html
 treebeard.models.Node.get_first_root_node classmethod index.html
 treebeard.al_tree.AL_Node.get_depth method index.html
+treebeard.exceptions.PathOverflow exception index.html
 treebeard.exceptions.MissingNodeOrderBy exception index.html
 treebeard.models.Node.is_descendant_of method index.html
 treebeard.models.Node.get_children method index.html

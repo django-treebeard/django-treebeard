@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    '#',
         VERSION:     '1.53a',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="django-treebeard v1.53a documentation" href="" /> 
+    <link rel="top" title="django-treebeard v1.53a documentation" href="#" /> 
   </head>
   <body>
     <div class="related">
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
-        <li><a href="">django-treebeard v1.53a documentation</a> &raquo;</li> 
+        <li><a href="#">django-treebeard v1.53a documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -925,6 +925,73 @@ attribute: <cite>descendants_count</cite>.</td>
 </div>
 </dd></dl>
 
+<dl class="classmethod">
+<dt id="treebeard.models.Node.get_annotated_list">
+<em class="property">classmethod </em><tt class="descname">get_annotated_list</tt><big>(</big><em>parent=None</em><big>)</big><a class="headerlink" href="#treebeard.models.Node.get_annotated_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets an annotated list from a tree branch.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>parent</em> &#8211; The node whose descendants will be annotated. The node itself
+will be included in the list. If not given, the entire tree
+will be annotated.</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">annotated_list</span> <span class="o">=</span> <span class="n">get_annotated_list</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>With data:</p>
+<blockquote>
+<ul class="simple">
+<li>a<ul>
+<li>ab<ul>
+<li>aba</li>
+<li>abb</li>
+<li>abc</li>
+</ul>
+</li>
+<li>ac</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<p>Will return:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[</span>
+    <span class="p">(</span><span class="n">a</span><span class="p">,</span>     <span class="p">{</span><span class="s">&#39;open&#39;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>  <span class="s">&#39;close&#39;</span><span class="p">:[],</span>    <span class="s">&#39;level&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+    <span class="p">(</span><span class="n">ab</span><span class="p">,</span>    <span class="p">{</span><span class="s">&#39;open&#39;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>  <span class="s">&#39;close&#39;</span><span class="p">:[],</span>    <span class="s">&#39;level&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+    <span class="p">(</span><span class="n">aba</span><span class="p">,</span>   <span class="p">{</span><span class="s">&#39;open&#39;</span><span class="p">:</span><span class="bp">True</span><span class="p">,</span>  <span class="s">&#39;close&#39;</span><span class="p">:[],</span>    <span class="s">&#39;level&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">})</span>
+    <span class="p">(</span><span class="n">abb</span><span class="p">,</span>   <span class="p">{</span><span class="s">&#39;open&#39;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">:[],</span>    <span class="s">&#39;level&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">})</span>
+    <span class="p">(</span><span class="n">abc</span><span class="p">,</span>   <span class="p">{</span><span class="s">&#39;open&#39;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">:[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="s">&#39;level&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">})</span>
+    <span class="p">(</span><span class="n">ac</span><span class="p">,</span>    <span class="p">{</span><span class="s">&#39;open&#39;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">:[</span><span class="mi">0</span><span class="p">],</span>   <span class="s">&#39;level&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>This can be used with a template like:</p>
+<div class="highlight-python"><pre>{% for item, info in annotated_list %}
+    {% if info.open %}
+        &lt;ul&gt;&lt;li&gt;
+    {% else %}
+        &lt;/li&gt;&lt;li&gt;
+    {% endif %}
+
+    {{ item }}
+
+    {% for close in info.close %}
+        &lt;/li&gt;&lt;/ul&gt;
+    {% endfor %}
+{% endfor %}</pre>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This method was contributed originally by
+<a class="reference external" href="mailto:rudi&#37;&#52;&#48;05bit&#46;com">Alexey Kinyov</a>, using an idea borrowed
+from <cite>django-mptt</cite>.</p>
+</div>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -1006,13 +1073,13 @@ in your enviroment. To run the test you must enable the
 <span class="target" id="index-0"></span><strong class="xref">TREEBEARD_TEST_ALPHABET</strong> enviroment variable:</p>
 <div class="highlight-python"><pre>$ TREEBEARD_TEST_ALPHABET=1 python manage.py test treebeard.TestTreeAlphabet</pre>
 </div>
-<p>On my Ubuntu 8.04.1 system, these are the optimal values for the three
-supported databases in their <em>default</em> configuration:</p>
+<p>On my Ubuntu 8.04.1 system, these are the optimal values for the
+three supported databases in their <em>default</em> configuration:</p>
 <blockquote class="last">
 <table border="1" class="docutils">
 <colgroup>
-<col width="21%" />
-<col width="79%" />
+<col width="50%" />
+<col width="50%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">Database</th>
@@ -1021,13 +1088,13 @@ supported databases in their <em>default</em> configuration:</p>
 </thead>
 <tbody valign="top">
 <tr><td>MySQL 5.0.51</td>
-<td>0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ</td>
+<td>0-9A-Z</td>
 </tr>
 <tr><td>PostgreSQL 8.2.7</td>
-<td>0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ</td>
+<td>0-9A-Z</td>
 </tr>
 <tr><td>Sqlite3</td>
-<td>0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz</td>
+<td>0-9A-Za-z</td>
 </tr>
 </tbody>
 </table>
@@ -1132,18 +1199,6 @@ corrupt the tree. If you <em>must</em> do it:</p>
 <tt class="docutils literal"><span class="pre">keep_ids=True</span></tt> to keep the same primary keys you had.</li>
 </ol>
 </blockquote>
-</div>
-<div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p>Be very careful if you add a <tt class="docutils literal"><span class="pre">Meta</span></tt> class in your
-<tt class="xref docutils literal"><span class="pre">mp_tree.MP_Node</span></tt> subclass.
-You must add an ordering attribute with a single element on it:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
-    <span class="n">ordering</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;path&#39;</span><span class="p">]</span>
-</pre></div>
-</div>
-<p class="last">If you don&#8217;t, the tree won&#8217;t work, since <tt class="xref docutils literal"><span class="pre">mp_tree.MP_Node</span></tt>
-completely depends on this attribute.</p>
 </div>
 <p>Example:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">SortedNode</span><span class="p">(</span><span class="n">MP_Node</span><span class="p">):</span>
@@ -1472,7 +1527,7 @@ Caches the result in the object itself to help in loops.</td>
 </tbody>
 </table>
 <p>An implementation of Nested Sets trees for Django 1.0+, as described by
-<a class="reference external" href="http://www.celko.com/">Joe Celko</a> in <a class="reference external" href="http://www.elsevier.com/wps/find/bookdescription.cws_home/702605/description">Trees and Hierarchies in SQL for Smarties</a>.</p>
+<a class="reference external" href="http://www.celko.com/">Joe Celko</a> in <a class="reference external" href="http://www.elsevier.com/wps/product/cws_home/702605">Trees and Hierarchies in SQL for Smarties</a>.</p>
 <p>Nested sets have very efficient reads at the cost of high maintenance on
 write/delete operations.</p>
 <dl class="class">
@@ -1512,18 +1567,6 @@ has a depth of <em>1</em>.</dd></dl>
 <tt class="descname">tree_id</tt><a class="headerlink" href="#treebeard.ns_tree.NS_Node.tree_id" title="Permalink to this definition">¶</a></dt>
 <dd><tt class="docutils literal"><span class="pre">PositiveIntegerField</span></tt></dd></dl>
 
-<div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p>Be very careful if you add a <tt class="docutils literal"><span class="pre">Meta</span></tt> class in your
-<tt class="xref docutils literal"><span class="pre">ns_tree.NS_Node</span></tt> subclass.
-You must add an ordering attribute with two elements on it:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
-    <span class="n">ordering</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;tree_id&#39;</span><span class="p">,</span> <span class="s">&#39;lft&#39;</span><span class="p">]</span>
-</pre></div>
-</div>
-<p class="last">If you don&#8217;t, the tree won&#8217;t work, since <tt class="xref docutils literal"><span class="pre">ns_tree.NS_Node</span></tt>
-completely depends on this attribute.</p>
-</div>
 <dl class="classmethod">
 <dt id="treebeard.ns_tree.NS_Node.get_tree">
 <em class="property">classmethod </em><tt class="descname">get_tree</tt><big>(</big><em>parent=None</em><big>)</big><a class="headerlink" href="#treebeard.ns_tree.NS_Node.get_tree" title="Permalink to this definition">¶</a></dt>
@@ -2152,6 +2195,7 @@ but as <em>&#8220;both X and Y are very fast&#8221;</em>.</p>
 <ul class="simple">
 <li>Added raw id fields support in the admin</li>
 <li>Fixed setup.py to make it work in 2.4 again</li>
+<li>The correct ordering in NS/MP trees is now enforced in the queryset.</li>
 </ul>
 </div>
 <div class="section" id="release-1-52-dec-18-2009">
@@ -2247,9 +2291,9 @@ Solves bug in postgres when the table isn&#8217;t created by syncdb.</li>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <h3><a href="">Table Of Contents</a></h3>
+            <h3><a href="#">Table Of Contents</a></h3>
             <ul>
-<li><a class="reference external" href=""><tt class="docutils literal"><span class="pre">treebeard</span></tt> &#8212; Efficient tree model implementations for Django</a><ul>
+<li><a class="reference external" href="#"><tt class="docutils literal"><span class="pre">treebeard</span></tt> &#8212; Efficient tree model implementations for Django</a><ul>
 <li><a class="reference external" href="#treebeard">treebeard</a></li>
 <li><a class="reference external" href="#treebeard-models">treebeard.models</a></li>
 </ul>
@@ -2332,13 +2376,13 @@ Solves bug in postgres when the table isn&#8217;t created by syncdb.</li>
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              >modules</a> |</li>
-        <li><a href="">django-treebeard v1.53a documentation</a> &raquo;</li> 
+        <li><a href="#">django-treebeard v1.53a documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2008-2010, Gustavo Picon.
-      Last updated on Jan 24, 2010.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.3.
+      Last updated on Apr 06, 2010.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.4.
     </div>
   </body>
 </html>
