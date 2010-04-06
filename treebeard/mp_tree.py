@@ -541,7 +541,6 @@ class MP_Node(Node):
                 # we include the subquery twice
                 vals *= 2
             cursor.execute(sql, vals)
-            field_names = [field[0] for field in cursor.description]
             sql = "UPDATE %(table)s " \
                      "SET numchild=%%s " \
                    "WHERE path=%%s" % {
