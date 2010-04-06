@@ -6,9 +6,9 @@ numconv
 
 :synopsys: Python library to convert strings to numbers and numbers to
            strings.
-:copyright: 2008-2010 by Gustavo Picon
+:copyright: 2008-2009 by Gustavo Picon
 :license: Apache License 2.0
-:version: 2.0
+:version: 2.1a
 :url: http://code.tabo.pe/numconv/
 :documentation:
    `numconv-docs
@@ -46,7 +46,7 @@ constants
 """
 
 
-__version__ = '2.0.0'
+__version__ = '2.1.0a'
 
 # from april fool's rfc 1924
 BASE85 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' \
@@ -65,20 +65,20 @@ BASE62 = BASE85[:62]
 
 class NumConv(object):
     """Class to create converter objects.
-    
+
         :param radix: The base that will be used in the conversions.
            The default value is 10 for decimal conversions.
         :param alphabet: A string that will be used as a encoding alphabet.
-           The length of the alphabet can be longer than the radix. In this case
-           the alphabet will be internally truncated.
-    
+           The length of the alphabet can be longer than the radix. In this
+           case the alphabet will be internally truncated.
+
            The default value is :data:`numconv.BASE85`
-        
+
         :raise TypeError: when *radix* isn't an integer
         :raise ValueError: when *radix* is invalid
         :raise ValueError: when *alphabet* has duplicated characters
     """
-    
+
     def __init__(self, radix=10, alphabet=BASE85):
         "basic validation and cached_map storage"
         if int(radix) != radix:
@@ -95,38 +95,38 @@ class NumConv(object):
 
     def int2str(self, num):
         """Converts an integer into a string.
-    
+
         :param num: A numeric value to be converted to another base as a
                     string.
-    
-    
+
+
         :rtype: string
-    
+
         :raise TypeError: when *num* isn't an integer
         :raise ValueError: when *num* isn't positive
-    
+
         **Examples** (taken from :file:`tests.py`):
-    
+
            3735928559 to hexadecimal::
-    
+
                >> NumConv(16).int2str(3735928559)
                'DEADBEEF'
-    
+
            19284 to binary::
-    
+
                >> NumConv(2).int2str(19284)
                '100101101010100'
-    
+
            37 to base 4 using a custom dictionary::
-    
+
                >> NumConv(4, 'rofl').int2str(37)
                'foo'
-    
+
            Very large number to :data:`~numconv.BASE85`::
-    
+
                >> NumConv(85).int2str(2693233728041137L)
                '~123AFz@'
-    
+
         """
         if int(num) != num:
             raise TypeError('number must be an integer')
@@ -143,42 +143,41 @@ class NumConv(object):
                 break
             num //= radix
         return ret
-    
-    
+
     def str2int(self, num):
         """Converts a string into an integer.
-    
+
         If possible, the built-in python conversion will be used for speed
         purposes.
-    
+
         :param num: A string that will be converted to an integer.
-    
+
         :rtype: integer
-    
+
         :raise ValueError: when *num* is invalid
-    
+
         **Examples** (taken from :file:`tests.py`):
-    
+
            Hexadecimal 'DEADBEEF' to integer::
-    
+
               >> NumConv(16).str2int('DEADBEEF')
               3735928559L
-    
+
            Binary '100101101010100' to integer::
-    
+
                >> NumConv(2).str2int('100101101010100')
                19284
-    
+
            Base 4 with custom encoding 'foo' to integer::
-    
+
                >> NumConv(4, 'rofl').str2int('foo')
                37
-    
+
            :data:`~numconv.BASE85` '~123AFz@' to integer::
-    
+
                >> NumConv(85).str2int('~123AFz@')
                2693233728041137L
-    
+
         """
         radix, alphabet = self.radix, self.alphabet
         if radix <= 36 and alphabet[:radix].lower() == BASE85[:radix].lower():
@@ -197,7 +196,7 @@ def int2str(num, radix=10, alphabet=BASE85):
     "helper for quick base conversions from integers to strings"
     return NumConv(radix, alphabet).int2str(num)
 
+
 def str2int(num, radix=10, alphabet=BASE85):
     "helper for quick base conversions from strings to integers"
     return NumConv(radix, alphabet).str2int(num)
-

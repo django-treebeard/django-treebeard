@@ -44,7 +44,7 @@ class AL_NodeManager(models.Manager):
         """
         qset = super(AL_NodeManager, self).get_query_set()
         if self.model.node_order_by:
-            order_by = ['parent']+self.model.node_order_by
+            order_by = ['parent'] + self.model.node_order_by
         else:
             order_by = ['parent', 'sib_order']
         return qset.order_by(*order_by)
@@ -302,7 +302,7 @@ class AL_Node(Node):
         for node in qset:
             node._cached_depth = depth
             ret.append(node)
-            cls._get_tree_recur(ret, node, depth+1)
+            cls._get_tree_recur(ret, node, depth + 1)
 
     @classmethod
     def get_tree(cls, parent=None):
@@ -402,7 +402,7 @@ class AL_Node(Node):
                                      sib_order__gt=target.sib_order),
                         'first-sibling': siblings}[pos]
             sib_order = {'left': sib_order,
-                         'right': sib_order+1,
+                         'right': sib_order + 1,
                          'first-sibling': 1}[pos]
             try:
                 min = siblings.order_by('sib_order')[0].sib_order

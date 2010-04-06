@@ -88,7 +88,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
             removed = {}
             for node in self.order_by('depth', 'path'):
                 found = False
-                for depth in range(1, len(node.path)/node.steplen):
+                for depth in range(1, len(node.path) / node.steplen):
                     path = node._get_basepath(node.path, depth)
                     if path in removed:
                         # we are already removing a parent of this node
@@ -105,7 +105,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
             parents = {}
             toremove = []
             for path, node in removed.items():
-                parentpath = node._get_basepath(node.path, node.depth-1)
+                parentpath = node._get_basepath(node.path, node.depth - 1)
                 if parentpath:
                     if parentpath not in parents:
                         parents[parentpath] = node.get_parent(True)
@@ -169,16 +169,16 @@ class MP_Node(Node):
 
              $ TREEBEARD_TEST_ALPHABET=1 python manage.py test treebeard.TestTreeAlphabet
 
-          On my Ubuntu 8.04.1 system, these are the optimal values for the three
-          supported databases in their *default* configuration:
+          On my Ubuntu 8.04.1 system, these are the optimal values for the
+          three supported databases in their *default* configuration:
 
-           ================ ==============================================================
+           ================ ================
            Database         Optimal Alphabet
-           ================ ==============================================================
-           MySQL 5.0.51     0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
-           PostgreSQL 8.2.7 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
-           Sqlite3          0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-           ================ ==============================================================
+           ================ ================
+           MySQL 5.0.51     0-9A-Z
+           PostgreSQL 8.2.7 0-9A-Z
+           Sqlite3          0-9A-Za-z
+           ================ ================
 
     .. attribute:: node_order_by
 
@@ -291,9 +291,9 @@ class MP_Node(Node):
     numchild = models.PositiveIntegerField(default=0)
 
     objects = MP_NodeManager()
-    
+
     numconv_obj_ = None
- 
+
     @classmethod
     def _int2str(cls, num):
         return cls.numconv_obj().int2str(num)
@@ -361,7 +361,7 @@ class MP_Node(Node):
             # django's serializer stores the attributes in 'fields'
             fields = pyobj['fields']
             path = fields['path']
-            depth = len(path)/cls.steplen
+            depth = len(path) / cls.steplen
             # this will be useless in load_bulk
             del fields['depth']
             del fields['path']
@@ -378,7 +378,7 @@ class MP_Node(Node):
                     (parent and len(path) == len(parent.path)):
                 ret.append(newobj)
             else:
-                parentpath = cls._get_basepath(path, depth-1)
+                parentpath = cls._get_basepath(path, depth - 1)
                 parentobj = lnk[parentpath]
                 if 'children' not in parentobj:
                     parentobj['children'] = []
@@ -450,11 +450,10 @@ class MP_Node(Node):
             real_numchild = cls.objects.filter(
                 path__range=cls._get_children_path_interval(node.path)).extra(
                     where=['LENGTH(path)/%d=%d' % (cls.steplen,
-                                                   node.depth+1)]).count()
+                                                   node.depth + 1)]).count()
             if real_numchild != node.numchild:
                 wrong_numchild.append(node.id)
                 continue
-
 
         return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
 
@@ -634,7 +633,7 @@ class MP_Node(Node):
               ' ON t1.path=t2.subpath ' \
               ' ORDER BY t1.path' % {
                     'table': connection.ops.quote_name(cls._meta.db_table),
-                    'subpathlen': depth*cls.steplen,
+                    'subpathlen': depth * cls.steplen,
                     'depth': depth,
                     'extrand': extrand}
         cursor = connection.cursor()
@@ -667,7 +666,7 @@ class MP_Node(Node):
         qset = self.__class__.objects.filter(depth=self.depth)
         if self.depth > 1:
             # making sure the non-root nodes share a parent
-            parentpath = self._get_basepath(self.path, self.depth-1)
+            parentpath = self._get_basepath(self.path, self.depth - 1)
             qset = qset.filter(
                 path__range=self._get_children_path_interval(parentpath))
         return qset
@@ -680,7 +679,7 @@ class MP_Node(Node):
         """
         if self.is_leaf():
             return self.__class__.objects.none()
-        return self.__class__.objects.filter(depth=self.depth+1,
+        return self.__class__.objects.filter(depth=self.depth + 1,
             path__range=self._get_children_path_interval(self.path))
 
     def get_next_sibling(self):
@@ -735,7 +734,7 @@ class MP_Node(Node):
         aux = self.depth == node.depth
         if self.depth > 1:
             # making sure the non-root nodes share a parent
-            parentpath = self._get_basepath(self.path, self.depth-1)
+            parentpath = self._get_basepath(self.path, self.depth - 1)
             return aux and node.path.startswith(parentpath)
         return aux
 
@@ -746,7 +745,8 @@ class MP_Node(Node):
 
         See: :meth:`treebeard.Node.is_child_of`
         """
-        return self.path.startswith(node.path) and self.depth == node.depth+1
+        return (self.path.startswith(node.path) and
+                self.depth == node.depth + 1)
 
     def is_descendant_of(self, node):
         """
@@ -825,7 +825,7 @@ class MP_Node(Node):
         _, newpath = self._move_add_sibling_aux(pos, newpos,
             self.depth, self, siblings, stmts, None, False)
 
-        parentpath = self._get_basepath(newpath, self.depth-1)
+        parentpath = self._get_basepath(newpath, self.depth - 1)
         if parentpath:
             stmts.append(self._get_sql_update_numchild(parentpath, 'inc'))
 
@@ -866,7 +866,7 @@ class MP_Node(Node):
 
         See: :meth:`treebeard.Node.get_parent`
         """
-        depth = len(self.path)/self.steplen
+        depth = len(self.path) / self.steplen
         if depth <= 1:
             return
         try:
@@ -876,7 +876,7 @@ class MP_Node(Node):
                 return self._cached_parent_obj
         except AttributeError:
             pass
-        parentpath = self._get_basepath(self.path, depth-1)
+        parentpath = self._get_basepath(self.path, depth - 1)
         self._cached_parent_obj = self.__class__.objects.get(path=parentpath)
         return self._cached_parent_obj
 
@@ -941,7 +941,7 @@ class MP_Node(Node):
         :returns: The base path of another path up to a given depth
         """
         if path:
-            return path[0:(depth)*cls.steplen]
+            return path[0:(depth) * cls.steplen]
         return ''
 
     @classmethod
@@ -953,9 +953,11 @@ class MP_Node(Node):
         :param depth: the depth of the  node
         :param newstep: the value (integer) of the new step
         """
-        parentpath = cls._get_basepath(path, depth-1)
+        parentpath = cls._get_basepath(path, depth - 1)
         key = cls._int2str(newstep)
-        return '%s%s%s' % (parentpath, '0'*(cls.steplen-len(key)), key)
+        return '%s%s%s' % (parentpath,
+                           '0' * (cls.steplen - len(key)),
+                           key)
 
     @classmethod
     def _inc_path(cls, path):
@@ -966,7 +968,8 @@ class MP_Node(Node):
         key = cls._int2str(newpos)
         if len(key) > cls.steplen:
             raise PathOverflow("Path Overflow from: '%s'" % (path, ))
-        return '%s%s%s' % (path[:-cls.steplen], '0'*(cls.steplen-len(key)),
+        return '%s%s%s' % (path[:-cls.steplen],
+                           '0' * (cls.steplen - len(key)),
                            key)
 
     @classmethod
@@ -982,7 +985,7 @@ class MP_Node(Node):
         :returns: The parent path for a given path
         """
         if path:
-            return path[0:len(path)-cls.steplen]
+            return path[0:len(path) - cls.steplen]
         return ''
 
     @classmethod
@@ -990,8 +993,8 @@ class MP_Node(Node):
         """
         :returns: An interval of all possible children paths for a node.
         """
-        return (path+cls.alphabet[0]*cls.steplen,
-                path+cls.alphabet[-1]*cls.steplen)
+        return (path + cls.alphabet[0] * cls.steplen,
+                path + cls.alphabet[-1] * cls.steplen)
 
     @classmethod
     def _move_add_sibling_aux(cls, pos, newpos, newdepth, target, siblings,
@@ -1021,7 +1024,7 @@ class MP_Node(Node):
                 basenum = cls._get_lastpos_in_path(target.path)
                 newpos = {'first-sibling': 1,
                           'left': basenum,
-                          'right': basenum+1}[pos]
+                          'right': basenum + 1}[pos]
 
             newpath = cls._get_path(target.path, newdepth, newpos)
 
@@ -1138,7 +1141,7 @@ class MP_Node(Node):
             sqlpath = "%s||SUBSTR(path, %s)"
 
         sql2 = ["path=%s" % (sqlpath, )]
-        vals = [newpath, len(oldpath)+1]
+        vals = [newpath, len(oldpath) + 1]
         if (len(oldpath) != len(newpath) and
                 settings.DATABASE_ENGINE != 'mysql'):
             # when using mysql, this won't update the depth and it has to be
@@ -1146,9 +1149,9 @@ class MP_Node(Node):
             # doesn't even work with sql_mode='ANSI,TRADITIONAL'
             # TODO: FIND OUT WHY?!?? right now I'm just blaming mysql
             sql2.append("depth=LENGTH(%s)/%%s" % (sqlpath, ))
-            vals.extend([newpath, len(oldpath)+1, cls.steplen])
+            vals.extend([newpath, len(oldpath) + 1, cls.steplen])
         sql3 = "WHERE path LIKE %s"
-        vals.extend([oldpath+'%'])
+        vals.extend([oldpath + '%'])
         sql = '%s %s %s' % (sql1, ', '.join(sql2), sql3)
         return sql, vals
 
@@ -1163,7 +1166,7 @@ class MP_Node(Node):
         sql = "UPDATE %s SET depth=LENGTH(path)/%%s" \
               " WHERE path LIKE %%s" % (
                   connection.ops.quote_name(cls._meta.db_table), )
-        vals = [cls.steplen, path+'%']
+        vals = [cls.steplen, path + '%']
         return sql, vals
 
     @classmethod
