@@ -735,6 +735,93 @@ class Node(models.Model):
             fields.append((field, value))
         return siblings.filter(reduce(operator.or_, filters))
 
+    @classmethod
+    def get_annotated_list(cls, parent=None):
+        """
+        Gets an annotated list from a tree branch.
+
+        :param parent:
+
+            The node whose descendants will be annotated. The node itself
+            will be included in the list. If not given, the entire tree
+            will be annotated.
+
+        Example::
+
+            annotated_list = get_annotated_list()
+
+        With data:
+
+            * a
+
+              * ab
+
+                * aba
+                * abb
+                * abc
+
+              * ac
+
+        Will return::
+
+            [
+                (a,     {'open':True,  'close':[],    'level': 0})
+                (ab,    {'open':True,  'close':[],    'level': 1})
+                (aba,   {'open':True,  'close':[],    'level': 2})
+                (abb,   {'open':False, 'close':[],    'level': 2})
+                (abc,   {'open':False, 'close':[0,1], 'level': 2})
+                (ac,    {'open':False, 'close':[0],   'level': 1})
+            ]
+
+        This can be used with a template like::
+
+            {% for item, info in annotated_list %}
+                {% if info.open %}
+                    <ul><li>
+                {% else %}
+                    </li><li>
+                {% endif %}
+
+                {{ item }}
+
+                {% for close in info.close %}
+                    </li></ul>
+                {% endfor %}
+            {% endfor %}
+
+        .. note:: This method was contributed originally by
+                  `Alexey Kinyov <rudi@05bit.com>`_, using an idea borrowed
+                  from `django-mptt`.
+
+
+        """
+
+        result = []
+        start_depth, prev_depth = (None, None)
+
+        for node in cls.get_tree(parent):
+
+            depth = node.get_depth()
+
+            if start_depth is None:
+                start_depth = depth
+
+            open = (depth > prev_depth)
+
+            if depth < prev_depth:
+                info['close'] = range(0, prev_depth - depth)
+
+            info = {'open': open, 'close': [], 'level': depth - start_depth}
+
+            result.append((node, info,))
+
+            prev_depth = depth
+
+        if start_depth > 0:
+            info['close'] = range(0, prev_depth - start_depth + 1)
+
+        return result
+
     class Meta:
         """
         Abstract model.
