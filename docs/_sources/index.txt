@@ -44,6 +44,7 @@
       .. automethod:: find_problems
       .. automethod:: fix_tree
       .. automethod:: get_descendants_group_count
+      .. automethod:: get_annotated_list
 
 
 :mod:`treebeard.mp_tree` --- Materialized Path tree
