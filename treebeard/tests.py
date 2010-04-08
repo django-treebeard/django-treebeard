@@ -210,7 +210,7 @@ if HAS_DJANGO_AUTH:
         users = models.ManyToManyField(User)
 
 
-def testtype(treetype):
+def testtype(treetype, proxy):
 
     def decorator(f):
 
@@ -218,7 +218,7 @@ def testtype(treetype):
         def _testtype(self):
             {'MP': self.set_MP,
              'AL': self.set_AL,
-             'NS': self.set_NS}[treetype]()
+             'NS': self.set_NS}[treetype](proxy)
             try:
                 f(self)
             finally:
@@ -230,14 +230,18 @@ def testtype(treetype):
     return decorator
 
 
-def _load_test_methods(cls):
+def _load_test_methods(cls, proxy=True):
+    proxyopts = (False, True) if proxy else (False,)
     for m in dir(cls):
         if not m.startswith('_multi_'):
             continue
         for t in ('MP', 'AL', 'NS'):
-            deco = testtype(t)
-            name = 'test_%s_%s' % (t.lower(), m.split('_', 2)[2])
-            setattr(cls, name, deco(getattr(cls, m)))
+            for p in proxyopts:
+                deco = testtype(t, p)
+                name = 'test_%s%s_%s' % (t.lower(),
+                                          '_proxy' if p else '',
+                                          m.split('_', 2)[2])
+                setattr(cls, name, deco(getattr(cls, m)))
 
 
 class TestTreeBase(TestCase):
@@ -255,23 +259,20 @@ class TestTreeBase(TestCase):
                           (u'4', 1, 1),
                           (u'41', 2, 0)]
 
-    def set_MP(self):
-        self.model = MP_TestNode
+    def set_MP(self, proxy=False):
+        self.model = MP_TestNode_Proxy if proxy else MP_TestNode
         self.sorted_model = MP_TestNodeSorted
         self.dep_model = MP_TestNodeSomeDep
-        self.proxy_model = MP_TestNode_Proxy
 
-    def set_NS(self):
-        self.model = NS_TestNode
+    def set_NS(self, proxy=False):
+        self.model = NS_TestNode_Proxy if proxy else NS_TestNode
         self.sorted_model = NS_TestNodeSorted
         self.dep_model = NS_TestNodeSomeDep
-        self.proxy_model = NS_TestNode_Proxy
 
-    def set_AL(self):
-        self.model = AL_TestNode
+    def set_AL(self, proxy=False):
+        self.model = AL_TestNode_Proxy if proxy else AL_TestNode
         self.sorted_model = AL_TestNodeSorted
         self.dep_model = AL_TestNodeSomeDep
-        self.proxy_model = AL_TestNode_Proxy
 
     def got(self):
         if self.model == NS_TestNode:
@@ -466,6 +467,10 @@ class TestClassMethods(TestNonEmptyTree):
         self.model.load_bulk(exp, None, True)
         got = self.model.dump_bulk(keep_ids=True)
         self.assertEqual(got, exp)
+        # do we really have an unchaged tree after the dump/delete/load?
+        got = [(o.desc, o.get_depth(), o.get_children_count())
+                for o in self.model.get_tree()]
+        self.assertEqual(got, self.unchanged)
 
     def _multi_get_root_nodes(self):
         got = self.model.get_root_nodes()
@@ -1077,10 +1082,6 @@ class TestMoveErrors(TestNonEmptyTree):
         self.assertRaises(InvalidMoveToDescendant, node.move, target,
             'first-sibling')
 
-    def _multi_nonsorted_move_in_sorted(self):
-        node = self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
-        self.assertRaises(InvalidPosition, node.move, node, 'left')
-
     def _multi_move_missing_nodeorderby(self):
         node = self.model.objects.get(desc=u'231')
         self.assertRaises(MissingNodeOrderBy, node.move, node,
@@ -1088,6 +1089,11 @@ class TestMoveErrors(TestNonEmptyTree):
         self.assertRaises(MissingNodeOrderBy, node.move, node,
                           'sorted-sibling')
 
+class TestMoveSortedErrors(TestNonEmptyTree):
+
+    def _multi_nonsorted_move_in_sorted(self):
+        node = self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
+        self.assertRaises(InvalidPosition, node.move, node, 'left')
 
 class TestMoveLeafRoot(TestNonEmptyTree):
 
@@ -2035,22 +2041,6 @@ class TestMoveNodeForm(TestTreeBase):
             self.assertEqual(tpl % tuple(ids), unicode(form))
 
 
-class TestProxy(TestTreeBase):
-
-    def setUp(self):
-        super(TestProxy, self).setUp()
-        MP_TestNode_Proxy.load_bulk(BASE_DATA)
-        AL_TestNode_Proxy.load_bulk(BASE_DATA)
-        NS_TestNode_Proxy.load_bulk(BASE_DATA)
-
-    def _multi_proxy_load_and_dump_bulk_keeping_ids(self):
-        exp = self.proxy_model.dump_bulk(keep_ids=True)
-        self.proxy_model.objects.all().delete()
-        self.proxy_model.load_bulk(exp, None, True)
-        got = self.proxy_model.dump_bulk(keep_ids=True)
-        self.assertEqual(got, exp)
-
-
 _load_test_methods(TestMoveNodeForm)
 _load_test_methods(TestEmptyTree)
 _load_test_methods(TestClassMethods)
@@ -2063,5 +2053,7 @@ _load_test_methods(TestMoveLeafRoot)
 _load_test_methods(TestMoveLeaf)
 _load_test_methods(TestMoveBranchRoot)
 _load_test_methods(TestMoveBranch)
-_load_test_methods(TestTreeSorted)
 _load_test_methods(TestHelpers)
+# only tests these since we didn't create extra sorted-proxy models
+_load_test_methods(TestMoveSortedErrors, proxy=False)
+_load_test_methods(TestTreeSorted, proxy=False)
