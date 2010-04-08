@@ -822,6 +822,17 @@ class Node(models.Model):
 
         return result
 
+    @classmethod
+    def _get_serializable_model(cls):
+        """Returns a model with a valid _meta.local_fields (serializable).
+
+        Basically, this means the original model, not a proxied model.
+
+        (this is a workaround for a bug in django)"""
+        while cls._meta.proxy:
+            cls = cls._meta.proxy_for_model
+        return cls
+
     class Meta:
         """
         Abstract model.

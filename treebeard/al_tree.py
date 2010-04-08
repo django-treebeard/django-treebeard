@@ -236,13 +236,17 @@ class AL_Node(Node):
         See: :meth:`treebeard.Node.dump_bulk`
         """
 
-        # not really a queryset, but it works
-        qset = cls.get_tree(parent)
+        serializable_cls = cls._get_serializable_model()
+        if parent and serializable_cls != cls and \
+                parent.__class__ != serializable_cls:
+            # if parent
+            parent = serializable_cls.objects.get(pk=parent.pk)
+
+        # a list of nodes: not really a queryset, but it works
+        objs = serializable_cls.get_tree(parent)
 
         ret, lnk = [], {}
-        pos = 0
-        for pyobj in serializers.serialize('python', qset):
-            node = qset[pos]
+        for node, pyobj in zip(objs, serializers.serialize('python', objs)):
             depth = node.get_depth()
             # django's serializer stores the attributes in 'fields'
             fields = pyobj['fields']
@@ -264,7 +268,6 @@ class AL_Node(Node):
                     parentobj['children'] = []
                 parentobj['children'].append(newobj)
             lnk[node.id] = newobj
-            pos += 1
         return ret
 
     def add_child(self, **kwargs):
