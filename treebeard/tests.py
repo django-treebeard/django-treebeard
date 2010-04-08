@@ -66,6 +66,11 @@ class MP_TestNodeSomeDep(models.Model):
         return 'Node %d' % self.id
 
 
+class MP_TestNode_Proxy(MP_TestNode):
+    class Meta:
+        proxy = True
+
+
 class NS_TestNode(NS_Node):
     desc = models.CharField(max_length=255)
 
@@ -78,6 +83,11 @@ class NS_TestNodeSomeDep(models.Model):
 
     def __unicode__(self):  # pragma: no cover
         return 'Node %d' % self.id
+
+
+class NS_TestNode_Proxy(NS_TestNode):
+    class Meta:
+        proxy = True
 
 
 class AL_TestNode(AL_Node):
@@ -97,6 +107,11 @@ class AL_TestNodeSomeDep(models.Model):
 
     def __unicode__(self):  # pragma: no cover
         return 'Node %d' % self.id
+
+
+class AL_TestNode_Proxy(AL_TestNode):
+    class Meta:
+        proxy = True
 
 
 class MP_TestNodeSorted(MP_Node):
@@ -244,16 +259,19 @@ class TestTreeBase(TestCase):
         self.model = MP_TestNode
         self.sorted_model = MP_TestNodeSorted
         self.dep_model = MP_TestNodeSomeDep
+        self.proxy_model = MP_TestNode_Proxy
 
     def set_NS(self):
         self.model = NS_TestNode
         self.sorted_model = NS_TestNodeSorted
         self.dep_model = NS_TestNodeSomeDep
+        self.proxy_model = NS_TestNode_Proxy
 
     def set_AL(self):
         self.model = AL_TestNode
         self.sorted_model = AL_TestNodeSorted
         self.dep_model = AL_TestNodeSomeDep
+        self.proxy_model = AL_TestNode_Proxy
 
     def got(self):
         if self.model == NS_TestNode:
@@ -2015,6 +2033,23 @@ class TestMoveNodeForm(TestTreeBase):
             for obj in self.model.get_tree():
                 ids.extend([obj.id] * 2)
             self.assertEqual(tpl % tuple(ids), unicode(form))
+
+
+class TestProxy(TestTreeBase):
+
+    def setUp(self):
+        super(TestProxy, self).setUp()
+        MP_TestNode_Proxy.load_bulk(BASE_DATA)
+        AL_TestNode_Proxy.load_bulk(BASE_DATA)
+        NS_TestNode_Proxy.load_bulk(BASE_DATA)
+
+    def _multi_proxy_load_and_dump_bulk_keeping_ids(self):
+        exp = self.proxy_model.dump_bulk(keep_ids=True)
+        self.proxy_model.objects.all().delete()
+        self.proxy_model.load_bulk(exp, None, True)
+        got = self.proxy_model.dump_bulk(keep_ids=True)
+        self.assertEqual(got, exp)
+
 
 _load_test_methods(TestMoveNodeForm)
 _load_test_methods(TestEmptyTree)
