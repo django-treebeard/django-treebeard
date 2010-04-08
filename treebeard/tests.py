@@ -1089,11 +1089,13 @@ class TestMoveErrors(TestNonEmptyTree):
         self.assertRaises(MissingNodeOrderBy, node.move, node,
                           'sorted-sibling')
 
+
 class TestMoveSortedErrors(TestNonEmptyTree):
 
     def _multi_nonsorted_move_in_sorted(self):
         node = self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
         self.assertRaises(InvalidPosition, node.move, node, 'left')
+
 
 class TestMoveLeafRoot(TestNonEmptyTree):
 
@@ -2054,6 +2056,6 @@ _load_test_methods(TestMoveLeaf)
 _load_test_methods(TestMoveBranchRoot)
 _load_test_methods(TestMoveBranch)
 _load_test_methods(TestHelpers)
-# only tests these since we didn't create extra sorted-proxy models
+# we didn't create extra sorted-proxy models
 _load_test_methods(TestMoveSortedErrors, proxy=False)
 _load_test_methods(TestTreeSorted, proxy=False)
