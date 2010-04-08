@@ -352,10 +352,9 @@ class MP_Node(Node):
         # Because of fix_tree, this method assumes that the depth
         # and numchild properties in the nodes can be incorrect,
         # so no helper methods are used
+        qset = cls._get_serializable_model().objects.all()
         if parent:
-            qset = cls.objects.filter(path__startswith=parent.path)
-        else:
-            qset = cls.objects.all()
+            qset = qset.filter(path__startswith=parent.path)
         ret, lnk = [], {}
         for pyobj in serializers.serialize('python', qset):
             # django's serializer stores the attributes in 'fields'

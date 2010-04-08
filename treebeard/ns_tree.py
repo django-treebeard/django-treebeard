@@ -589,7 +589,7 @@ class NS_Node(Node):
 
         See: :meth:`treebeard.Node.dump_bulk`
         """
-        qset = cls.get_tree(parent)
+        qset = cls._get_serializable_model().get_tree(parent)
         ret, lnk = [], {}
         for pyobj in qset:
             serobj = serializers.serialize('python', [pyobj])[0]
