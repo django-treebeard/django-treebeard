@@ -275,7 +275,7 @@ class TestTreeBase(TestCase):
         self.dep_model = AL_TestNodeSomeDep
 
     def got(self):
-        if self.model == NS_TestNode:
+        if self.model in (NS_TestNode, NS_TestNode_Proxy):
             # this slows down nested sets tests quite a bit, but it has the
             # advantage that we'll check the node edges are correct
             d = {}
@@ -400,7 +400,7 @@ class TestClassMethods(TestNonEmptyTree):
         # this is ONLY needed by the nested set tree model, the rgt value of
         # the node was updated in a raw query, and it must be updated in
         # django's object
-        if self.model == NS_TestNode:
+        if self.model in (NS_TestNode, NS_TestNode_Proxy):
             node = self.model.objects.get(pk=node.id)
 
         got = [(o.desc, o.get_depth(), o.get_children_count())
@@ -454,7 +454,7 @@ class TestClassMethods(TestNonEmptyTree):
         # this is ONLY needed by the nested set tree model, the rgt value of
         # the node was updated in a raw query, and it must be updated in
         # django's object
-        if self.model == NS_TestNode:
+        if self.model in (NS_TestNode, NS_TestNode_Proxy):
             node = self.model.objects.get(pk=node.id)
 
         got = self.model.dump_bulk(node, False)
