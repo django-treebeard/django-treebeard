@@ -1890,10 +1890,10 @@ class TestMP_TreeFix(TestTreeBase):
             model.find_problems()
 
 
-class TestIssue14(TestCase):
-    "test for  http://code.google.com/p/django-treebeard/issues/detail?id=14"
+class TestIssues(TestCase):
+    "test for http://code.google.com/p/django-treebeard/issues/detail?id=14"
 
-    def test_issue_14(self):
+    def test_many_to_many_django_user_anonymous(self):
         if not HAS_DJANGO_AUTH:  # pragma: no cover
             self.fail('this test needs django.contrib.auth in INSTALLED_APPS')
 
