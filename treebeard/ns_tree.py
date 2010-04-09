@@ -160,11 +160,9 @@ class NS_Node(Node):
 
         if last_root:
             # adding the new root node as the last one
-            #newtree_id = last_root.tree_id + 100
             newtree_id = last_root.tree_id + 1
         else:
             # adding the first root node
-            #newtree_id = 100
             newtree_id = 1
 
         # creating the new object
@@ -172,7 +170,6 @@ class NS_Node(Node):
         newobj.depth = 1
         newobj.tree_id = newtree_id
         newobj.lft = 1
-        #newobj.rgt = 400000000
         newobj.rgt = 2
         # saving the instance before returning it
         newobj.save()
@@ -593,7 +590,6 @@ class NS_Node(Node):
         ret, lnk = [], {}
         for pyobj in qset:
             serobj = serializers.serialize('python', [pyobj])[0]
-            # for serobj in serializers.serialize('python', qset):
             # django's serializer stores the attributes in 'fields'
             fields = serobj['fields']
             depth = fields['depth']

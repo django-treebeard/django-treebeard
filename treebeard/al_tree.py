@@ -111,8 +111,6 @@ class AL_Node(Node):
     particular arguments or exceptions.
     """
 
-    #parent = models.ForeignKey('self',
-    #                           null=True)
     objects = AL_NodeManager()
     node_order_by = None
 
@@ -239,7 +237,6 @@ class AL_Node(Node):
         serializable_cls = cls._get_serializable_model()
         if parent and serializable_cls != cls and \
                 parent.__class__ != serializable_cls:
-            # if parent
             parent = serializable_cls.objects.get(pk=parent.pk)
 
         # a list of nodes: not really a queryset, but it works
