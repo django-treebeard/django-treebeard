@@ -9,6 +9,10 @@
    :hidden:
 
    api
+   mp_tree
+   ns_tree
+   al_tree
+   benchmarks
 
 :synopsys: Efficient Tree implementations for Django 1.0+
 :copyright: 2008-2010 by `Gustavo Picon <https://tabo.pe>`_
@@ -76,26 +80,8 @@ Read the :class:`models.Node` API reference for detailed info.
    http://pypi.python.org/pypi/django-treebeard/
 .. _`django-core-context-processors-request`:
    http://docs.djangoproject.com/en/dev/ref/templates/api/#django-core-context-processors-request
-
-:mod:`treebeard.mp_tree` --- Materialized Path tree
-===================================================
-
-.. automodule:: treebeard.mp_tree
-
-   .. autoclass:: MP_Node
-      :show-inheritance:
-
-      .. automethod:: add_root
-
-      .. automethod:: add_child
-      .. automethod:: add_sibling
-      .. automethod:: move
-
-      .. automethod:: get_tree
-
-      .. automethod:: find_problems
-      .. automethod:: fix_tree
-
+.. _`Django Model Inheritance with abstract classes`:
+  http://docs.djangoproject.com/en/dev/topics/db/models/#abstract-base-classes
 
 :mod:`treebeard.al_tree` --- Adjacency List tree
 ================================================
