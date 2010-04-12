@@ -1,25 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-
-    treebeard.ns_tree
-    -----------------
-
-    Nested Sets Tree.
-
-    :copyright: 2008-2010 by Gustavo Picon
-    :license: Apache License 2.0
-
-    An implementation of Nested Sets trees for Django 1.0+, as described by
-    `Joe Celko`_ in `Trees and Hierarchies in SQL for Smarties`_.
-
-    Nested sets have very efficient reads at the cost of high maintenance on
-    write/delete operations.
-
-
-    .. _`Joe Celko`: http://www.celko.com/
-    .. _`Trees and Hierarchies in SQL for Smarties`:
-      http://www.elsevier.com/wps/product/cws_home/702605
-"""
+"Nested Sets"
 
 import operator
 
@@ -97,42 +76,12 @@ class NS_NodeManager(models.Manager):
     """
 
     def get_query_set(self):
-        """
-        Sets the custom queryset as the default.
-        """
+        "Sets the custom queryset as the default."
         return NS_NodeQuerySet(self.model).order_by('tree_id', 'lft')
 
 
 class NS_Node(Node):
-    """
-    Abstract model to create your own Nested Sets Trees.
-
-    .. attribute:: node_order_by
-
-       Attribute: a list of model fields that will be used for node
-       ordering. When enabled, all tree operations will assume this ordering.
-
-       Example::
-
-          node_order_by = ['field1', 'field2', 'field3']
-
-    .. attribute:: depth
-
-       ``PositiveIntegerField``, depth of a node in the tree. A root node
-       has a depth of *1*.
-
-    .. attribute:: lft
-
-       ``PositiveIntegerField``
-
-    .. attribute:: rgt
-
-       ``PositiveIntegerField``
-
-    .. attribute:: tree_id
-
-       ``PositiveIntegerField``
-    """
+    "Abstract model to create your own Nested Sets Trees."
     node_order_by = []
 
     lft = models.PositiveIntegerField(db_index=True)
@@ -144,11 +93,7 @@ class NS_Node(Node):
 
     @classmethod
     def add_root(cls, **kwargs):
-        """
-        Adds a root node to the tree.
-
-        See: :meth:`treebeard.Node.add_root`
-        """
+        "Adds a root node to the tree."
 
         # do we have a root node already?
         last_root = cls.get_last_root_node()
@@ -208,11 +153,7 @@ class NS_Node(Node):
         return sql, []
 
     def add_child(self, **kwargs):
-        """
-        Adds a child to the node.
-
-        See: :meth:`treebeard.Node.add_child`
-        """
+        "Adds a child to the node."
         if not self.is_leaf():
             # there are child nodes, delegate insertion to add_sibling
             if self.node_order_by:
@@ -249,11 +190,7 @@ class NS_Node(Node):
         return newobj
 
     def add_sibling(self, pos=None, **kwargs):
-        """
-        Adds a new node as a sibling to the current node object.
-
-        See: :meth:`treebeard.Node.add_sibling`
-        """
+        "Adds a new node as a sibling to the current node object."
 
         pos = self._fix_add_sibling_opts(pos)
 
@@ -349,8 +286,6 @@ class NS_Node(Node):
         """
         Moves the current node and all it's descendants to a new position
         relative to another node.
-
-        See: :meth:`treebeard.Node.move`
         """
 
         pos = self._fix_move_opts(pos)
@@ -499,11 +434,7 @@ class NS_Node(Node):
 
     @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
-        """
-        Loads a list/dictionary structure to the tree.
-
-        See: :meth:`treebeard.Node.move`
-        """
+        "Loads a list/dictionary structure to the tree."
 
         # tree, iterative preorder
         added = []
@@ -534,35 +465,19 @@ class NS_Node(Node):
         return added
 
     def get_children(self):
-        """
-        :returns: A queryset of all the node's children
-
-        See: :meth:`treebeard.Node.get_children`
-        """
+        ":returns: A queryset of all the node's children"
         return self.get_descendants().filter(depth=self.depth + 1)
 
     def get_depth(self):
-        """
-        :returns: the depth (level) of the node
-
-        See: :meth:`treebeard.Node.get_depth`
-        """
+        ":returns: the depth (level) of the node"
         return self.depth
 
     def is_leaf(self):
-        """
-        :returns: True if the node is a leaf node (else, returns False)
-
-        See: :meth:`treebeard.Node.is_leaf`
-        """
+        ":returns: True if the node is a leaf node (else, returns False)"
         return self.rgt - self.lft == 1
 
     def get_root(self):
-        """
-        :returns: the root node for the current node object.
-
-        See: :meth:`treebeard.Node.get_root`
-        """
+        ":returns: the root node for the current node object."
         if self.lft == 1:
             return self
         return self.__class__.objects.get(tree_id=self.tree_id,
@@ -572,8 +487,6 @@ class NS_Node(Node):
         """
         :returns: A queryset of all the node's siblings, including the node
             itself.
-
-        See: :meth:`treebeard.Node.get_siblings`
         """
         if self.lft == 1:
             return self.get_root_nodes()
@@ -581,11 +494,7 @@ class NS_Node(Node):
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
-        """
-        Dumps a tree branch to a python data structure.
-
-        See: :meth:`treebeard.Node.dump_bulk`
-        """
+        "Dumps a tree branch to a python data structure."
         qset = cls._get_serializable_model().get_tree(parent)
         ret, lnk = [], {}
         for pyobj in qset:
@@ -623,12 +532,6 @@ class NS_Node(Node):
         """
         :returns: A *queryset* of nodes ordered as DFS, including the parent.
                   If no parent is given, all trees are returned.
-
-        See: :meth:`treebeard.Node.get_tree`
-
-        .. note::
-
-            This metod returns a queryset.
         """
         if parent is None:
             # return the entire tree
@@ -643,27 +546,19 @@ class NS_Node(Node):
         """
         :returns: A queryset of all the node's descendants as DFS, doesn't
             include the node itself
-
-        See: :meth:`treebeard.Node.get_descendants`
         """
         if self.is_leaf():
             return self.__class__.objects.none()
         return self.__class__.get_tree(self).exclude(pk=self.id)
 
     def get_descendant_count(self):
-        """
-        :returns: the number of descendants of a node.
-
-        See: :meth:`treebeard.Node.get_descendant_count`
-        """
+        ":returns: the number of descendants of a node."
         return (self.rgt - self.lft - 1) / 2
 
     def get_ancestors(self):
         """
         :returns: A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
-
-        See: :meth:`treebeard.Node.get_ancestors`
         """
         if self.is_root():
             return self.__class__.objects.none()
@@ -676,8 +571,6 @@ class NS_Node(Node):
         """
         :returns: ``True`` if the node if a descendant of another node given
             as an argument, else, returns ``False``
-
-        See: :meth:`treebeard.Node.is_descendant_of`
         """
         return self.tree_id == node.tree_id and \
                self.lft > node.lft and \
@@ -687,8 +580,6 @@ class NS_Node(Node):
         """
         :returns: the parent node of the current node object.
             Caches the result in the object itself to help in loops.
-
-        See: :meth:`treebeard.Node.get_parent`
         """
         if self.is_root():
             return
@@ -705,17 +596,9 @@ class NS_Node(Node):
 
     @classmethod
     def get_root_nodes(cls):
-        """
-        :returns: A queryset containing the root nodes in the tree.
-
-        Example::
-
-           MyNodeModel.get_root_nodes()
-        """
+        ":returns: A queryset containing the root nodes in the tree."
         return cls.objects.filter(lft=1)
 
     class Meta:
-        """
-        Abstract model.
-        """
+        "Abstract model."
         abstract = True
