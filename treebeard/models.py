@@ -44,12 +44,6 @@ class Node(models.Model):
             inherited Node model
 
         :returns: the created node object. It will be save()d by this method.
-
-        Example::
-
-            MyNode.add_root(numval=1, strval='abcd')
-            MyNode.add_root(**{'numval':1, 'strval':'abcd'})
-
         """
         raise NotImplementedError
 
@@ -86,55 +80,6 @@ class Node(models.Model):
 
 
         :returns: A list of the added node ids.
-
-        .. note::
-
-            Any internal data that you may have stored in your
-            nodes' data (:attr:`path`, :attr:`depth`) will be
-            ignored.
-
-        .. note::
-
-            If your node model has :attr:`node_order_by` enabled, it will
-            take precedence over the order in the structure.
-
-        Example::
-
-            data = [{'data':{'desc':'1'}},
-                    {'data':{'desc':'2'}, 'children':[
-                      {'data':{'desc':'21'}},
-                      {'data':{'desc':'22'}},
-                      {'data':{'desc':'23'}, 'children':[
-                        {'data':{'desc':'231'}},
-                      ]},
-                      {'data':{'desc':'24'}},
-                    ]},
-                    {'data':{'desc':'3'}},
-                    {'data':{'desc':'4'}, 'children':[
-                      {'data':{'desc':'41'}},
-                    ]},
-            ]
-            # parent = None
-            MyNodeModel.load_data(data, None)
-
-        Will create:
-
-            * 1
-            * 2
-
-              * 21
-              * 22
-              * 23
-
-                * 231
-
-              * 24
-
-            * 3
-            * 4
-
-              * 41
-
         """
 
         # tree, iterative preorder
@@ -177,36 +122,17 @@ class Node(models.Model):
 
         :returns: A python data structure, describen with detail in
                   :meth:`load_bulk`
-
-        Example::
-
-           tree = MyNodeModel.dump_bulk()
-
-           branch = MyNodeModel.dump_bulk(node_obj)
-
         """
         raise NotImplementedError
 
     @classmethod
     def get_root_nodes(cls):  # pragma: no cover
-        """
-        :returns: A queryset containing the root nodes in the tree.
-
-        Example::
-
-           MyNodeModel.get_root_nodes()
-        """
+        ":returns: A queryset containing the root nodes in the tree."
         raise NotImplementedError
 
     @classmethod
     def get_first_root_node(cls):
-        """
-        :returns: The first root node in the tree or ``None`` if it is empty
-
-        Example::
-
-           MyNodeModel.get_first_root_node()
-        """
+        ":returns: The first root node in the tree or ``None`` if it is empty"
         try:
             return cls.get_root_nodes()[0]
         except IndexError:
@@ -214,14 +140,7 @@ class Node(models.Model):
 
     @classmethod
     def get_last_root_node(cls):
-        """
-        :returns: The last root node in the tree or ``None`` if it is empty
-
-        Example::
-
-           MyNodeModel.get_last_root_node()
-
-        """
+        ":returns: The last root node in the tree or ``None`` if it is empty"
         try:
             return cls.get_root_nodes().reverse()[0]
         except IndexError:
@@ -229,20 +148,14 @@ class Node(models.Model):
 
     @classmethod
     def find_problems(cls):  # pragma: no cover
-        """
-        Checks for problems in the tree structure.
-
-        Read the documentation of this method on every tree class for details.
-        """
+        "Checks for problems in the tree structure."
         raise NotImplementedError
 
     @classmethod
     def fix_tree(cls):  # pragma: no cover
         """
-        Solves some problems that can appear when transactions are not used and
+        Solves problems that can appear when transactions are not used and
         a piece of code breaks, leaving the tree in an inconsistent state.
-
-        Read the documentation of this method on every tree class for details.
         """
         raise NotImplementedError
 
@@ -269,15 +182,6 @@ class Node(models.Model):
 
             A `list` (**NOT** a Queryset) of node objects with an extra
             attribute: `descendants_count`.
-
-        Example::
-
-            # get a list of the root nodes
-            root_nodes = MyModel.get_descendants_group_count()
-
-            for node in root_nodes:
-                print '%s by %s (%d replies)' % (node.comment, node.author,
-                                                 node.descendants_count)
         """
 
         # this is the slowest possible implementation, subclasses should do
@@ -292,44 +196,22 @@ class Node(models.Model):
         return nodes
 
     def get_depth(self):  # pragma: no cover
-        """
-        :returns: the depth (level) of the node
-
-        Example::
-
-           node.get_depth()
-        """
+        ":returns: the depth (level) of the node"
         raise NotImplementedError
 
     def get_siblings(self):  # pragma: no cover
         """
         :returns: A queryset of all the node's siblings, including the node
             itself.
-
-        Example::
-
-           node.get_siblings()
         """
         raise NotImplementedError
 
     def get_children(self):  # pragma: no cover
-        """
-        :returns: A queryset of all the node's children
-
-        Example::
-
-           node.get_children()
-        """
+        ":returns: A queryset of all the node's children"
         raise NotImplementedError
 
     def get_children_count(self):
-        """
-        :returns: The number of the node's children
-
-        Example::
-
-            node.get_children_count()
-        """
+        ":returns: The number of the node's children"
 
         # this is the last resort, subclasses of Node should implement this in
         # a efficient way.
@@ -339,44 +221,22 @@ class Node(models.Model):
         """
         :returns: A queryset of all the node's descendants, doesn't
             include the node itself (some subclasses may return a list).
-
-        Example::
-
-           node.get_descendants()
         """
         raise NotImplementedError
 
     def get_descendant_count(self):
-        """
-        :returns: the number of descendants of a node.
-
-        Example::
-
-           node.get_descendant_count()
-        """
+        ":returns: the number of descendants of a node."
         return self.get_descendants().count()
 
     def get_first_child(self):
-        """
-        :returns: The leftmost node's child, or None if it has no children.
-
-        Example::
-
-           node.get_first_child()
-        """
+        ":returns: The leftmost node's child, or None if it has no children."
         try:
             return self.get_children()[0]
         except IndexError:
             return None
 
     def get_last_child(self):
-        """
-        :returns: The rightmost node's child, or None if it has no children.
-
-        Example::
-
-           node.get_last_child()
-        """
+        ":returns: The rightmost node's child, or None if it has no children."
         try:
             return self.get_children().reverse()[0]
         except IndexError:
@@ -384,12 +244,8 @@ class Node(models.Model):
 
     def get_first_sibling(self):
         """
-        :returns: The leftmost node's sibling, can return the node itself if it
-            was the leftmost sibling.
-
-        Example::
-
-           node.get_first_sibling()
+        :returns: The leftmost node's sibling, can return the node itself if
+            it was the leftmost sibling.
         """
         return self.get_siblings()[0]
 
@@ -397,10 +253,6 @@ class Node(models.Model):
         """
         :returns: The rightmost node's sibling, can return the node itself if
             it was the rightmost sibling.
-
-        Example::
-
-            node.get_last_sibling()
         """
         return self.get_siblings().reverse()[0]
 
@@ -408,10 +260,6 @@ class Node(models.Model):
         """
         :returns: The previous node's sibling, or None if it was the leftmost
             sibling.
-
-        Example::
-
-           node.get_prev_sibling()
         """
 
         siblings = self.get_siblings()
@@ -425,10 +273,6 @@ class Node(models.Model):
         """
         :returns: The next node's sibling, or None if it was the rightmost
             sibling.
-
-        Example::
-
-           node.get_next_sibling()
         """
         siblings = self.get_siblings()
         ids = [obj.pk for obj in siblings]
@@ -445,10 +289,6 @@ class Node(models.Model):
         :param node:
 
             The node that will be checked as a sibling
-
-        Example::
-
-           node.is_sibling_of(node2)
         """
         return len(self.get_siblings().filter(pk__in=[node.pk])) > 0
 
@@ -460,10 +300,6 @@ class Node(models.Model):
         :param node:
 
             The node that will be checked as a parent
-
-        Example::
-
-           node.is_child_of(node2)
         """
         return len(node.get_children().filter(pk__in=[self.pk])) > 0
 
@@ -475,10 +311,6 @@ class Node(models.Model):
         :param node:
 
             The node that will be checked as an ancestor
-
-        Example::
-
-           node.is_descendant_of(node2)
         """
         raise NotImplementedError
 
@@ -495,12 +327,6 @@ class Node(models.Model):
             model
 
         :returns: The created node object. It will be save()d by this method.
-
-        Example::
-
-           node.add_child(numval=1, strval='abcd')
-           node.add_child(**{'numval': 1, 'strval': 'abcd'})
-
         """
         raise NotImplementedError
 
@@ -535,44 +361,19 @@ class Node(models.Model):
            ``pos`` parm wasn't ``sorted-sibling``
         :raise MissingNodeOrderBy: when passing ``sorted-sibling`` as ``pos``
            and the :attr:`node_order_by` attribute is missing
-
-
-
-        Examples::
-
-           node.add_sibling('sorted-sibling', numval=1, strval='abc')
-           node.add_sibling('sorted-sibling', **{'numval': 1, 'strval': 'abc'})
         """
         raise NotImplementedError
 
     def get_root(self):  # pragma: no cover
-        """
-        :returns: the root node for the current node object.
-
-        Example::
-
-          node.get_root()
-        """
+        ":returns: the root node for the current node object."
         raise NotImplementedError
 
     def is_root(self):
-        """
-        :returns: True if the node is a root node (else, returns False)
-
-        Example::
-
-           node.is_root()
-        """
+        ":returns: True if the node is a root node (else, returns False)"
         return self.get_root() == self
 
     def is_leaf(self):
-        """
-        :returns: True if the node is a leaf node (else, returns False)
-
-        Example::
-
-           node.is_leaf()
-        """
+        ":returns: True if the node is a leaf node (else, returns False)"
         return self.get_children_count() == 0
 
     def get_ancestors(self):  # pragma: no cover
@@ -580,10 +381,6 @@ class Node(models.Model):
         :returns: A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
             (some subclasses may return a list)
-
-        Example::
-
-           node.get_ancestors()
         """
         raise NotImplementedError
 
@@ -593,11 +390,6 @@ class Node(models.Model):
             Caches the result in the object itself to help in loops.
 
         :param update: Updates de cached value.
-
-        Example::
-
-           node.get_parent()
-
         """
         raise NotImplementedError
 
@@ -605,9 +397,6 @@ class Node(models.Model):
         """
         Moves the current node and all it's descendants to a new position
         relative to another node.
-
-        .. note:: The node can be moved under another root node.
-
 
         :param target:
 
@@ -652,31 +441,15 @@ class Node(models.Model):
         :raise MissingNodeOrderBy: when passing ``sorted-sibling`` or
            ``sorted-child`` as ``pos`` and the :attr:`node_order_by`
            attribute is missing
-
-        Examples::
-
-           node.move(node2, 'sorted-child')
-
-           node.move(node2, 'prev-sibling')
-
         """
         raise NotImplementedError
 
     def delete(self):
-        """
-        Removes a node and all it's descendants.
-
-        .. note::
-
-           Call our queryset's delete to handle children removal. Subclasses
-           will handle extra maintenance.
-        """
+        "Removes a node and all it's descendants."
         self.__class__.objects.filter(id=self.id).delete()
 
     def _fix_add_sibling_opts(self, pos):
-        """
-        prepare the pos variable for the add_sibling method
-        """
+        "prepare the pos variable for the add_sibling method"
         if pos is None:
             if self.node_order_by:
                 pos = 'sorted-sibling'
@@ -694,9 +467,7 @@ class Node(models.Model):
         return pos
 
     def _fix_move_opts(self, pos):
-        """
-        prepare the pos var for the move method
-        """
+        "prepare the pos var for the move method"
         if pos is None:
             if self.node_order_by:
                 pos = 'sorted-sibling'
@@ -745,55 +516,6 @@ class Node(models.Model):
             The node whose descendants will be annotated. The node itself
             will be included in the list. If not given, the entire tree
             will be annotated.
-
-        Example::
-
-            annotated_list = get_annotated_list()
-
-        With data:
-
-            * a
-
-              * ab
-
-                * aba
-                * abb
-                * abc
-
-              * ac
-
-        Will return::
-
-            [
-                (a,     {'open':True,  'close':[],    'level': 0})
-                (ab,    {'open':True,  'close':[],    'level': 1})
-                (aba,   {'open':True,  'close':[],    'level': 2})
-                (abb,   {'open':False, 'close':[],    'level': 2})
-                (abc,   {'open':False, 'close':[0,1], 'level': 2})
-                (ac,    {'open':False, 'close':[0],   'level': 1})
-            ]
-
-        This can be used with a template like::
-
-            {% for item, info in annotated_list %}
-                {% if info.open %}
-                    <ul><li>
-                {% else %}
-                    </li><li>
-                {% endif %}
-
-                {{ item }}
-
-                {% for close in info.close %}
-                    </li></ul>
-                {% endfor %}
-            {% endfor %}
-
-        .. note:: This method was contributed originally by
-                  `Alexey Kinyov <rudi@05bit.com>`_, using an idea borrowed
-                  from `django-mptt`.
-
-
         """
 
         result = []
@@ -824,17 +546,17 @@ class Node(models.Model):
 
     @classmethod
     def _get_serializable_model(cls):
-        """Returns a model with a valid _meta.local_fields (serializable).
+        """
+        Returns a model with a valid _meta.local_fields (serializable).
 
         Basically, this means the original model, not a proxied model.
 
-        (this is a workaround for a bug in django)"""
+        (this is a workaround for a bug in django)
+        """
         while cls._meta.proxy:
             cls = cls._meta.proxy_for_model
         return cls
 
     class Meta:
-        """
-        Abstract model.
-        """
+        "Abstract model."
         abstract = True
