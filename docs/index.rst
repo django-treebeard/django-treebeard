@@ -13,6 +13,8 @@
    ns_tree
    al_tree
    admin
+   forms
+   exceptions
    benchmarks
 
 :synopsys: Efficient Tree implementations for Django 1.0+
@@ -88,27 +90,9 @@ Read the :class:`models.Node` API reference for detailed info.
 
 
 
-:mod:`treebeard.forms` --- Forms
-================================
-
-.. automodule:: treebeard.forms
-
-   .. autoclass:: MoveNodeForm
 
 
 
-:mod:`treebeard.exceptions` --- Exceptions
-==========================================
-
-.. automodule:: treebeard.exceptions
-    
-    .. autoexception:: InvalidPosition
-
-    .. autoexception:: InvalidMoveToDescendant
-
-    .. autoexception:: PathOverflow
-
-    .. autoexception:: MissingNodeOrderBy
 
 
 

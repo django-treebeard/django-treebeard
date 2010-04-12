@@ -1,27 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-
-    treebeard.exceptions
-    --------------------
-
-    Exceptions
-
-    :copyright: 2008-2010 by Gustavo Picon
-    :license: Apache License 2.0
-
-"""
+"Treebeard exceptions"
 
 
 class InvalidPosition(Exception):
-    """
-    Raised when passing an invalid pos value
-    """
+    "Raised when passing an invalid pos value"
 
 
 class InvalidMoveToDescendant(Exception):
-    """
-    Raised when attemping to move a node to one of it's descendants.
-    """
+    "Raised when attemping to move a node to one of it's descendants."
 
 
 class MissingNodeOrderBy(Exception):
