@@ -2,7 +2,6 @@
 ==========================================
 
 .. module:: treebeard.exceptions
-.. moduleauthor:: aleh.fl
 .. moduleauthor:: Gustavo Picon <tabo@tabo.pe>
     
 .. autoexception:: InvalidPosition
