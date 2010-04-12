@@ -1,5 +1,5 @@
-:mod:`treebeard.exceptions` --- Exceptions
-==========================================
+Exceptions
+==========
 
 .. module:: treebeard.exceptions
 .. moduleauthor:: Gustavo Picon <tabo@tabo.pe>

@@ -1,5 +1,5 @@
-:mod:`treebeard.al_tree` --- Adjacency List tree
-================================================
+Adjacency List trees
+====================
 
 .. module:: treebeard.al_tree
 .. moduleauthor:: Gustavo Picon <tabo@tabo.pe>

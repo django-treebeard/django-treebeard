@@ -1,11 +1,9 @@
-
-:mod:`treebeard` --- Efficient tree model implementations for Django
-====================================================================
+django-treebeard
+================
 
 .. contents::
 
 .. toctree::
-   :maxdepth: 3
    :hidden:
 
    api
@@ -34,44 +32,43 @@
 :tests:
    `treebeard-tests
    <http://code.tabo.pe/django-treebeard/src/tip/treebeard/tests.py>`_
-:benchmarks: `treebeard-benchmarks <#module-tbbench>`_
 
 ``django-treebeard`` is a library that implements efficient tree
 implementations for the `Django Web Framework 1.0+
 <http://www.djangoproject.com/>`_. It includes 3 different tree
 implementations: Adjacency List, Materialized Path and Nested Sets. Each
-one has it's own strength and weaknesses (see
-`Benchmarks <#module-tbbench>`_) but share the same
-API, so it's easy to switch between implementations.
+one has it's own strength and weaknesses (see :doc:`benchmarks`) but share
+the same API, so it's easy to switch between implementations.
 
 ``django-treebeard`` uses `Django Model Inheritance with abstract classes`_
 to let you define your own models. To use ``django-treebeard``:
 
-   1. Run :command:`easy_install django-treebeard` to install the
-      `latest treebeard version from PyPi`_
-      1.1. If you don't like easy_install, download a release from the
-      `treebeard download page`_ or get a development version
-      from the `treebeard mercurial repository`_ and run
-      :command:`python setup.py install`
-   2. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your
-      django settings file.
-   3. Create a new model that inherits from one of ``django-treebeard``'s
-      abstract tree models: :class:`mp_tree.MP_Node` (materialized path),
-      :class:`ns_tree.NS_Node` (nested sets) or :class:`al_tree.AL_Node`
-      (adjacency list).
-   4. Run :command:`python manage.py syncdb`
-   5. (Optional) If you are going to use the :class:`admin.TreeAdmin`
-      class for the django admin, you should install treebeard as a
-      directory instead of an egg:
-      :command:`easy_install --always-unzip django-treebeard`.
-      If you install treebeard as an egg, you'll need to enable
-      ``django.template.loaders.eggs.load_template_source`` in the
-      ``TEMPLATE_LOADERS`` setting in your django settings file.
-      Either way, you need to add the path (filesystem or python
-      namespace) to treebeard's templates in ``TEMPLATE_DIRS``.
-      Also you need to enable `django-core-context-processors-request`_
-      in the ``TEMPLATE_CONTEXT_PROCESSORS`` setting in your django
-      settings file.
+1. Run :command:`easy_install django-treebeard` to install the
+   `latest treebeard version from PyPi`_
+
+   1.1. If you don't like easy_install, download a release from the
+   `treebeard download page`_ or get a development version
+   from the `treebeard mercurial repository`_ and run
+   :command:`python setup.py install`
+2. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your
+   django settings file.
+3. Create a new model that inherits from one of ``django-treebeard``'s
+   abstract tree models: :class:`mp_tree.MP_Node` (materialized path),
+   :class:`ns_tree.NS_Node` (nested sets) or :class:`al_tree.AL_Node`
+   (adjacency list).
+4. Run :command:`python manage.py syncdb`
+5. (Optional) If you are going to use the :class:`admin.TreeAdmin`
+   class for the django admin, you should install treebeard as a
+   directory instead of an egg:
+   :command:`easy_install --always-unzip django-treebeard`.
+   If you install treebeard as an egg, you'll need to enable
+   ``django.template.loaders.eggs.load_template_source`` in the
+   ``TEMPLATE_LOADERS`` setting in your django settings file.
+   Either way, you need to add the path (filesystem or python
+   namespace) to treebeard's templates in ``TEMPLATE_DIRS``.
+   Also you need to enable `django-core-context-processors-request`_
+   in the ``TEMPLATE_CONTEXT_PROCESSORS`` setting in your django
+   settings file.
 
 
 Read the :class:`models.Node` API reference for detailed info.

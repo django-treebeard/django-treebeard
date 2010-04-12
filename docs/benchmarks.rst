@@ -1,8 +1,8 @@
-:mod:`tbbench` --- Benchmarks
-=============================
+Benchmarks
+==========
 
-tbbench is a django app that isn't installed by default. I wrote it to find
-spots that could be optimized, and it may help you to tweak your database
+``tbbench`` is a django app that isn't installed by default. I wrote it to
+find spots that could be optimized, and it may help you to tweak your database
 settings.
 
 To run the benchmarks:

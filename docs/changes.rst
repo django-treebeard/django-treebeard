@@ -1,4 +1,4 @@
-Changes in django-treebeard
-===========================
+Changes
+=======
 
 .. include:: ../CHANGES

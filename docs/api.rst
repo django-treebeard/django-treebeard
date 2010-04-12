@@ -7,9 +7,16 @@ API
 .. autoclass:: Node
   :show-inheritance:
 
-.. automethod:: Node.add_root
+  This is the base class that defines the API of all tree models in this
+  library:
 
-    Example::
+     - :class:`treebeard.mp_tree.MP_Node` (materialized path)
+     - :class:`treebeard.ns_tree.NS_Node` (nested sets)
+     - :class:`treebeard.al_tree.AL_Node` (adjacency list)
+
+  .. automethod:: Node.add_root
+
+     Example::
 
         MyNode.add_root(numval=1, strval='abcd')
         MyNode.add_root(**{'numval':1, 'strval':'abcd'})

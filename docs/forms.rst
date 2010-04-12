@@ -1,5 +1,5 @@
-:mod:`treebeard.forms` --- Forms
-================================
+Forms
+=====
 
 .. module:: treebeard.forms
 .. moduleauthor:: aleh.fl
