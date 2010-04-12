@@ -1,32 +1,14 @@
-# -*- coding: utf-8 -*-
-"""
-
-    treebeard.forms
-    ---------------
-
-    Forms for treebeard.
-
-    :copyright: 2008-2010 by Gustavo Picon
-    :license: Apache License 2.0
-
-    Original contribution by aleh.fl
-
-"""
+"Forms for treebeard."
 
 from django.forms.models import model_to_dict, ErrorList, BaseModelForm
 from django import forms
 
 
 class MoveNodeForm(forms.ModelForm):
-    """Form to handle moving a node in a tree.
+    """
+    Form to handle moving a node in a tree.
 
     Handles sorted/unsorted trees.
-
-    Read the `Django Form objects documentation`_ for reference.
-
-
-    .. _`Django Form objects documentation`:
-       http://docs.djangoproject.com/en/dev/topics/forms/#form-objects
     """
 
     __position_choices_sorted = (
