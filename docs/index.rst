@@ -116,10 +116,6 @@ Read the :class:`models.Node` API reference for detailed info.
     .. autoexception:: MissingNodeOrderBy
 
 
-:mod:`tbbench` --- Benchmarks
-=============================
-
-.. automodule:: tbbench
 
 
 Changes in django-treebeard
