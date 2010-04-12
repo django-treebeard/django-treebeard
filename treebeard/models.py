@@ -21,16 +21,7 @@ from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
 
 
 class Node(models.Model):
-    """ Node class.
-
-    This is the base class that defines the API of all tree models in this
-    library:
-
-        - :class:`mp_tree.MP_Node` (materialized path)
-        - :class:`ns_tree.NS_Node` (nested sets)
-        - :class:`al_tree.AL_Node` (adjacency list)
-
-    """
+    "Node class"
 
     @classmethod
     def add_root(cls, **kwargs):  # pragma: no cover

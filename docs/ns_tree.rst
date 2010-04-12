@@ -1,5 +1,5 @@
-:mod:`treebeard.ns_tree` --- Nested Sets tree
-=============================================
+Nested Sets trees
+=================
 
 .. module:: treebeard.ns_tree
 .. moduleauthor:: Gustavo Picon <tabo@tabo.pe>

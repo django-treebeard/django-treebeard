@@ -1,5 +1,5 @@
-:mod:`treebeard.mp_tree` --- Materialized Path tree
-===================================================
+Materialized Path trees
+=======================
 
 .. module:: treebeard.mp_tree
 .. moduleauthor:: Gustavo Picon <tabo@tabo.pe>

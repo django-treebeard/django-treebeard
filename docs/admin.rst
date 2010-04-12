@@ -1,5 +1,5 @@
-:mod:`treebeard.admin` --- Admin
-================================
+Admin
+=====
 
 .. module:: treebeard.admin
 .. moduleauthor:: aleh.fl
