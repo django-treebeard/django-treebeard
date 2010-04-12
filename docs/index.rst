@@ -12,6 +12,7 @@
    mp_tree
    ns_tree
    al_tree
+   admin
    benchmarks
 
 :synopsys: Efficient Tree implementations for Django 1.0+
@@ -84,12 +85,6 @@ Read the :class:`models.Node` API reference for detailed info.
   http://docs.djangoproject.com/en/dev/topics/db/models/#abstract-base-classes
 
 
-:mod:`treebeard.admin` --- Admin
-================================
-
-.. automodule:: treebeard.admin
-
-   .. autoclass:: TreeAdmin
 
 
 
