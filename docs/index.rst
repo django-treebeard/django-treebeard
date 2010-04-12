@@ -2,6 +2,12 @@
 :mod:`treebeard` --- Efficient tree model implementations for Django
 ====================================================================
 
+.. contents::
+
+.. toctree::
+
+   api
+
 :synopsys: Efficient Tree implementations for Django 1.0+
 :copyright: 2008-2010 by `Gustavo Picon <https://tabo.pe>`_
 :license: Apache License 2.0
@@ -68,51 +74,6 @@ Read the :class:`models.Node` API reference for detailed info.
    http://pypi.python.org/pypi/django-treebeard/
 .. _`django-core-context-processors-request`:
    http://docs.djangoproject.com/en/dev/ref/templates/api/#django-core-context-processors-request
-
-.. automodule:: treebeard
-
-.. automodule:: treebeard.models
-
-   .. autoclass:: Node
-      :show-inheritance:
-
-      .. automethod:: add_root
-      .. automethod:: add_child
-      .. automethod:: add_sibling
-      .. automethod:: delete
-      .. automethod:: get_tree
-      .. automethod:: get_depth
-      .. automethod:: get_ancestors
-      .. automethod:: get_children
-      .. automethod:: get_children_count
-      .. automethod:: get_descendants
-      .. automethod:: get_descendant_count
-      .. automethod:: get_first_child
-      .. automethod:: get_last_child
-      .. automethod:: get_first_sibling
-      .. automethod:: get_last_sibling
-      .. automethod:: get_prev_sibling
-      .. automethod:: get_next_sibling
-      .. automethod:: get_parent
-      .. automethod:: get_root
-      .. automethod:: get_siblings
-      .. automethod:: is_child_of
-      .. automethod:: is_descendant_of
-      .. automethod:: is_sibling_of
-      .. automethod:: is_root
-      .. automethod:: is_leaf
-      .. automethod:: move
-      .. automethod:: save
-      .. automethod:: get_first_root_node
-      .. automethod:: get_last_root_node
-      .. automethod:: get_root_nodes
-      .. automethod:: load_bulk
-      .. automethod:: dump_bulk
-      .. automethod:: find_problems
-      .. automethod:: fix_tree
-      .. automethod:: get_descendants_group_count
-      .. automethod:: get_annotated_list
-
 
 :mod:`treebeard.mp_tree` --- Materialized Path tree
 ===================================================
