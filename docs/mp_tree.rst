@@ -43,38 +43,38 @@ extra steps, materialized path is more efficient than other approaches.
    http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm
 
 .. autoclass:: MP_Node
-   :show-inheritance:
+  :show-inheritance:
 
-    .. warning::
+  .. warning::
 
-       Do not change the values of :attr:`path`, :attr:`depth` or
-       :attr:`numchild` directly: use one of the included methods instead.
-       Consider these values *read-only*.
+     Do not change the values of :attr:`path`, :attr:`depth` or
+     :attr:`numchild` directly: use one of the included methods instead.
+     Consider these values *read-only*.
 
-    .. warning::
+  .. warning::
 
-       Do not change the values of the :attr:`steplen`, :attr:`alphabet` or
-       :attr:`node_order_by` after saving your first model. Doing so will
-       corrupt the tree. If you *must* do it:
+     Do not change the values of the :attr:`steplen`, :attr:`alphabet` or
+     :attr:`node_order_by` after saving your first model. Doing so will
+     corrupt the tree. If you *must* do it:
 
-         1. Backup the tree with :meth:`dump_bulk`
-         2. Empty your model's table
-         3. Change :attr:`depth`, :attr:`alphabet` and/or
-            :attr:`node_order_by` in your model
-         4. Restore your backup using :meth:`load_bulk` with
-            ``keep_ids=True`` to keep the same primary keys you had.
+       1. Backup the tree with :meth:`dump_bulk`
+       2. Empty your model's table
+       3. Change :attr:`depth`, :attr:`alphabet` and/or
+          :attr:`node_order_by` in your model
+       4. Restore your backup using :meth:`load_bulk` with
+          ``keep_ids=True`` to keep the same primary keys you had.
 
-    Example::
+  Example::
 
-       class SortedNode(MP_Node):
-          node_order_by = ['numval', 'strval']
+     class SortedNode(MP_Node):
+        node_order_by = ['numval', 'strval']
 
-          numval = models.IntegerField()
-          strval = models.CharField(max_length=255)
+        numval = models.IntegerField()
+        strval = models.CharField(max_length=255)
 
-    Read the API reference of :class:`treebeard.Node` for info on methods
-    available in this class, or read the following section for methods with
-    particular arguments or exceptions.
+  Read the API reference of :class:`treebeard.Node` for info on methods
+  available in this class, or read the following section for methods with
+  particular arguments or exceptions.
 
   .. attribute:: steplen
 

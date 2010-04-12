@@ -83,28 +83,6 @@ Read the :class:`models.Node` API reference for detailed info.
 .. _`Django Model Inheritance with abstract classes`:
   http://docs.djangoproject.com/en/dev/topics/db/models/#abstract-base-classes
 
-:mod:`treebeard.al_tree` --- Adjacency List tree
-================================================
-
-.. automodule:: treebeard.al_tree
-
-   .. autoclass:: AL_Node
-      :show-inheritance:
-
-      .. automethod:: get_depth
-
-
-
-:mod:`treebeard.ns_tree` --- Nested Sets tree
-=============================================
-
-.. automodule:: treebeard.ns_tree
-
-   .. autoclass:: NS_Node
-      :show-inheritance:
-
-      .. automethod:: get_tree
-
 
 :mod:`treebeard.admin` --- Admin
 ================================
