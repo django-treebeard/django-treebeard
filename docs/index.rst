@@ -5,6 +5,8 @@
 .. contents::
 
 .. toctree::
+   :maxdepth: 3
+   :hidden:
 
    api
 
