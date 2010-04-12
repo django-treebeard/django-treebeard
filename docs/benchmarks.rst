@@ -14,6 +14,7 @@ To run the benchmarks:
   4. In the ``tbbench`` dir, run :command:`python run.py`
 
 .. note::
+
    If the `django-mptt`_ package is also installed, both libraries will
    be tested with the exact same data and operations.
 
@@ -46,7 +47,7 @@ probably want to ``EXPLAIN`` your most common queries involving the
 
 .. note::
 
-Tests results in Ubuntu 8.04.1 on a Thinkpad T61 with 4GB of ram.
+   Tests results in Ubuntu 8.04.1 on a Thinkpad T61 with 4GB of ram.
 
 .. warning::
 
@@ -130,6 +131,5 @@ Databases tested:
 |             +--------------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+
 |             | MPTT Sorted  |    3729 |    5108 |    3833 |    4776 |   86545 |  148596 |   34059 |  127125 |    2024 |    1787 |
 +-------------+--------------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+
-
 
 .. _`django-mptt`: http://code.google.com/p/django-mptt/
