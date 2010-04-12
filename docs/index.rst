@@ -16,6 +16,7 @@
    forms
    exceptions
    benchmarks
+   changes
 
 :synopsys: Efficient Tree implementations for Django 1.0+
 :copyright: 2008-2010 by `Gustavo Picon <https://tabo.pe>`_
@@ -86,21 +87,6 @@ Read the :class:`models.Node` API reference for detailed info.
 .. _`Django Model Inheritance with abstract classes`:
   http://docs.djangoproject.com/en/dev/topics/db/models/#abstract-base-classes
 
-
-
-
-
-
-
-
-
-
-
-
-Changes in django-treebeard
-===========================
-
-.. include:: ../CHANGES
 
 
 Indices and tables
