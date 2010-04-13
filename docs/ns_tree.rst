@@ -18,6 +18,8 @@ write/delete operations.
 .. autoclass:: NS_Node
   :show-inheritance:
 
+  .. inheritance-diagram:: NS_Node
+
   .. attribute:: node_order_by
 
      Attribute: a list of model fields that will be used for node
