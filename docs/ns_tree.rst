@@ -11,7 +11,7 @@ Nested sets have very efficient reads at the cost of high maintenance on
 write/delete operations.
 
 
-.. _`Joe Celko`: http://www.celko.com/
+.. _`Joe Celko`: http://en.wikipedia.org/wiki/Joe_Celko
 .. _`Trees and Hierarchies in SQL for Smarties`:
   http://www.elsevier.com/wps/product/cws_home/702605
 
