@@ -265,6 +265,8 @@ API
 
   .. automethod:: get_annotated_list
 
+        .. versionadded:: 1.55
+
         Example::
 
             annotated_list = get_annotated_list()
