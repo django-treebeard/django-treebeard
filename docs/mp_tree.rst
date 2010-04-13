@@ -42,6 +42,7 @@ extra steps, materialized path is more efficient than other approaches.
 .. _`Sql Design Patterns`:
    http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm
 
+.. inheritance-diagram:: MP_Node
 .. autoclass:: MP_Node
   :show-inheritance:
 

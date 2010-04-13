@@ -15,10 +15,10 @@ write/delete operations.
 .. _`Trees and Hierarchies in SQL for Smarties`:
   http://www.elsevier.com/wps/product/cws_home/702605
 
+.. inheritance-diagram:: NS_Node
 .. autoclass:: NS_Node
   :show-inheritance:
 
-  .. inheritance-diagram:: NS_Node
 
   .. attribute:: node_order_by
 

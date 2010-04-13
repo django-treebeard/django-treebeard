@@ -19,6 +19,7 @@ The adjacency list model has the advantage of fast writes at the cost of
 slow reads. If you read more than you write, use
 :class:`~treebeard.mp_tree.MP_Node` instead.
 
+.. inheritance-diagram:: AL_Node
 .. autoclass:: AL_Node
    :show-inheritance:
 
