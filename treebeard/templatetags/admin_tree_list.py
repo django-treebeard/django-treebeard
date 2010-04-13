@@ -10,7 +10,7 @@
     :license: Apache License 2.0
 
     Original contribution by aleh.fl
-    
+
     Additional hack added to allow raw_id_fields
     by Larry Chan
 """
@@ -22,19 +22,21 @@ from django.template import Library, Node
 
 register = Library()
 
+
 def __line(node, request):
-    raw_id_fields = None
-    if 't' in request.GET:
-        if request.GET['t'] == 'id':
-            raw_id_fields = """
-            onclick="opener.dismissRelatedLookupPopup(window, '%d'); return false;"
-            """ % (node.id,)
+    if 't' in request.GET and request.GET['t'] == 'id':
+        raw_id_fields = """
+        onclick="opener.dismissRelatedLookupPopup(window, '%d'); return false;"
+        """ % (node.id,)
+    else:
+        raw_id_fields  = ''
 
     return ('<input type="checkbox" class="action-select" value="%d" '
             'name="_selected_action" /><a href="%d/" %s>%s</a>') % (node.id,
                                                                  node.id,
                                                                  raw_id_fields,
                                                                  str(node),)
+
 
 def __subtree(node, request):
     tree = ''
