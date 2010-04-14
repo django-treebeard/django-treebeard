@@ -1,8 +1,6 @@
 django-treebeard
 ================
 
-.. contents::
-
 .. toctree::
    :hidden:
 
@@ -19,7 +17,7 @@ django-treebeard
 :synopsys: Efficient Tree implementations for Django 1.0+
 :copyright: 2008-2010 by `Gustavo Picon <https://tabo.pe>`_
 :license: Apache License 2.0
-:version: 1.53a
+:version: 1.55a
 :url: http://code.tabo.pe/django-treebeard/
 :documentation:
    `treebeard-docs
@@ -53,9 +51,9 @@ to let you define your own models. To use ``django-treebeard``:
 2. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your
    django settings file.
 3. Create a new model that inherits from one of ``django-treebeard``'s
-   abstract tree models: :class:`mp_tree.MP_Node` (materialized path),
-   :class:`ns_tree.NS_Node` (nested sets) or :class:`al_tree.AL_Node`
-   (adjacency list).
+   abstract tree models: :class:`treebeard.mp_tree.MP_Node`
+   (materialized path), :class:`treebeard.ns_tree.NS_Node` (nested sets)
+   or :class:`treebeard.al_tree.AL_Node` (adjacency list).
 4. Run :command:`python manage.py syncdb`
 5. (Optional) If you are going to use the :class:`admin.TreeAdmin`
    class for the django admin, you should install treebeard as a
