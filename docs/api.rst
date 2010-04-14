@@ -226,21 +226,17 @@ API
 
         Will create:
 
-            * 1
-            * 2
+        .. digraph:: load_bulk_digraph
 
-              * 21
-              * 22
-              * 23
-
-                * 231
-
-              * 24
-
-            * 3
-            * 4
-
-              * 41
+           "1";
+           "2";
+           "2" -> "21";
+           "2" -> "22";
+           "2" -> "23" -> "231";
+           "2" -> "24";
+           "3";
+           "4";
+           "4" -> "41";
 
   .. automethod:: dump_bulk
 
@@ -265,7 +261,6 @@ API
 
   .. automethod:: get_annotated_list
 
-        .. versionadded:: 1.55
 
         Example::
 
@@ -273,15 +268,14 @@ API
 
         With data:
 
-            * a
+           .. digraph:: get_annotated_list_digraph
 
-              * ab
-
-                * aba
-                * abb
-                * abc
-
-              * ac
+              "a";
+              "a" -> "ab";
+              "ab" -> "aba";
+              "ab" -> "abb";
+              "ab" -> "abc";
+              "a" -> "ac";
 
         Will return::
 
@@ -314,5 +308,4 @@ API
                   `Alexey Kinyov <rudi@05bit.com>`_, using an idea borrowed
                   from `django-mptt`.
 
-
-
+        .. versionadded:: 1.55
