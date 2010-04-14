@@ -2,38 +2,38 @@
 Release tip (??? ??, 2010)
 ---------------------------
 
-- Added raw id fields support in the admin
-- Fixed setup.py to make it work in 2.4 again
-- The correct ordering in NS/MP trees is now enforced in the queryset.
+* Added raw id fields support in the admin
+* Fixed setup.py to make it work in 2.4 again
+* The correct ordering in NS/MP trees is now enforced in the queryset.
 
 
 Release 1.52 (Dec 18, 2009)
 ---------------------------
 
-- Really fixed the installation of templates.
+* Really fixed the installation of templates.
 
 
 Release 1.51 (Dec 16, 2009)
 ---------------------------
 
-- Forgot to include treebeard/tempates/\*.html in MANIFEST.in
+* Forgot to include treebeard/tempates/\*.html in MANIFEST.in
 
 
 Release 1.5 (Dec 15, 2009)
 --------------------------
 
 New features added
-++++++++++++++++++
+~~~~~~~~~~~~~~~~~~
 
-- Forms
+* Forms
 
   - Added MoveNodeForm
 
-- Django Admin
+* Django Admin
 
   - Added TreeAdmin
 
-- MP_Node
+* MP_Node
 
   - Added 2 new checks in MP_Node.find_problems():
 
@@ -44,7 +44,7 @@ New features added
   - Added a new (safer and faster but less comprehensive) MP_Node.fix_tree()
     approach.
 
-- Documentation
+* Documentation
 
   - Added warnings in the documentation when subclassing MP_Node or NS_Node
     and adding a new Meta.
@@ -53,7 +53,7 @@ New features added
   
   - CHANGES file and section in the docs.
 
-- Other changes:
+* Other changes:
 
   - script to build documentation
 
@@ -61,26 +61,26 @@ New features added
   
 
 Bugs fixed
-++++++++++
+~~~~~~~~~~
 
-- Added table quoting to all the sql queries that bypass the ORM.
+* Added table quoting to all the sql queries that bypass the ORM.
   Solves bug in postgres when the table isn't created by syncdb.
 
-- Removing unused method NS_Node._find_next_node
+* Removing unused method NS_Node._find_next_node
   
-- Fixed MP_Node.get_tree to include the given parent when given a leaf node
+* Fixed MP_Node.get_tree to include the given parent when given a leaf node
 
 
 Release 1.1 (Nov 20, 2008)
 --------------------------
 
 Bugs fixed
-++++++++++
+~~~~~~~~~~
 
-- Added exceptions.py
+* Added exceptions.py
 
 
 Release 1.0 (Nov 19, 2008)
 --------------------------
 
-- First public release.
+* First public release.
