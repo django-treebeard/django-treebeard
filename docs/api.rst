@@ -4,6 +4,7 @@ API
 .. module:: treebeard.models
 .. moduleauthor:: Gustavo Picon <tabo@tabo.pe>
 
+.. inheritance-diagram:: NS_Node
 .. autoclass:: Node
   :show-inheritance:
 
