@@ -1,10 +1,18 @@
 
-Release tip (??? ??, 2010)
+Release 1.55 (Apr ??, 2010)
 ---------------------------
 
+* Added get_annotated_list, contributed by Alexey Kinyov
+* Complete revamp of the documentation. It's now divided in sections for easier
+  reading, and the package includes .rst files instead of the html build.
 * Added raw id fields support in the admin
 * Fixed setup.py to make it work in 2.4 again
 * The correct ordering in NS/MP trees is now enforced in the queryset.
+* Cleaned up code, removed some unnecessary statements.
+* Tests refactoring, to make it easier to spot the model being tested.
+* Fixed support of trees using proxied models. It was broken due to a bug in
+  Django.
+* There are now 648 unit tests. Test coverage is 96%
 
 
 Release 1.52 (Dec 18, 2009)
