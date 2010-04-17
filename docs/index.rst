@@ -1,9 +1,33 @@
 django-treebeard
 ================
 
-.. toctree::
-   :hidden:
+`django-treebeard <https://tabo.pe/projects/django-treebeard/>`_
+is a library that implements efficient tree implementations for the
+`Django Web Framework 1.0+ <http://www.djangoproject.com/>`_, written by
+`Gustavo Picón <https://tabo.pe>`_ and licensed under the Apache License 2.0.
 
+``django-treebeard`` is:
+
+- **Flexible**: Includes 3 different tree implementations with the same API:
+
+  1. :doc:`Adjacency List <al_tree>`
+  2. :doc:`Materialized Path <mp_tree>`
+  3. :doc:`Nested Sets <ns_tree>`
+
+- **Fast**: Optimized non-naive tree operations (see :doc:`benchmarks`).
+- **Easy**: Uses `Django Model Inheritance with abstract classes`_ 
+  to define your own models.
+- **Clean**: Testable and well tested code base. Code/branch test coverage
+  is above 96%.
+
+
+Contents
+--------
+
+.. toctree::
+   :maxdepth: 2
+
+   intro
    api
    mp_tree
    ns_tree
@@ -14,75 +38,9 @@ django-treebeard
    benchmarks
    changes
 
-:synopsys: Efficient Tree implementations for Django 1.0+
-:copyright: 2008-2010 by `Gustavo Picon <https://tabo.pe>`_
-:license: Apache License 2.0
-:url: https://tabo.pe/projects/django-treebeard/
-:documentation:
-   `treebeard-docs
-   <https://tabo.pe/projects/django-treebeard/docs/tip/>`_
-:examples:
-   `treebeard-examples
-   <http://django.tabo.pe/tbexample/>`_
-   (`source
-   <http://code.tabo.pe/django-treebeard/src/tip/tbexample/>`_)
-:tests:
-   `treebeard-tests
-   <http://code.tabo.pe/django-treebeard/src/tip/treebeard/tests.py>`_
 
-``django-treebeard`` is a library that implements efficient tree
-implementations for the `Django Web Framework 1.0+
-<http://www.djangoproject.com/>`_. It includes 3 different tree
-implementations: :mod:`Adjacency List <treebeard.al_tree>`,
-:mod:`Materialized Path <treebeard.mp_tree>` and
-:mod:`Nested Sets <treebeard.ns_tree>`. Each
-one has it's own strength and weaknesses (see :doc:`benchmarks`) but share
-the same API, so it's easy to switch between implementations.
-
-``django-treebeard`` uses `Django Model Inheritance with abstract classes`_
-to let you define your own models. To use ``django-treebeard``:
-
-1. Run :command:`easy_install django-treebeard` to install the
-   `latest treebeard version from PyPi`_
-
-   1.1. If you don't like easy_install, download a release from the
-   `treebeard download page`_ or get a development version
-   from the `treebeard mercurial repository`_ and run
-   :command:`python setup.py install`
-2. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your
-   django settings file.
-3. Create a new model that inherits from one of ``django-treebeard``'s
-   abstract tree models: :class:`treebeard.mp_tree.MP_Node`
-   (materialized path), :class:`treebeard.ns_tree.NS_Node` (nested sets)
-   or :class:`treebeard.al_tree.AL_Node` (adjacency list).
-4. Run :command:`python manage.py syncdb`
-5. (Optional) If you are going to use the :class:`admin.TreeAdmin`
-   class for the django admin, you should install treebeard as a
-   directory instead of an egg:
-   :command:`easy_install --always-unzip django-treebeard`.
-   If you install treebeard as an egg, you'll need to enable
-   ``django.template.loaders.eggs.load_template_source`` in the
-   ``TEMPLATE_LOADERS`` setting in your django settings file.
-   Either way, you need to add the path (filesystem or python
-   namespace) to treebeard's templates in ``TEMPLATE_DIRS``.
-   Also you need to enable `django-core-context-processors-request`_
-   in the ``TEMPLATE_CONTEXT_PROCESSORS`` setting in your django
-   settings file.
-
-
-Read the :class:`models.Node` API reference for detailed info.
-
-.. _`treebeard download page`:
-   http://code.tabo.pe/django-treebeard/downloads/
-.. _`treebeard mercurial repository`:
-   http://code.tabo.pe/django-treebeard/src/
-.. _`latest treebeard version from PyPi`:
-   http://pypi.python.org/pypi/django-treebeard/
-.. _`django-core-context-processors-request`:
-   http://docs.djangoproject.com/en/dev/ref/templates/api/#django-core-context-processors-request
 .. _`Django Model Inheritance with abstract classes`:
-  http://docs.djangoproject.com/en/dev/topics/db/models/#abstract-base-classes
-
+   http://docs.djangoproject.com/en/dev/topics/db/models/#abstract-base-classes
 
 
 Indices and tables
@@ -91,4 +49,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
