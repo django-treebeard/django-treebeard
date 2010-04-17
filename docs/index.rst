@@ -18,10 +18,10 @@ django-treebeard
 :copyright: 2008-2010 by `Gustavo Picon <https://tabo.pe>`_
 :license: Apache License 2.0
 :version: 1.55a
-:url: http://code.tabo.pe/django-treebeard/
+:url: https://tabo.pe/projects/django-treebeard/
 :documentation:
    `treebeard-docs
-   <http://docs.tabo.pe/django-treebeard/tip/>`_
+   <https://tabo.pe/projects/django-treebeard/docs/tip/>`_
 :examples:
    `treebeard-examples
    <http://django.tabo.pe/tbexample/>`_
@@ -34,7 +34,9 @@ django-treebeard
 ``django-treebeard`` is a library that implements efficient tree
 implementations for the `Django Web Framework 1.0+
 <http://www.djangoproject.com/>`_. It includes 3 different tree
-implementations: Adjacency List, Materialized Path and Nested Sets. Each
+implementations: :mod:`Adjacency List <treebeard.al_tree>`,
+:mod:`Materialized Path <treebeard.mp_tree>` and
+:mod:`Nested Sets <treebeard.ns_tree>`. Each
 one has it's own strength and weaknesses (see :doc:`benchmarks`) but share
 the same API, so it's easy to switch between implementations.
 
