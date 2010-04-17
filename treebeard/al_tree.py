@@ -133,7 +133,11 @@ class AL_Node(Node):
             # django's serializer stores the attributes in 'fields'
             fields = pyobj['fields']
             del fields['parent']
-            del fields['sib_order']
+
+            # non-sorted trees have this
+            if 'sib_order' in fields:
+                del fields['sib_order']
+
             if 'id' in fields:
                 del fields['id']
 
