@@ -59,21 +59,31 @@ file.
 Basic Usage
 -----------
 
-1. Run :command:`easy_install django-treebeard` to install the
-   `latest treebeard version from PyPi`_
+Create a basic model for your tree. In this example we'll use a Materialized
+Path tree::
 
-   1.1. If you don't like easy_install, download a release from the
-   `treebeard download page`_ or get a development version
-   from the `treebeard mercurial repository`_ and run
-   :command:`python setup.py install`
-2. Add ``'treebeard'`` to the ``INSTALLED_APPS`` section in your
-   django settings file.
-3. Create a new model that inherits from one of ``django-treebeard``'s
-   abstract tree models: :class:`MP_Node <treebeard.mp_tree.MP_Node>`
-   (materialized path), :class:`NS_Node <treebeard.ns_tree.NS_Node>`
-   (nested sets) or :class:`AL_Node <treebeard.al_tree.AL_Node>`
-   (adjacency list).
-4. Run :command:`python manage.py syncdb`
+    from django.db import models
+    from treebeard.mp_tree import MP_Node
+
+    class Category(MP_Node):
+        name = models.CharField(max_length=30)
+
+        node_order_by = ['name']
+
+
+Now run syncdb::
+
+    python manage.py syncdb
+
+
+Now you can use your tree to store or retrieve data::
+
+    >>> Category.add_root(name='Computer Hardware')
+    <Category: Category object>
+                             
+    >>> Category.objects.all()
+    [<Category: Category object>]
+
 
 
 Read the :class:`models.Node` API reference for detailed info.
