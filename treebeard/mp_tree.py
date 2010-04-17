@@ -524,8 +524,21 @@ class MP_Node(Node):
         # saving the instance before returning it
         newobj.save()
         newobj._cached_parent_obj = self
+
+        # we increase the numchild value of the object in memory, but can't
+        # save because that makes this django 1.0 compatible code explode
         self.numchild += 1
-        self.save()
+
+        # we need to use a raw query
+        sql = "UPDATE %(table)s " \
+                 "SET numchild=numchild+1 " \
+               "WHERE path=%%s" % {
+                 'table': connection.ops.quote_name(
+                              self.__class__._meta.db_table)}
+        cursor = connection.cursor()
+        cursor.execute(sql, [self.path])
+        transaction.commit_unless_managed()
+
         return newobj
 
     def add_sibling(self, pos=None, **kwargs):
