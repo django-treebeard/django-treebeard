@@ -29,7 +29,6 @@ API
      Example::
 
         MyNode.add_root(numval=1, strval='abcd')
-        MyNode.add_root(\*\*{'numval':1, 'strval':'abcd'})
 
   .. automethod:: add_child
 
