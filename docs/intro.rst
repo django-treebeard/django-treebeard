@@ -162,7 +162,7 @@ You can see the tree structure with code::
 
 
 
-Read the :class:`models.Node` API reference for detailed info.
+Read the :class:`treebeard.models.Node` API reference for detailed info.
 
 .. _`django-treebeard's PyPI page`:
    http://pypi.python.org/pypi/django-treebeard
