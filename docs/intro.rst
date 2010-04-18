@@ -70,19 +70,79 @@ Path tree::
 
         node_order_by = ['name']
 
+        def __unicode__(self):
+            return 'Category: %s' % self.name
 
-Now run syncdb::
+
+
+Run syncdb::
 
     python manage.py syncdb
 
 
-Now you can use your tree to store or retrieve data::
+Let's create some nodes::
 
-    >>> Category.add_root(name='Computer Hardware')
-    <Category: Category object>
-                             
-    >>> Category.objects.all()
-    [<Category: Category object>]
+    >>> get = lambda node_id: Category.objects.get(pk=node_id)
+    >>> root = Category.add_root(name='Computer Hardware')
+    >>> node = get(root.id).add_child(name='Memory')
+    >>> get(node.id).add_sibling(name='Hard Drives')
+    <Category: Category: Hard Drives>
+    >>> get(node.id).add_sibling(name='SSD')
+    <Category: Category: SSD>
+    >>> get(node.id).add_child(name='Desktop Memory')
+    <Category: Category: Desktop Memory>
+    >>> get(node.id).add_child(name='Laptop Memory')
+    <Category: Category: Laptop Memory>
+    >>> get(node.id).add_child(name='Server Memory')
+    <Category: Category: Server Memory>
+
+.. note::
+
+    Why retrieving every node again after the first operation? Because
+    ``django-treebeard`` uses raw queries for most write operations,
+    and raw queries don't update the django objects of the db entries they
+    modify.
+
+We just created this tree:
+
+
+.. digraph:: introduction_digraph
+
+  "Computer Hardware";
+  "Computer Hardware" -> "Hard Drives";
+  "Computer Hardware" -> "Memory";
+  "Memory" -> "Desktop Memory";
+  "Memory" -> "Laptop Memory";
+  "Memory" -> "Server Memory";
+  "Computer Hardware" -> "SSD";
+
+
+You can see the tree structure with code::
+    >>> Category.dump_bulk()
+    [{'id': 1, 'data': {'name': u'Computer Hardware'},
+      'children': [
+         {'id': 3, 'data': {'name': u'Hard Drives'}},
+         {'id': 2, 'data': {'name': u'Memory'},
+          'children': [
+             {'id': 5, 'data': {'name': u'Desktop Memory'}},
+             {'id': 6, 'data': {'name': u'Laptop Memory'}},
+             {'id': 7, 'data': {'name': u'Server Memory'}}]},
+         {'id': 4, 'data': {'name': u'SSD'}}]}]
+    >>> Category.get_annotated_list()
+    [(<Category: Category: Computer Hardware>,
+      {'close': [], 'level': 0, 'open': True}),
+     (<Category: Category: Hard Drives>,
+      {'close': [], 'level': 1, 'open': True}),
+     (<Category: Category: Memory>,
+      {'close': [], 'level': 1, 'open': False}),
+     (<Category: Category: Desktop Memory>,
+      {'close': [], 'level': 2, 'open': True}),
+     (<Category: Category: Laptop Memory>,
+      {'close': [], 'level': 2, 'open': False}),
+     (<Category: Category: Server Memory>,
+      {'close': [0], 'level': 2, 'open': False}),
+     (<Category: Category: SSD>,
+      {'close': [0, 1], 'level': 1, 'open': False})]
 
 
 
