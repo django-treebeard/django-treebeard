@@ -15,9 +15,7 @@
     by Larry Chan
 """
 
-from django.template import resolve_variable
-from django import template
-from django.template import Library, Node
+from django.template import Library
 
 
 register = Library()
@@ -29,7 +27,7 @@ def __line(node, request):
         onclick="opener.dismissRelatedLookupPopup(window, '%d'); return false;"
         """ % (node.id,)
     else:
-        raw_id_fields  = ''
+        raw_id_fields = ''
 
     return ('<input type="checkbox" class="action-select" value="%d" '
             'name="_selected_action" /><a href="%d/" %s>%s</a>') % (node.id,
