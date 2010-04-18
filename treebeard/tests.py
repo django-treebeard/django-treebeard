@@ -1587,19 +1587,19 @@ class TestTreeSorted(TestTreeBase):
 
     def _multi_add_child_nonroot_sorted(self):
         root = self.sorted_model.add_root(val1=0, val2=0, desc='a')
-        node = root.add_child(val1=0, val2=0, desc='aa')
-        root.add_child(val1=0, val2=0, desc='ab')
-        root.add_child(val1=0, val2=0, desc='ac')
-        node.add_child(val1=0, val2=0, desc='aaa')
-        node.add_child(val1=0, val2=0, desc='aab')
-        for obj in self.sorted_model.objects.all():
-            print obj, obj.desc, obj.get_depth(), obj.get_children_count()
+        node = root.add_child(val1=0, val2=0, desc='ac')
+        root.add_child(val1=0, val2=0, desc='aa')
+        root.add_child(val1=0, val2=0, desc='av')
+        node.add_child(val1=0, val2=0, desc='aca')
+        node.add_child(val1=0, val2=0, desc='acc')
+        node.add_child(val1=0, val2=0, desc='acb')
         expected = [(0, 0, u'a', 1, 3),
-                    (0, 0, u'aa', 2, 2),
-                    (0, 0, u'aaa', 3, 0),
-                    (0, 0, u'aab', 3, 0),
-                    (0, 0, u'ab', 2, 0),
-                    (0, 0, u'ac', 2, 0)]
+                    (0, 0, u'aa', 2, 0),
+                    (0, 0, u'ac', 2, 3),
+                    (0, 0, u'aca', 3, 0),
+                    (0, 0, u'acb', 3, 0),
+                    (0, 0, u'acc', 3, 0),
+                    (0, 0, u'av', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_sorted(self):
