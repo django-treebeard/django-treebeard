@@ -508,7 +508,7 @@ class Node(models.Model):
             will be annotated.
         """
 
-        result = []
+        result, info = [], {}
         start_depth, prev_depth = (None, None)
 
         for node in cls.get_tree(parent):
