@@ -29,21 +29,21 @@ API
      Example::
 
         MyNode.add_root(numval=1, strval='abcd')
-        MyNode.add_root(**{'numval':1, 'strval':'abcd'})
+        MyNode.add_root(\*\*{'numval':1, 'strval':'abcd'})
 
   .. automethod:: add_child
 
         Example::
 
            node.add_child(numval=1, strval='abcd')
-           node.add_child(**{'numval': 1, 'strval': 'abcd'})
+           node.add_child(\*\*{'numval': 1, 'strval': 'abcd'})
 
   .. automethod:: add_sibling
 
         Examples::
 
-           node.add_sibling('sorted-sibling', numval=1, strval='abc')
-           node.add_sibling('sorted-sibling', **{'numval': 1, 'strval': 'abc'})
+         node.add_sibling('sorted-sibling', numval=1, strval='abc')
+         node.add_sibling('sorted-sibling', \*\*{'numval': 1, 'strval': 'abc'})
 
   .. automethod:: delete
 
