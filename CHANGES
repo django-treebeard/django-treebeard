@@ -1,6 +1,6 @@
 
-Release 1.6
------------
+Release 1.60 (Apr 18, 2010)
+---------------------------
 
 * Added get_annotated_list, contributed by Alexey Kinyov
 * Complete revamp of the documentation. It's now divided in sections for easier
