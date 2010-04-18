@@ -13,6 +13,7 @@
 
 import operator
 
+from django import VERSION as DJANGO_VERSION
 from django.db.models import Q
 from django.db import models, transaction
 
@@ -543,8 +544,9 @@ class Node(models.Model):
 
         (this is a workaround for a bug in django)
         """
-        while cls._meta.proxy:
-            cls = cls._meta.proxy_for_model
+        if DJANGO_VERSION >= (1, 1):
+            while cls._meta.proxy:
+                cls = cls._meta.proxy_for_model
         return cls
 
     class Meta:
