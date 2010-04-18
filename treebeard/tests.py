@@ -397,11 +397,8 @@ class TestClassMethods(TestNonEmptyTree):
         node = self.model.objects.get(desc=u'231')
         self.model.load_bulk(BASE_DATA, node)
 
-        # this is ONLY needed by the nested set tree model, the rgt value of
-        # the node was updated in a raw query, and it must be updated in
-        # django's object
-        if self.model in (NS_TestNode, NS_TestNode_Proxy):
-            node = self.model.objects.get(pk=node.id)
+        # the tree was modified by load_bulk, so we reload our node object
+        node = self.model.objects.get(pk=node.id)
 
         got = [(o.desc, o.get_depth(), o.get_children_count())
                 for o in self.model.get_tree(node)]
@@ -451,11 +448,8 @@ class TestClassMethods(TestNonEmptyTree):
         node = self.model.objects.get(desc=u'231')
         self.model.load_bulk(BASE_DATA, node)
 
-        # this is ONLY needed by the nested set tree model, the rgt value of
-        # the node was updated in a raw query, and it must be updated in
-        # django's object
-        if self.model in (NS_TestNode, NS_TestNode_Proxy):
-            node = self.model.objects.get(pk=node.id)
+        # the tree was modified by load_bulk, so we reload our node object
+        node = self.model.objects.get(pk=node.id)
 
         got = self.model.dump_bulk(node, False)
         expected = [{'data':{'desc':u'231'}, 'children':BASE_DATA}]
@@ -1620,9 +1614,8 @@ class TestTreeSorted(TestTreeBase):
         for node in root_nodes[1:]:
 
             # because raw queries don't update django objects
-            if self.sorted_model == NS_TestNodeSorted:
-                node = self.sorted_model.objects.get(pk=node.id)
-                target = self.sorted_model.objects.get(pk=target.id)
+            node = self.sorted_model.objects.get(pk=node.id)
+            target = self.sorted_model.objects.get(pk=target.id)
 
             node.move(target, 'sorted-child')
         expected = [(1, 4, u'bcd', 1, 7),
