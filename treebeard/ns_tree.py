@@ -7,7 +7,7 @@ from django.core import serializers
 from django.db import models, transaction, connection
 
 from treebeard.models import Node
-from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow
+from treebeard.exceptions import InvalidMoveToDescendant
 
 
 class NS_NodeQuerySet(models.query.QuerySet):
