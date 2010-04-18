@@ -20,6 +20,7 @@ from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.conf import settings
+from django import VERSION as DJANGO_VERSION
 
 from treebeard import numconv
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
@@ -66,11 +67,6 @@ class MP_TestNodeSomeDep(models.Model):
         return 'Node %d' % self.id
 
 
-class MP_TestNode_Proxy(MP_TestNode):
-    class Meta:
-        proxy = True
-
-
 class NS_TestNode(NS_Node):
     desc = models.CharField(max_length=255)
 
@@ -83,11 +79,6 @@ class NS_TestNodeSomeDep(models.Model):
 
     def __unicode__(self):  # pragma: no cover
         return 'Node %d' % self.id
-
-
-class NS_TestNode_Proxy(NS_TestNode):
-    class Meta:
-        proxy = True
 
 
 class AL_TestNode(AL_Node):
@@ -107,11 +98,6 @@ class AL_TestNodeSomeDep(models.Model):
 
     def __unicode__(self):  # pragma: no cover
         return 'Node %d' % self.id
-
-
-class AL_TestNode_Proxy(AL_TestNode):
-    class Meta:
-        proxy = True
 
 
 class MP_TestNodeSorted(MP_Node):
@@ -190,6 +176,23 @@ class MP_TestNodeShortPath(MP_Node):
 MP_TestNodeShortPath._meta.get_field('path').max_length = 4
 
 
+if DJANGO_VERSION >= (1, 1):  # pragma: no cover
+
+    class MP_TestNode_Proxy(MP_TestNode):
+        class Meta:
+            proxy = True
+
+
+    class NS_TestNode_Proxy(NS_TestNode):
+        class Meta:
+            proxy = True
+
+
+    class AL_TestNode_Proxy(AL_TestNode):
+        class Meta:
+            proxy = True
+
+
 class MP_TestSortedNodeShortPath(MP_Node):
     steplen = 1
     alphabet = '01234'
@@ -231,7 +234,10 @@ def testtype(treetype, proxy):
 
 
 def _load_test_methods(cls, proxy=True):
-    proxyopts = (False, True) if proxy else (False,)
+    if proxy and DJANGO_VERSION >= (1, 1):
+        proxyopts = (False, True)
+    else:
+        proxyopts = (False,)
     for m in dir(cls):
         if not m.startswith('_multi_'):
             continue
@@ -260,22 +266,34 @@ class TestTreeBase(TestCase):
                           (u'41', 2, 0)]
 
     def set_MP(self, proxy=False):
-        self.model = MP_TestNode_Proxy if proxy else MP_TestNode
+        if proxy and DJANGO_VERSION >= (1, 1):
+            self.model = MP_TestNode_Proxy
+        else:
+            self.model = MP_TestNode
         self.sorted_model = MP_TestNodeSorted
         self.dep_model = MP_TestNodeSomeDep
 
     def set_NS(self, proxy=False):
-        self.model = NS_TestNode_Proxy if proxy else NS_TestNode
+        if proxy and DJANGO_VERSION >= (1, 1):
+            self.model = NS_TestNode_Proxy
+        else:
+            self.model = NS_TestNode
         self.sorted_model = NS_TestNodeSorted
         self.dep_model = NS_TestNodeSomeDep
 
     def set_AL(self, proxy=False):
-        self.model = AL_TestNode_Proxy if proxy else AL_TestNode
+        if proxy and DJANGO_VERSION >= (1, 1):
+            self.model = AL_TestNode_Proxy
+        else:
+            self.model = AL_TestNode
         self.sorted_model = AL_TestNodeSorted
         self.dep_model = AL_TestNodeSomeDep
 
     def got(self):
-        if self.model in (NS_TestNode, NS_TestNode_Proxy):
+        nsmodels = [NS_TestNode]
+        if DJANGO_VERSION >= (1, 1):
+            nsmodels.append(NS_TestNode_Proxy)
+        if self.model in nsmodels:
             # this slows down nested sets tests quite a bit, but it has the
             # advantage that we'll check the node edges are correct
             d = {}
