@@ -1,6 +1,6 @@
 
-Release 1.55
-------------
+Release 1.6
+-----------
 
 * Added get_annotated_list, contributed by Alexey Kinyov
 * Complete revamp of the documentation. It's now divided in sections for easier
@@ -14,6 +14,9 @@ Release 1.55
   Django.
 * Fixed a bug in add_child when adding nodes to a non-leaf in sorted MP.
 * There are now 648 unit tests. Test coverage is 96%
+* This will be the last version compatible with Django 1.0. There will be a
+  a 1.6.X branch maintained for urgent bug fixes, but the main development will
+  focus on recent Django versions.
 
 
 Release 1.52 (Dec 18, 2009)
