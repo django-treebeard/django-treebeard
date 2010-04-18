@@ -41,6 +41,22 @@ run::
    python setup.py install
 
 
+.deb packages
+~~~~~~~~~~~~~
+
+Both Debian and Ubuntu include ``django-treebeard`` as a package, so you can
+just use::
+
+   apt-get install python-django-treebeard
+
+or::
+
+   aptitude install python-django-treebeard
+
+Remember that the packages included in linux distributions are usually not the
+most recent versions.
+
+
 Configuration
 -------------
 
