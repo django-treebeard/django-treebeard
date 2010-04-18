@@ -16,8 +16,7 @@ import operator
 from django.db.models import Q
 from django.db import models, transaction
 
-from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
-    PathOverflow, MissingNodeOrderBy
+from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
 
 
 class Node(models.Model):
