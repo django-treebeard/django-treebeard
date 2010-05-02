@@ -2,6 +2,7 @@
 
 from django.forms.models import model_to_dict, ErrorList, BaseModelForm
 from django import forms
+from django.utils.translation import ugettext as _
 
 
 class MoveNodeForm(forms.ModelForm):
@@ -12,21 +13,21 @@ class MoveNodeForm(forms.ModelForm):
     """
 
     __position_choices_sorted = (
-                        ('sorted-child', 'Child of'),
-                        ('sorted-sibling', 'Sibling of'),
+                        ('sorted-child', _(u'Child of')),
+                        ('sorted-sibling', _(u'Sibling of')),
                     )
 
     __position_choices_unsorted = (
-                        ('first-child', 'First child of'),
-                        ('left', 'Before'),
-                        ('right', 'After'),
+                        ('first-child', _(u'First child of')),
+                        ('left', _(u'Before')),
+                        ('right', _(u'After')),
                     )
 
-    _position = forms.ChoiceField(required=True, label="Position")
+    _position = forms.ChoiceField(required=True, label=_(u"Position"))
 
     _ref_node_id = forms.TypedChoiceField(required=False,
                                           coerce=int,
-                                          label="Relative to")
+                                          label=_(u"Relative to"))
 
     class Meta:
         exclude = ('path',
@@ -76,7 +77,7 @@ class MoveNodeForm(forms.ModelForm):
                     for subnode in node.get_children():
                         add_subtree(subnode, options)
 
-            options = [(0, '-- root --')]
+            options = [(0, _(u'-- root --'))]
             for node in opts.model.get_root_nodes():
                 add_subtree(node, options)
             return options
