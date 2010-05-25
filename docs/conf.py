@@ -17,6 +17,9 @@ import sys, os
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.append(os.path.abspath('.'))
+sys.path.append(os.path.abspath('..'))
+treebeard = __import__('treebeard')
+os.environ['DJANGO_SETTINGS_MODULE'] = 'django.conf.global_settings'
 
 # -- General configuration -----------------------------------------------------
 
