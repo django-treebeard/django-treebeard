@@ -40,7 +40,7 @@ Contents
 
 
 .. _`Django Model Inheritance with abstract classes`:
-   http://docs.djangoproject.com/en/dev/topics/db/models/#abstract-base-classes
+   http://docs.djangoproject.com/en/1.2/topics/db/models/#id6
 
 
 Indices and tables
