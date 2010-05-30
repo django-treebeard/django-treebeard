@@ -1,15 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-
-    treebeard.models
-    ----------------
-
-    Django models.
-
-    :copyright: 2008-2010 by Gustavo Picon
-    :license: Apache License 2.0
-
-"""
+"Models and base API"
 
 import operator
 

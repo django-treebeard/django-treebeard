@@ -8,13 +8,10 @@ from treebeard.exceptions import InvalidMoveToDescendant
 
 
 class AL_NodeManager(models.Manager):
-    """ Custom manager for nodes.
-    """
+    "Custom manager for nodes."
 
     def get_query_set(self):
-        """
-        Sets the custom queryset as the default.
-        """
+        "Sets the custom queryset as the default."
         qset = super(AL_NodeManager, self).get_query_set()
         if self.model.node_order_by:
             order_by = ['parent'] + self.model.node_order_by
