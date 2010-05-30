@@ -1,15 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-
-    treebeard.tests
-    ---------------
-
-    Unit tests.
-
-    :copyright: 2008-2010 by Gustavo Picon
-    :license: Apache License 2.0
-
-"""
+"Unit/Functional tests"
 
 import functools
 import os
