@@ -1,5 +1,5 @@
 include CHANGES LICENSE NOTICE README UPDATING MANIFEST.in
-recursive-include docs *
+recursive-include docs Makefile README *.py *.rst
 recursive-include tbbench tbbench-* *.py
 recursive-include tbexample *.py *.html
 recursive-include treebeard *.py *.html
