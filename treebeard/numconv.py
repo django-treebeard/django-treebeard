@@ -1,52 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
+"""Convert strings to numbers and numbers to strings.
 
-numconv
--------
-
-:synopsys: Python library to convert strings to numbers and numbers to
-           strings.
-:copyright: 2008-2009 by Gustavo Picon
-:license: Apache License 2.0
-:version: 2.1a
-:url: http://code.tabo.pe/numconv/
-:documentation:
-   `numconv-docs
-   <http://docs.tabo.pe/numconv/2.0/>`_
-:examples:
-   `numconv-tests
-   <http://code.tabo.pe/numconv/src/2.0/tests.py>`_
-
-
-:mod:`numconv` converts a string into a number and a number into a string
-using default or user supplied encoding alphabets.
-
-constants
-~~~~~~~~~
-
-.. data:: BASE85
-
-   Alphabet defined in section 4 of :rfc:`1924`. Supposed to be a joke (it is
-   an April's fools RFC after all), but is quite useful because it can be used
-   as a base for the most common numeric conversions.
-
-.. data:: BASE16
-          BASE32
-          BASE32HEX
-          BASE64
-          BASE64URL
-
-   Alphabets defined in :rfc:`4648`. Not really for common numeric conversion
-   use.
-
-.. data:: BASE62
-
-   Useful for URL shorteners.
+Gustavo Picon
+https://tabo.pe/projects/numconv/
 
 """
 
 
-__version__ = '2.1.0a'
+__version__ = '2.1.1'
 
 # from april fool's rfc 1924
 BASE85 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' \
@@ -99,34 +59,10 @@ class NumConv(object):
         :param num: A numeric value to be converted to another base as a
                     string.
 
-
         :rtype: string
 
         :raise TypeError: when *num* isn't an integer
         :raise ValueError: when *num* isn't positive
-
-        **Examples** (taken from :file:`tests.py`):
-
-           3735928559 to hexadecimal::
-
-               >> NumConv(16).int2str(3735928559)
-               'DEADBEEF'
-
-           19284 to binary::
-
-               >> NumConv(2).int2str(19284)
-               '100101101010100'
-
-           37 to base 4 using a custom dictionary::
-
-               >> NumConv(4, 'rofl').int2str(37)
-               'foo'
-
-           Very large number to :data:`~numconv.BASE85`::
-
-               >> NumConv(85).int2str(2693233728041137L)
-               '~123AFz@'
-
         """
         if int(num) != num:
             raise TypeError('number must be an integer')
@@ -155,29 +91,6 @@ class NumConv(object):
         :rtype: integer
 
         :raise ValueError: when *num* is invalid
-
-        **Examples** (taken from :file:`tests.py`):
-
-           Hexadecimal 'DEADBEEF' to integer::
-
-              >> NumConv(16).str2int('DEADBEEF')
-              3735928559L
-
-           Binary '100101101010100' to integer::
-
-               >> NumConv(2).str2int('100101101010100')
-               19284
-
-           Base 4 with custom encoding 'foo' to integer::
-
-               >> NumConv(4, 'rofl').str2int('foo')
-               37
-
-           :data:`~numconv.BASE85` '~123AFz@' to integer::
-
-               >> NumConv(85).str2int('~123AFz@')
-               2693233728041137L
-
         """
         radix, alphabet = self.radix, self.alphabet
         if radix <= 36 and alphabet[:radix].lower() == BASE85[:radix].lower():
@@ -193,10 +106,10 @@ class NumConv(object):
 
 
 def int2str(num, radix=10, alphabet=BASE85):
-    "helper for quick base conversions from integers to strings"
+    "helper function for quick base conversions from integers to strings"
     return NumConv(radix, alphabet).int2str(num)
 
 
 def str2int(num, radix=10, alphabet=BASE85):
-    "helper for quick base conversions from strings to integers"
+    "helper function for quick base conversions from strings to integers"
     return NumConv(radix, alphabet).str2int(num)
