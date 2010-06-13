@@ -6,7 +6,6 @@ from numconv import NumConv
 from django.core import serializers
 from django.db import models, transaction, connection
 from django.db.models import Q
-from django.conf import settings
 
 from treebeard.models import Node
 from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow
@@ -297,7 +296,7 @@ class MP_Node(Node):
             # fix the numchild field
             vals = ['_' * cls.steplen]
             # the cake and sql portability are a lie
-            if settings.DATABASE_ENGINE == 'mysql':
+            if cls.get_database_engine() == 'mysql':
                 sql = "SELECT tbn1.path, tbn1.numchild, (" \
                               "SELECT COUNT(1) " \
                               "FROM %(table)s AS tbn2 " \
@@ -813,7 +812,7 @@ class MP_Node(Node):
         1. :attr:`depth` updates *ONLY* needed by mysql databases (*sigh*)
         2. update the number of children of parent nodes
         """
-        if (settings.DATABASE_ENGINE == 'mysql' and
+        if (cls.get_database_engine() == 'mysql' and
                 len(oldpath) != len(newpath)):
             # no words can describe how dumb mysql is
             # we must update the depth of the branch in a different query
@@ -847,14 +846,14 @@ class MP_Node(Node):
             connection.ops.quote_name(cls._meta.db_table), )
 
         # <3 "standard" sql
-        if settings.DATABASE_ENGINE == 'sqlite3':
+        if cls.get_database_engine() == 'sqlite3':
             # I know that the third argument in SUBSTR (LENGTH(path)) is
             # awful, but sqlite fails without it:
             # OperationalError: wrong number of arguments to function substr()
             # even when the documentation says that 2 arguments are valid:
             # http://www.sqlite.org/lang_corefunc.html
             sqlpath = "%s||SUBSTR(path, %s, LENGTH(path))"
-        elif settings.DATABASE_ENGINE == 'mysql':
+        elif cls.get_database_engine() == 'mysql':
             # hooray for mysql ignoring standards in their default
             # configuration!
             # to make || work as it should, enable ansi mode
@@ -865,8 +864,8 @@ class MP_Node(Node):
 
         sql2 = ["path=%s" % (sqlpath, )]
         vals = [newpath, len(oldpath) + 1]
-        if (len(oldpath) != len(newpath) and
-                settings.DATABASE_ENGINE != 'mysql'):
+        if (len(oldpath) != len(newpath) and 
+                cls.get_database_engine() != 'mysql'):
             # when using mysql, this won't update the depth and it has to be
             # done in another query
             # doesn't even work with sql_mode='ANSI,TRADITIONAL'

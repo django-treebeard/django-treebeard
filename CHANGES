@@ -4,6 +4,9 @@ Release tip
 
 * Added admin i18n contributed by http://bitbucket.org/chembervint
   Included translations: es, ru
+* Fixed a bug when trying to introspect the database engine used in Django 1.2+
+  while using new style db settings (DATABASES). Added
+  Node.get_database_engine to deal with this.
 
 Release 1.60 (Apr 18, 2010)
 ---------------------------
