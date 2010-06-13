@@ -167,9 +167,9 @@ Read the :class:`treebeard.models.Node` API reference for detailed info.
 .. _`django-treebeard's PyPI page`:
    http://pypi.python.org/pypi/django-treebeard
 .. _`treebeard download page`:
-   http://code.tabo.pe/django-treebeard/downloads/
+   https://tabo.pe/projects/django-treebeard/download/
 .. _`treebeard mercurial repository`:
-   http://code.tabo.pe/django-treebeard/src/
+   http://code.tabo.pe/django-treebeard
 .. _`latest treebeard version from PyPi`:
    http://pypi.python.org/pypi/django-treebeard/
 .. _`django-core-context-processors-request`:
