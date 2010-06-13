@@ -171,7 +171,7 @@ extra steps, materialized path is more efficient than other approaches.
      .. note::
 
         treebeard uses **numconv** for path encoding:
-        http://code.tabo.pe/numconv/
+        https://tabo.pe/projects/numconv/
 
   .. attribute:: depth
 
