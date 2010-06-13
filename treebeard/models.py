@@ -5,6 +5,7 @@ import operator
 from django import VERSION as DJANGO_VERSION
 from django.db.models import Q
 from django.db import models, transaction
+from django.conf import settings
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
 
@@ -537,6 +538,31 @@ class Node(models.Model):
             while cls._meta.proxy:
                 cls = cls._meta.proxy_for_model
         return cls
+
+    @classmethod
+    def get_database_engine(cls):
+        """
+        Returns the supported database engine used by a treebeard model.
+
+        This will return the default database engine depending on the version
+        of Django. If you use something different, like a non-default database
+        in Django 1.2+, you need to override this method and return the correct
+        engine.
+
+        :returns: postgresql, postgresql_psycopg2, mysql or sqlite3
+        """
+        engine = None
+        if DJANGO_VERSION >= (1, 2):
+            try:
+                engine = settings.DATABASES['default']['ENGINE']
+            except AttributeError, KeyError:
+                engine = None
+            # the old style settings still work in Django 1.2+ if there is no
+            # DATABASES setting
+        if engine is None:
+            engine = settings.DATABASE_ENGINE
+        return engine.split('.')[-1]
+
 
     class Meta:
         "Abstract model."

@@ -316,3 +316,15 @@ API
                   from `django-mptt`.
 
         .. versionadded:: 1.55
+
+
+  .. automethod:: get_database_engine
+
+        Example::
+
+           
+           @classmethod
+           def get_database_engine(cls):
+               return "mysql"
+
+        .. versionadded:: 1.61
