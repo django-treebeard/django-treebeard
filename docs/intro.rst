@@ -68,7 +68,7 @@ file.
    If you are going to use the :class:`Treeadmin <treebeard.admin.TreeAdmin>`
    class, you need to add the path to treebeard's templates in
    `TEMPLATE_DIRS`_.
-   Also you need to enable `django-core-context-processors-request`_
+   Also you need to enable `django.core.context_processors.request`_
    in the `TEMPLATE_CONTEXT_PROCESSORS`_ setting in your django settings file.
 
 
@@ -172,7 +172,7 @@ Read the :class:`treebeard.models.Node` API reference for detailed info.
    http://code.tabo.pe/django-treebeard
 .. _`latest treebeard version from PyPi`:
    http://pypi.python.org/pypi/django-treebeard/
-.. _`django-core-context-processors-request`:
+.. _`django.core.context_processors.request`:
    http://docs.djangoproject.com/en/dev/ref/templates/api/#django-core-context-processors-request
 .. _`INSTALLED_APPS`:
    http://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
