@@ -1,0 +1,38 @@
+/* Treebeard Admin */
+
+#roots {
+margin: 0; padding: 0;
+}
+#roots li {
+list-style: none;
+padding: 5px !important;
+line-height: 13px;
+border-bottom: 1px solid #EEE;
+}
+#roots li a {
+font-weight: bold;
+font-size: 12px;
+}
+#roots li input {
+margin: 0 5px;
+}
+.grab {
+background: rgba(0,0,0,0.5);
+width: 15px;
+margin: 0 5px;
+display: inline-block;
+cursor: pointer;
+}
+.spacer {
+width: 10px;
+margin: 0 10px;
+}
+.collapse {
+width: 16px;
+height: 16px;
+display: inline-block;
+text-indent: -999px;
+}
+.expanded {
+background: transparent url(expand-collapse.png) no-repeat left 0;
+}
