@@ -9,3 +9,4 @@ class TreeAdmin(admin.ModelAdmin):
     "Django Admin class for treebeard"
     change_list_template = 'admin/tree_change_list.html'
     form = MoveNodeForm
+    ordering = ('path',)

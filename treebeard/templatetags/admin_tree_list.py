@@ -51,3 +51,5 @@ def result_tree(cl, request):
     for root_node in cl.model.get_root_nodes():
         tree = tree + '<li>%s</li>' % __subtree(root_node, request)
     return "<ul>%s</ul>" % tree
+
+
