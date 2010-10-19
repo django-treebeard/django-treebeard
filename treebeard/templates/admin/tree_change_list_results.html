@@ -14,8 +14,8 @@
 </tr>
 </thead>
 <tbody>
-{% for result in results %}
-<tr class="{% cycle 'row1' 'row2' %}">{% for item in result %}
+{% for node_id, parent_id, has_children, result in results %}
+<tr class="{% cycle 'row1' 'row2' %}" parent="{{parent_id}}" node="{{node_id}}">{% for item in result %}
 {% if forloop.counter == 1 %}
 {% for spacer in item.depth%}<span class="grab">&nbsp;</span>{% endfor %}
 {% endif %}
@@ -24,5 +24,6 @@
 {% endfor %}
 </tbody>
 </table>
+<input type="hidden" id="has-filters" value="{{filtered|yesno:"1,0"}}"/>
 {% endif %}
 
