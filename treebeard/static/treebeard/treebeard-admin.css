@@ -16,12 +16,16 @@ font-size: 12px;
 #roots li input {
 margin: 0 5px;
 }
-.grab {
-background: rgba(0,0,0,0.5);
-width: 15px;
+.drag-handler span {
+width: 16px;
+background: transparent url(expand-collapse.png) no-repeat left -48px;
+height: 16px;
 margin: 0 5px;
 display: inline-block;
-cursor: pointer;
+}
+.drag-handler span.active {
+background: transparent url(expand-collapse.png) no-repeat left -32px;
+cursor: move;
 }
 .spacer {
 width: 10px;
@@ -32,6 +36,9 @@ width: 16px;
 height: 16px;
 display: inline-block;
 text-indent: -999px;
+}
+.collapsed {
+background: transparent url(expand-collapse.png) no-repeat left -16px;
 }
 .expanded {
 background: transparent url(expand-collapse.png) no-repeat left 0;

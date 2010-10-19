@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-
+Templatetags for django-treebeard to add drag and drop capabilities to the
+nodes change list
 """
 
 from os.path import join
@@ -63,8 +64,19 @@ def items_for_result(cl, result, form):
         # If list_display_links not defined, add the link tag to the first field
         if (first and not cl.list_display_links) or field_name in cl.list_display_links:
             table_tag = {True:'th', False:'td'}[first]
+
+            # This spacer indents the nodes based on their depth
             spacer = '<span class="spacer">&nbsp;</span>' * (result.depth - 1) if first else ''
+
+            # This shows a collapse or expand link for nodes with childs
             collapse = '<a href="#" title="" class="collapse expanded">-</a>' if result.numchild > 0 else '<span class="collapse">&nbsp;</span>'
+
+            # Add a <td/> before the first col to show the drag handler
+            drag_handler = ''
+
+            if first:
+                drag_handler = '<td class="drag-handler"><span>&nbsp;</span></td>'
+
             first = False
             url = cl.url_for_result(result)
             # Convert the pk to something that can be used in Javascript.
@@ -75,8 +87,8 @@ def items_for_result(cl, result, form):
                 attr = pk
             value = result.serializable_value(attr)
             result_id = repr(force_unicode(value))[1:]
-            yield mark_safe(u'<%s%s>%s %s <a href="%s"%s>%s</a></%s>' % \
-                (table_tag, row_class, spacer, collapse, url, (cl.is_popup and ' onclick="opener.dismissRelatedLookupPopup(window, %s); return false;"' % result_id or ''), conditional_escape(result_repr), table_tag))
+            yield mark_safe(u'%s<%s%s>%s %s <a href="%s"%s>%s</a></%s>' % \
+                (drag_handler, table_tag, row_class, spacer, collapse, url, (cl.is_popup and ' onclick="opener.dismissRelatedLookupPopup(window, %s); return false;"' % result_id or ''), conditional_escape(result_repr), table_tag))
         else:
             # By default the fields come from ModelAdmin.list_editable, but if we pull
             # the fields out of the form instead of list_editable custom admins
@@ -90,56 +102,33 @@ def items_for_result(cl, result, form):
     if form and not form[cl.model._meta.pk.name].is_hidden:
         yield mark_safe(u'<td>%s</td>' % force_unicode(form[cl.model._meta.pk.name]))
 
+
 def results(cl):
+    parent_id = lambda n: n.get_parent().id if not n.is_root() else 0
     if cl.formset:
         for res, form in zip(cl.result_list, cl.formset.forms):
-            yield list(items_for_result(cl, res, form))
+            yield res.id, parent_id(res), res.get_children_count() > 0, list(items_for_result(cl, res, form))
     else:
         for res in cl.result_list:
-            yield list(items_for_result(cl, res, None))
+            yield res.id, parent_id(res), res.get_children_count() > 0, list(items_for_result(cl, res, None))
 
 
-
-
-
-def __line(node, request):
-    if 't' in request.GET and request.GET['t'] == 'id':
-        raw_id_fields = """
-        onclick="opener.dismissRelatedLookupPopup(window, '%d'); return false;"
-        """ % (node.id,)
-    else:
-        raw_id_fields = ''
-
-    return ('<input type="checkbox" class="action-select" value="%d" '
-            'name="_selected_action" /><span class="grab">&nbsp;</span><a href="%d/" %s>%s</a>') % (node.id,
-                                                                 node.id,
-                                                                 raw_id_fields,
-                                                                 str(node),)
-
-
-def __subtree(node, request):
-    tree = ''
-
-    for subnode in node.get_children():
-        tree = tree + '<li>%s</li>' % __subtree(subnode, request)
-
-    if tree:
-        tree = '<ul>%s</ul>' % tree
-    return __line(node, request) + tree
-
-
-@register.simple_tag
-def old_result_tree(cl, request):
-    tree = ''
-    for root_node in cl.model.get_root_nodes():
-        tree = tree + '<li>%s</li>' % __subtree(root_node, request)
-    return "<ul id='roots'>%s</ul>" % tree
 
 @register.inclusion_tag('admin/tree_change_list_results.html')
 def result_tree(cl, request):
+    """
+    Added 'filtered' param, so the template's js knows whether the results have
+    been affected by a GET param or not. Only when the results are not filtered
+    you can drag and sort the tree
+    """
+
+    # Here I'm adding an extra col on pos 2 for the drag handlers
+    headers = list(result_headers(cl))
+    headers.insert(1, {'text': '+'})
     return {
+        'filtered': bool(request.GET),
         'result_hidden_fields': list(result_hidden_fields(cl)),
-        'result_headers': list(result_headers(cl)),
+        'result_headers': headers,
         'results': list(results(cl)),
     }
 
@@ -155,3 +144,15 @@ def treebeard_css():
         'treebeard',
         'treebeard-admin.css')
     return LINK_HTML % css_file
+
+@register.simple_tag
+def treebeard_js():
+    """
+    Template tag to print out the proper <script/> tag to include a custom .js
+    """
+    SCRIPT_HTML = """<script type="text/javascript" src="%s"></script>"""
+    js_file = join(
+        getattr(settings, 'STATIC_URL', settings.MEDIA_URL),
+        'treebeard',
+        'treebeard-admin.js')
+    return SCRIPT_HTML % js_file
