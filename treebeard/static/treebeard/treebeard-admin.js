@@ -1,46 +1,52 @@
-// Crockford teaches...
-if (typeof Object.create !== 'function') {
-    Object.create = function (o) {
-        function F() {}
-        F.prototype = o;
-        return new F();
-    };
-}
-
 (function($){
 // Ok, let's do eeet
 
-// This is the basic Node class, which handles drag and drop for each 'row'
-var Node = {
-    init: function(elem) {
-        this.elem = elem;
-        this.$elem = $(elem);
-        this.node_id = this.$elem.attr('node');
-        this.parent_id = this.$elem.attr('parent');
-        this.collapsed = this.$elem.find('a.collapse').hasClass('collapsed');
-    },
-    collapse: function() {
-        // For each children, hide it's childrens and so on...
-        $('tr[parent=' + this.node_id + ']').each(function(){
-            var node = Object.create(Node);
-            node.init(this);
-            node.collapse();
-        }).hide();
-        this.$elem.find('a.collapse').removeClass('expanded').addClass('collapsed');
-    },
-    expand: function() {
-        // For each children, show it's kids
-        $('tr[parent=' + this.node_id + ']').show();
-        this.$elem.find('a.collapse').removeClass('collapsed').addClass('expanded');
+// This is the basic Node class, which handles UI tree operations for each 'row'
+var Node = function(elem) {
+    var $elem = $(elem);
+    var node_id = $elem.attr('node');
+    var parent_id = $elem.attr('parent');
+    return {
+        elem: elem,
+        $elem: $elem,
+        node_id: node_id,
+        parent_id: node_id,
+        is_collapsed: function() {
+            return $elem.find('a.collapse').hasClass('collapsed');
+        },
+        children: function() {
+            return $('tr[parent=' + node_id + ']');
+        },
+        collapse: function() {
+            // For each children, hide it's childrens and so on...
+            $.each(this.children(), function(){
+                var node = new Node(this);
+                node.collapse();
+            }).hide();
+            // Swicth class to set the proprt expand/collapse icon
+            $elem.find('a.collapse').removeClass('expanded').addClass('collapsed');
+        },
+        expand: function() {
+            // Display each kid (will display in collapsed state)
+            this.children().show();
+            // Swicth class to set the proprt expand/collapse icon
+            $elem.find('a.collapse').removeClass('collapsed').addClass('expanded');
 
+        },
+        toggle: function() {
+            if (this.is_collapsed()) {
+                this.expand();
+            } else {
+                this.collapse();
+            } 
+        }
     }
-};
+}
 
 $(document).ready(function(){
-    var has_filters = $('#has-filters').val() === "1";
 
-    // Don't activate drag if GET filters are set on the page
-    if (has_filters) {
+    // Don't activate drag or collapse if GET filters are set on the page
+    if ($('#has-filters').val() === "1") {
         return;
     }
 
@@ -48,13 +54,9 @@ $(document).ready(function(){
     $('td.drag-handler span').addClass('active');
 
     $('a.collapse').click(function(){
-        var node = Object.create(Node);
-        node.init($(this).closest('tr'));
-        if (node.collapsed) {
-            node.expand();
-        } else {
-            node.collapse();
-        }
+        var node = new Node($(this).closest('tr')[0]); // send the DOM node, not jQ
+        node.toggle();
+        return false;
     });
 });
 })(django.jQuery);
