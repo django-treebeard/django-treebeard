@@ -153,6 +153,19 @@ def treebeard_js():
     SCRIPT_HTML = """<script type="text/javascript" src="%s"></script>"""
     js_file = join(
         getattr(settings, 'STATIC_URL', settings.MEDIA_URL),
-        'treebeard',
-        'treebeard-admin.js')
-    return SCRIPT_HTML % js_file
+        'treebeard', 'treebeard-admin.js')
+
+    # Jquery UI is needed to call disableSelection() on drag and drop so
+    # text selections arent marked while dragging a table row
+    # http://www.lokkju.com/blog/archives/143 
+    JQUERY_UI = """
+    <script>(function($){jQuery = $.noConflict(true);})(django.jQuery);</script>
+    <script type="text/javascript" src="%s"></script>
+    """
+    jquery_ui = join(
+        getattr(settings, 'STATIC_URL', settings.MEDIA_URL),
+        'treebeard', 'jquery-ui-1.8.5.custom.min.js')
+
+    scripts = [SCRIPT_HTML % js_file, JQUERY_UI % jquery_ui]
+    return ''.join(scripts)
+

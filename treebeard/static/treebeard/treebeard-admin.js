@@ -10,7 +10,11 @@ var Node = function(elem) {
         elem: elem,
         $elem: $elem,
         node_id: node_id,
-        parent_id: node_id,
+        parent_id: parent_id,
+        node_name: function() {
+            // Returns the text of the node
+            return $elem.find('th a:not(.collapse)').text();
+        },
         is_collapsed: function() {
             return $elem.find('a.collapse').hasClass('collapsed');
         },
@@ -26,6 +30,10 @@ var Node = function(elem) {
             // Swicth class to set the proprt expand/collapse icon
             $elem.find('a.collapse').removeClass('expanded').addClass('collapsed');
         },
+        parent_node: function() {
+            // Returns a Node object of the parent
+            return new Node($('tr[node=' + parent_id + ']', $elem.parent())[0]);
+        },
         expand: function() {
             // Display each kid (will display in collapsed state)
             this.children().show();
@@ -39,6 +47,9 @@ var Node = function(elem) {
             } else {
                 this.collapse();
             } 
+        },
+        clone: function() {
+            return $elem.clone();
         }
     }
 }
@@ -50,8 +61,56 @@ $(document).ready(function(){
         return;
     }
 
+    $body = $('body');
+
     // Activate all rows and instantiate a Node for each row
-    $('td.drag-handler span').addClass('active');
+    $('td.drag-handler span').addClass('active').bind('mousedown', function(evt) {
+        $ghost = $('<div id="ghost"></div>');
+        $drag_line = $('<div id="drag_line">line<div></div></div>');
+        $ghost.appendTo($body);
+        $drag_line.appendTo($body);
+        var node = new Node($(this).closest('tr')[0]);
+        cloned_node = node.clone();
+        $targetRow = null;
+        $body.disableSelection().bind('mousemove', function(evt2) {
+            $ghost.html(cloned_node).css({  // from FeinCMS :P
+                'opacity': .8, 
+                'position': 'absolute', 
+                'top': evt2.pageY, 
+                'left': evt2.pageX-30, 
+                'width': 600 
+            });
+            // oh gawd...
+            // Iterate through all rows and see where am I moving so I can place
+            // the drag lin accordingly
+            rowHeight = node.$elem.height();
+            $('tr', node.$elem.parent()).each(function(index, element) {
+                $row = $(element); 
+                top = $row.offset().top;
+                // Check if mouse is over this row
+                if (evt2.pageY >= top && evt2.pageY <= top + rowHeight) {
+                    $targetRow = $row;
+                    $drag_line.css({
+                        'left': node.$elem.offset().left,
+                        'width': node.$elem.width(),
+                        'top': top,
+                    });
+                } else {
+                    //$targetRow = null;
+                }
+            });
+        }).bind('mouseup', function() {
+            if ($targetRow !== null) {
+                target_node = new Node($targetRow[0]);
+                if (target_node.node_id !== node.node_id) {
+                    alert('Insert node ' + node.node_name() + ' as child of: ' + target_node.parent_node().node_name() + '\n and sibling of: ' + target_node.node_name());
+                }
+            }
+            $ghost.remove();
+            $drag_line.remove();
+            $body.enableSelection().unbind('mousemove').unbind('mouseup');
+        });
+    });
 
     $('a.collapse').click(function(){
         var node = new Node($(this).closest('tr')[0]); // send the DOM node, not jQ

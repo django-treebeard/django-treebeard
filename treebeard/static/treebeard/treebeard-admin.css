@@ -43,3 +43,10 @@ background: transparent url(expand-collapse.png) no-repeat left -16px;
 .expanded {
 background: transparent url(expand-collapse.png) no-repeat left 0;
 }
+#drag_line {
+border: 3px solid #A0A;
+display: block;
+position: absolute;
+line-height: 0;
+height: 0px;
+}
