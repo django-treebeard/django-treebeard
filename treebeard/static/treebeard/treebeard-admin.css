@@ -55,5 +55,7 @@ width: 100px;
 background: #FFD;
 color: #000;
 left: 100px;
+text-align: center;
 border: 1px solid #000;
+vertical-align: center;
 }
