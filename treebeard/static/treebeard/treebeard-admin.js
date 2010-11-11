@@ -104,6 +104,22 @@ $(document).ready(function(){
                 target_node = new Node($targetRow[0]);
                 if (target_node.node_id !== node.node_id) {
                     alert('Insert node ' + node.node_name() + ' as child of: ' + target_node.parent_node().node_name() + '\n and sibling of: ' + target_node.node_name());
+                    // Call $.ajax so we can handle the error
+                    $.ajax({
+                        url: window.MOVE_NODE_ENDPOINT,
+                        type: 'POST',
+                        data: {
+                            node_id: node.node_id,
+                            parent_id: target_node.parent_id,
+                            sibling_id: target_node.node_id
+                        },
+                        complete: function(req, status) {
+                            window.location.reload(); 
+                        },
+                        error: function(req, status, error) {
+                            window.location.reload(); 
+                        }
+                    });
                 }
             }
             $ghost.remove();

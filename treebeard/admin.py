@@ -1,9 +1,11 @@
 "Django admin support for treebeard"
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.conf.urls.defaults import url, patterns
+from django.http import HttpResponseBadRequest, HttpResponse
 
 from treebeard.forms import MoveNodeForm
+from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy, InvalidMoveToDescendant, PathOverflow
 
 from pprint import pprint
 
@@ -30,11 +32,37 @@ class TreeAdmin(admin.ModelAdmin):
         """
         urls = super(TreeAdmin, self).get_urls()
         new_urls = patterns('',
-            url('^%s/%s/move/$' % (self.model._meta.app_label,
-                self.model._meta.module_name),
-                self.admin_site.admin_view(self.move_node)),
+            url('^move/$',
+                self.admin_site.admin_view(self.move_node),
+                name='move_node'),
         )
-        return urls + new_urls
+        return new_urls + urls
 
     def move_node(self, request):
-        pass
+        try:
+            node_id = request.POST['node_id']
+            parent_id = request.POST['parent_id']
+            sibling_id = request.POST['sibling_id']
+        except KeyError:
+            # Some parameters were missing return a BadRequest
+            return HttpResponseBadRequest(u'Malformed POST params')
+
+        node = self.model.objects.get(pk=node_id)
+        parent = self.model.objects.get(pk=parent_id)
+        sibling = self.model.objects.get(pk=sibling_id)
+
+        try:
+            print "Moving %s left of %s" % (node, sibling)
+            node.move(sibling, pos='left')
+            print "Moved!"
+            messages.info(request, u'Moved node %s as sibling of %s' % (node,
+                sibling))
+        except (InvalidPosition, InvalidMoveToDescendant, 
+            PathOverflow, MissingNodeOrderBy), e:
+            # An error was raised while trying to move the node, then set an
+            # error message and return 400, this will cause a reload on the client
+            # to show the message
+            messages.error(request, u'Exception raised while moving node: %s' % e)
+            return HttpResponseBadRequest(u'Exception raised during move')
+            
+        return HttpResponse('OK')
