@@ -47,6 +47,13 @@ background: transparent url(expand-collapse.png) no-repeat left 0;
 border-top: 5px solid #A0A;
 display: block;
 position: absolute;
-line-height: 0;
-height: 0px;
+}
+#drag_line span {
+position: relative;
+display: block;
+width: 100px;
+background: #FFD;
+color: #000;
+left: 100px;
+border: 1px solid #000;
 }

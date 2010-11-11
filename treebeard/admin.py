@@ -43,19 +43,24 @@ class TreeAdmin(admin.ModelAdmin):
             node_id = request.POST['node_id']
             parent_id = request.POST['parent_id']
             sibling_id = request.POST['sibling_id']
-        except KeyError:
+            as_child = request.POST.get('as_child', False)
+            as_child = bool(int(as_child))
+        except KeyError, ValueError:
             # Some parameters were missing return a BadRequest
             return HttpResponseBadRequest(u'Malformed POST params')
 
         node = self.model.objects.get(pk=node_id)
-        parent = self.model.objects.get(pk=parent_id)
+        # Parent is not used at this time, need to handle special case
+        # for root elements that do not have a parent
+        #parent = self.model.objects.get(pk=parent_id)
         sibling = self.model.objects.get(pk=sibling_id)
 
         try:
             try:
-                print "Moving %s left of %s" % (node, sibling)
-                node.move(sibling, pos='left')
-                print "Moved!"
+                if as_child:
+                    node.move(sibling, pos='target')
+                else:
+                    node.move(sibling, pos='left')
             except InvalidPosition, e:
                 # This could be due two reasons (from the docs):
                 # :raise InvalidPosition: when passing an invalid ``pos`` parm
@@ -65,11 +70,14 @@ class TreeAdmin(admin.ModelAdmin):
                 # If it happened because the node is not a 'sorted-sibling' or 
                 # 'sorted-child' then try to move just a child without preserving the
                 # order, so try a different move
-                node.move(sibling)
+                if  as_child:
+                    node.move(sibling, pos='sorted-child')
+                else:
+                    node.move(sibling)
 
             # If we are here, means that we moved it in onf of the tries
-            messages.info(request, u'Moved node "%s" as sibling of "%s"' % (node,
-                sibling))
+            messages.info(request, u'Moved node "%s" as %s of "%s"' % (node,
+                ('sibling', 'child')[as_child], sibling))
 
         except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,
             InvalidPosition), e:
