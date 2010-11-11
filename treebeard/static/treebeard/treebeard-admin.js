@@ -98,7 +98,7 @@ $(document).ready(function(){
                 $tooltip = $drag_line.find('span');
                 $tooltip.css({
                     'left': node.$elem.width(),
-                            'height': rowHeight,
+                    'height': rowHeight,
                 });
                 if (evt2.pageY >= rtop && evt2.pageY <= rtop + rowHeight/2) {
                     // The mouse is positioned on the top half of a row
