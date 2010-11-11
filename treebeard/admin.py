@@ -52,17 +52,33 @@ class TreeAdmin(admin.ModelAdmin):
         sibling = self.model.objects.get(pk=sibling_id)
 
         try:
-            print "Moving %s left of %s" % (node, sibling)
-            node.move(sibling, pos='left')
-            print "Moved!"
+            try:
+                print "Moving %s left of %s" % (node, sibling)
+                node.move(sibling, pos='left')
+                print "Moved!"
+            except InvalidPosition, e:
+                # This could be due two reasons (from the docs):
+                # :raise InvalidPosition: when passing an invalid ``pos`` parm
+                # :raise InvalidPosition: when :attr:`node_order_by` is enabled and
+                #   the``pos`` parm wasn't ``sorted-sibling`` or ``sorted-child``
+                # 
+                # If it happened because the node is not a 'sorted-sibling' or 
+                # 'sorted-child' then try to move just a child without preserving the
+                # order, so try a different move
+                node.move(sibling)
+
+            # If we are here, means that we moved it in onf of the tries
             messages.info(request, u'Moved node %s as sibling of %s' % (node,
                 sibling))
-        except (InvalidPosition, InvalidMoveToDescendant, 
-            PathOverflow, MissingNodeOrderBy), e:
+
+        except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,
+            InvalidPosition), e:
             # An error was raised while trying to move the node, then set an
             # error message and return 400, this will cause a reload on the client
             # to show the message
+            print e.__class__
             messages.error(request, u'Exception raised while moving node: %s' % e)
             return HttpResponseBadRequest(u'Exception raised during move')
             
         return HttpResponse('OK')
+

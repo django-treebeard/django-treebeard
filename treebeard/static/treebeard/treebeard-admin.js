@@ -103,7 +103,9 @@ $(document).ready(function(){
             if ($targetRow !== null) {
                 target_node = new Node($targetRow[0]);
                 if (target_node.node_id !== node.node_id) {
-                    alert('Insert node ' + node.node_name() + ' as child of: ' + target_node.parent_node().node_name() + '\n and sibling of: ' + target_node.node_name());
+                    /*alert('Insert node ' + node.node_name() + ' as child of: '
+                    + target_node.parent_node().node_name() + '\n and sibling of: '
+                        + target_node.node_name());*/
                     // Call $.ajax so we can handle the error
                     $.ajax({
                         url: window.MOVE_NODE_ENDPOINT,
