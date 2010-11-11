@@ -107,10 +107,10 @@ def results(cl):
     parent_id = lambda n: n.get_parent().id if not n.is_root() else 0
     if cl.formset:
         for res, form in zip(cl.result_list, cl.formset.forms):
-            yield res.id, parent_id(res), res.get_children_count() > 0, list(items_for_result(cl, res, form))
+            yield res.id, parent_id(res), res.get_depth(), res.get_children_count() > 0, list(items_for_result(cl, res, form))
     else:
         for res in cl.result_list:
-            yield res.id, parent_id(res), res.get_children_count() > 0, list(items_for_result(cl, res, None))
+            yield res.id, parent_id(res), res.get_depth(), res.get_children_count() > 0, list(items_for_result(cl, res, None))
 
 
 

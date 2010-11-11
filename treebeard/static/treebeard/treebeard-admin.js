@@ -6,11 +6,13 @@ var Node = function(elem) {
     var $elem = $(elem);
     var node_id = $elem.attr('node');
     var parent_id = $elem.attr('parent');
+    var level = $elem.attr('level')
     return {
         elem: elem,
         $elem: $elem,
         node_id: node_id,
         parent_id: parent_id,
+        level: level,
         node_name: function() {
             // Returns the text of the node
             return $elem.find('th a:not(.collapse)').text();
@@ -86,14 +88,16 @@ $(document).ready(function(){
             rowHeight = node.$elem.height();
             $('tr', node.$elem.parent()).each(function(index, element) {
                 $row = $(element); 
-                top = $row.offset().top;
+                rtop = $row.offset().top;
                 // Check if mouse is over this row
-                if (evt2.pageY >= top && evt2.pageY <= top + rowHeight) {
+                if (evt2.pageY >= rtop && evt2.pageY <= rtop + rowHeight) {
                     $targetRow = $row;
+                    // lets estimate the left pad of the node
+                    left_pad = parseInt($targetRow.attr('level')*15) + 50;
                     $drag_line.css({
-                        'left': node.$elem.offset().left,
-                        'width': node.$elem.width(),
-                        'top': top,
+                        'left': node.$elem.offset().left + left_pad,
+                        'width': node.$elem.width() - left_pad,
+                        'top': rtop,
                     });
                 } else {
                     //$targetRow = null;
@@ -102,7 +106,7 @@ $(document).ready(function(){
         }).bind('mouseup', function() {
             if ($targetRow !== null) {
                 target_node = new Node($targetRow[0]);
-                if (target_node.node_id !== node.node_id) {
+                if (target_node.parent_id !== node.parent_id) {
                     /*alert('Insert node ' + node.node_name() + ' as child of: '
                     + target_node.parent_node().node_name() + '\n and sibling of: '
                         + target_node.node_name());*/
