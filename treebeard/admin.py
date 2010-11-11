@@ -68,7 +68,7 @@ class TreeAdmin(admin.ModelAdmin):
                 node.move(sibling)
 
             # If we are here, means that we moved it in onf of the tries
-            messages.info(request, u'Moved node %s as sibling of %s' % (node,
+            messages.info(request, u'Moved node "%s" as sibling of "%s"' % (node,
                 sibling))
 
         except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,

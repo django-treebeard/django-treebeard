@@ -44,7 +44,7 @@ background: transparent url(expand-collapse.png) no-repeat left -16px;
 background: transparent url(expand-collapse.png) no-repeat left 0;
 }
 #drag_line {
-border: 3px solid #A0A;
+border-top: 5px solid #A0A;
 display: block;
 position: absolute;
 line-height: 0;
