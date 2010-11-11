@@ -71,7 +71,12 @@ class TreeAdmin(admin.ModelAdmin):
                 # 'sorted-child' then try to move just a child without preserving the
                 # order, so try a different move
                 if  as_child:
-                    node.move(sibling, pos='sorted-child')
+                    try:
+                        # Try as unsorted tree
+                        node.move(sibling, pos='last-child')
+                    except InvalidPosition:
+                        # We are talking about a sorted tree
+                        node.move(sibling, pos='sorted-child')
                 else:
                     node.move(sibling)
 
