@@ -124,7 +124,12 @@ def result_tree(cl, request):
 
     # Here I'm adding an extra col on pos 2 for the drag handlers
     headers = list(result_headers(cl))
-    headers.insert(1, {'text': '+'})
+    headers.insert(1, {
+        'text': '+',
+        'sortable': True,
+        'url': request.path,
+        'tooltip': u'Return to ordered Tree',
+        })
     return {
         'filtered': bool(request.GET),
         'result_hidden_fields': list(result_hidden_fields(cl)),
