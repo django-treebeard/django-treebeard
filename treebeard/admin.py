@@ -31,7 +31,13 @@ class TreeAdmin(admin.ModelAdmin):
         return TreeChangeList
 
     def queryset(self, request):
-        return self.model.get_tree()
+        from treebeard.al_tree import AL_Node
+        if issubclass(self.model, AL_Node):
+            # AL Trees return a list instead of a QuerySet for .get_tree()
+            return self.model.objects.filter(id__in=[n.id 
+                for n in self.model.get_tree()])
+        else:
+            return self.model.get_tree()
 
     def get_urls(self):
         """
@@ -40,8 +46,7 @@ class TreeAdmin(admin.ModelAdmin):
         urls = super(TreeAdmin, self).get_urls()
         new_urls = patterns('',
             url('^move/$',
-                self.admin_site.admin_view(self.move_node),
-                name='move_node'),
+                self.admin_site.admin_view(self.move_node),),
         )
         return new_urls + urls
 

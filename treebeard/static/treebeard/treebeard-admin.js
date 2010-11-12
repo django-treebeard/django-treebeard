@@ -97,7 +97,7 @@ $(document).ready(function(){
                 // Check if mouse is over this row
                 $tooltip = $drag_line.find('span');
                 $tooltip.css({
-                    'left': node.$elem.width(),
+                    'left': node.$elem.width() - $tooltip.width(),
                     'height': rowHeight,
                 });
                 if (evt2.pageY >= rtop && evt2.pageY <= rtop + rowHeight/2) {
