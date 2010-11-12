@@ -57,7 +57,7 @@ class TreeAdmin(admin.ModelAdmin):
             sibling_id = request.POST['sibling_id']
             as_child = request.POST.get('as_child', False)
             as_child = bool(int(as_child))
-        except KeyError, ValueError:
+        except (KeyError, ValueError), e:
             # Some parameters were missing return a BadRequest
             return HttpResponseBadRequest(u'Malformed POST params')
 

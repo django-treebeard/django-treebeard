@@ -69,16 +69,22 @@ $(document).ready(function(){
 
     $body = $('body');
 
-    // Activate all rows and instantiate a Node for each row
+    // Activate all rows for drag & drop
+    // then bind mouse down event
     $('td.drag-handler span').addClass('active').bind('mousedown', function(evt) {
         $ghost = $('<div id="ghost"></div>');
         $drag_line = $('<div id="drag_line"><span></span></div>');
         $ghost.appendTo($body);
         $drag_line.appendTo($body);
+        
+        // Create a clone create the illusion that we're moving the node
         var node = new Node($(this).closest('tr')[0]);
         cloned_node = node.clone();
+
         $targetRow = null;
         as_child = false;
+
+        // Now make the new clone move with the mouse
         $body.disableSelection().bind('mousemove', function(evt2) {
             $ghost.html(cloned_node).css({  // from FeinCMS :P
                 'opacity': .8, 
@@ -87,40 +93,37 @@ $(document).ready(function(){
                 'left': evt2.pageX-30, 
                 'width': 600 
             });
-            // oh gawd...
             // Iterate through all rows and see where am I moving so I can place
-            // the drag lin accordingly
+            // the drag line accordingly
             rowHeight = node.$elem.height();
             $('tr', node.$elem.parent()).each(function(index, element) {
                 $row = $(element); 
                 rtop = $row.offset().top;
-                // Check if mouse is over this row
+                // The tooltop will display whether I'm droping the element as
+                // child or sibling
                 $tooltip = $drag_line.find('span');
                 $tooltip.css({
                     'left': node.$elem.width() - $tooltip.width(),
                     'height': rowHeight,
                 });
+                // Check if mouse is over this row
                 if (evt2.pageY >= rtop && evt2.pageY <= rtop + rowHeight/2) {
-                    // The mouse is positioned on the top half of a row
+                    // The mouse is positioned on the top half of a $row
                     $targetRow = $row;
                     as_child = false;
-                    target_node = new Node($targetRow[0]);
                     $drag_line.css({
                         'left': node.$elem.offset().left,
                         'width': node.$elem.width(),
                         'top': rtop,
-                        'display': 'block',
                         'borderWidth': '5px',
                         'height': 0,
                         'opacity': 1
                     });
-                    if (!target_node.has_children()) {
-                        $drag_line.css('borderColor', '#00C');
-                    }
                     $tooltip.text('As Sibling');
                 } else if (evt2.pageY >= rtop + rowHeight/2 && evt2.pageY <= rtop + rowHeight) {
                     // The mouse is positioned on the bottom half of a row
                     $targetRow = $row;
+                    as_child = true;
                     $drag_line.css({
                         'top': rtop,
                         'left': node.$elem.offset().left,
@@ -128,9 +131,7 @@ $(document).ready(function(){
                         'opacity': 0.4,
                         'width': node.$elem.width(),
                         'borderWidth': 0,
-                        'backgroundColor': '#00C'
                     });
-                    as_child = true;
                     $tooltip.text('As child');
                 }
             });
@@ -142,6 +143,7 @@ $(document).ready(function(){
                     + target_node.parent_node().node_name() + '\n and sibling of: '
                         + target_node.node_name());*/
                     // Call $.ajax so we can handle the error
+                    // On Drop, make an XHR call to perform the node move
                     $.ajax({
                         url: window.MOVE_NODE_ENDPOINT,
                         type: 'POST',
@@ -155,6 +157,8 @@ $(document).ready(function(){
                             window.location.reload(); 
                         },
                         error: function(req, status, error) {
+                            // On error (!200) also reload to display
+                            // the message
                             window.location.reload(); 
                         }
                     });
