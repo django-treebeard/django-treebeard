@@ -7,24 +7,31 @@ from django.http import HttpResponseBadRequest, HttpResponse
 from treebeard.forms import MoveNodeForm
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy, InvalidMoveToDescendant, PathOverflow
 
-from pprint import pprint
+class TreeChangeList(admin.views.main.ChangeList):
+    def get_ordering(self):
+        """
+        Overriding default's ChangeList.get_ordering so we don't sort the
+        results by '-id' as default
+        """
+        lookup_opts, params = self.lookup_opts, self.params
+        ordering = self.model_admin.ordering or lookup_opts.ordering or None
+
+        if ordering is not None or params:
+            return super(TreeChangeList, self).get_ordering()
+        return None, 'asc'
+
+
 
 class TreeAdmin(admin.ModelAdmin):
     "Django Admin class for treebeard"
     change_list_template = 'admin/tree_change_list.html'
     form = MoveNodeForm
 
-    """
+    def get_changelist(self, request):
+        return TreeChangeList
+
     def queryset(self, request):
-        print "Get tree"
-        pprint(self.model.get_tree())
-        print "annotated"
-        pprint(self.model.get_annotated_list())
-        print "Bulk"
-        pprint(self.model.dump_bulk())
-        return self.model.objects.all()#.order_by('-path')
-        return self.model.get_tree().reverse()
-    """
+        return self.model.get_tree()
 
     def get_urls(self):
         """
@@ -89,7 +96,6 @@ class TreeAdmin(admin.ModelAdmin):
             # An error was raised while trying to move the node, then set an
             # error message and return 400, this will cause a reload on the client
             # to show the message
-            print e.__class__
             messages.error(request, u'Exception raised while moving node: %s' % e)
             return HttpResponseBadRequest(u'Exception raised during move')
             
