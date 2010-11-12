@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Templatetags for django-treebeard to add drag and drop capabilities to the
-nodes change list
+nodes change list - @jjdelc
+
 """
 
 from os.path import join
@@ -136,6 +137,15 @@ def result_tree(cl, request):
         'result_headers': headers,
         'results': list(results(cl)),
     }
+
+def check_empty_GET(GET_dict):
+    """
+    Returns True if the GET querstring contains on values, but it can contain empty
+    keys.
+    This is better than doing not bool(request.GET) as an empty key will return
+    True
+    """
+    return None
 
 
 @register.simple_tag
