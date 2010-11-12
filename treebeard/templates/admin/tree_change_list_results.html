@@ -8,7 +8,7 @@
 <thead>
 <tr>
 {% for header in result_headers %}<th{{ header.class_attrib }}>
-{% if header.sortable %}<a href="{{ header.url }}">{% endif %}
+{% if header.sortable %}<a href="{{ header.url }}" {% if header.tooltip %}title="{{header.tooltip}}"{% endif %}>{% endif %}
 {{ header.text|capfirst }}
 {% if header.sortable %}</a>{% endif %}</th>{% endfor %}
 </tr>
