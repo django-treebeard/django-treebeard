@@ -66,10 +66,10 @@ def items_for_result(cl, result, form):
             table_tag = {True:'th', False:'td'}[first]
 
             # This spacer indents the nodes based on their depth
-            spacer = '<span class="spacer">&nbsp;</span>' * (result.depth - 1) if first else ''
+            spacer = '<span class="spacer">&nbsp;</span>' * (result.get_depth() - 1) if first else ''
 
             # This shows a collapse or expand link for nodes with childs
-            collapse = '<a href="#" title="" class="collapse expanded">-</a>' if result.numchild > 0 else '<span class="collapse">&nbsp;</span>'
+            collapse = '<a href="#" title="" class="collapse expanded">-</a>' if result.get_children_count() > 0 else '<span class="collapse">&nbsp;</span>'
 
             # Add a <td/> before the first col to show the drag handler
             drag_handler = ''
