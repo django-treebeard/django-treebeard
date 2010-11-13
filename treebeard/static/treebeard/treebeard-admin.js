@@ -177,6 +177,13 @@ $(document).ready(function(){
             $ghost.remove();
             $drag_line.remove();
             $body.enableSelection().unbind('mousemove').unbind('mouseup');
+        }).bind('keyup', function(kbevt) {
+            // Cancel drag on escape
+            if (kbevt.keyCode === 27) {
+                $ghost.remove();
+                $drag_line.remove();
+                $body.enableSelection().unbind('mousemove').unbind('mouseup');
+            } 
         });
     });
 
