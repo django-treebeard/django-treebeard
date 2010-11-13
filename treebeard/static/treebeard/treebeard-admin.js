@@ -110,10 +110,13 @@ $(document).ready(function(){
                 // Check if you are dragging over the same node
                 if (evt2.pageY >= node_top && evt2.pageY <= node_top + rowHeight) {
                     $targetRow = null;
+                    $tooltip.text('Abort');
                     $drag_line.css({
-                        'top': rtop,
-                        'height': 0,
+                        'top': node_top,
+                        'height': rowHeight,
                         'borderWidth': 0,
+                        'opacity': 0.8,
+                        'backgroundColor': '#ECC'
                     });
                 } else
                 // Check if mouse is over this row
@@ -141,6 +144,7 @@ $(document).ready(function(){
                         'opacity': 0.4,
                         'width': node.$elem.width(),
                         'borderWidth': 0,
+                        'backgroundColor': '#A0A'
                     });
                     $tooltip.text('As child');
                 }
