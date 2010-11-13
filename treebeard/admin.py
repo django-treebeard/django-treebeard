@@ -6,6 +6,7 @@ from django.conf.urls.defaults import url, patterns
 from django.http import HttpResponseBadRequest, HttpResponse
 
 from treebeard.forms import MoveNodeForm
+from treebeard.templatetags.admin_tree import check_empty_dict
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy, InvalidMoveToDescendant, PathOverflow
 
 class TreeChangeList(ChangeList):
@@ -17,7 +18,7 @@ class TreeChangeList(ChangeList):
         lookup_opts, params = self.lookup_opts, self.params
         ordering = self.model_admin.ordering or lookup_opts.ordering or None
 
-        if ordering is not None or params:
+        if ordering is not None or not check_empty_dict(params):
             return super(TreeChangeList, self).get_ordering()
         return None, 'asc'
 
