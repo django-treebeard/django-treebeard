@@ -35,15 +35,16 @@ class TreeAdmin(admin.ModelAdmin):
         from treebeard.al_tree import AL_Node
         if issubclass(self.model, AL_Node):
             # AL Trees return a list instead of a QuerySet for .get_tree()
+            # So we're returning the regular .queryset cause we will use
+            # the old admin
             return super(TreeAdmin, self).queryset(request)
-            #return self.model.objects.filter(id__in=[n.id 
-            #    for n in self.model.get_tree()])
         else:
             return self.model.get_tree()
 
     def changelist_view(self, request, extra_context=None):
         from treebeard.al_tree import AL_Node
         if issubclass(self.model, AL_Node):
+            # For AL trees, use the old admin display
             self.change_list_template = 'admin/tree_list.html' 
         return super(TreeAdmin, self).changelist_view(request, extra_context)
 

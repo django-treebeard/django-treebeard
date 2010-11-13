@@ -106,6 +106,16 @@ $(document).ready(function(){
                     'left': node.$elem.width() - $tooltip.width(),
                     'height': rowHeight,
                 });
+                node_top = node.$elem.offset().top;
+                // Check if you are dragging over the same node
+                if (evt2.pageY >= node_top && evt2.pageY <= node_top + rowHeight) {
+                    $targetRow = null;
+                    $drag_line.css({
+                        'top': rtop,
+                        'height': 0,
+                        'borderWidth': 0,
+                    });
+                } else
                 // Check if mouse is over this row
                 if (evt2.pageY >= rtop && evt2.pageY <= rtop + rowHeight/2) {
                     // The mouse is positioned on the top half of a $row
