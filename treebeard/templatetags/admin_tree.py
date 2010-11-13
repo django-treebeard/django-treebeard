@@ -114,6 +114,20 @@ def results(cl):
             yield res.id, parent_id(res), res.get_depth(), res.get_children_count(), list(items_for_result(cl, res, None))
 
 
+def check_empty_dict(GET_dict):
+    """
+    Returns True if the GET querstring contains on values, but it can contain empty
+    keys.
+    This is better than doing not bool(request.GET) as an empty key will return
+    True
+    """
+    empty = True
+    for k, v in GET_dict.items():
+        if v:
+            empty = False
+    return empty
+
+
 
 @register.inclusion_tag('admin/tree_change_list_results.html')
 def result_tree(cl, request):
@@ -132,21 +146,11 @@ def result_tree(cl, request):
         'tooltip': u'Return to ordered Tree',
         })
     return {
-        'filtered': bool(request.GET),
+        'filtered': not check_empty_dict(request.GET),
         'result_hidden_fields': list(result_hidden_fields(cl)),
         'result_headers': headers,
         'results': list(results(cl)),
     }
-
-def check_empty_GET(GET_dict):
-    """
-    Returns True if the GET querstring contains on values, but it can contain empty
-    keys.
-    This is better than doing not bool(request.GET) as an empty key will return
-    True
-    """
-    return None
-
 
 @register.simple_tag
 def treebeard_css():
