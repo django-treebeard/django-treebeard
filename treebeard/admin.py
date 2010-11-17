@@ -15,10 +15,7 @@ class TreeChangeList(ChangeList):
         Overriding default's ChangeList.get_ordering so we don't sort the
         results by '-id' as default
         """
-        lookup_opts, params = self.lookup_opts, self.params
-        ordering = self.model_admin.ordering or lookup_opts.ordering or None
-
-        if ordering is not None or not check_empty_dict(params):
+        if not check_empty_dict(self.params):
             return super(TreeChangeList, self).get_ordering()
         return None, 'asc'
 
