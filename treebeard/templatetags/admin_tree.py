@@ -123,7 +123,8 @@ def check_empty_dict(GET_dict):
     """
     empty = True
     for k, v in GET_dict.items():
-        if v:
+        # Don't disable on p(age) or 'all' GET param
+        if v and k != 'p' and k != 'all': 
             empty = False
     return empty
 
