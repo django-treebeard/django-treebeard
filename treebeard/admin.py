@@ -10,6 +10,7 @@ from treebeard.templatetags.admin_tree import check_empty_dict
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy, InvalidMoveToDescendant, PathOverflow
 
 class TreeChangeList(ChangeList):
+
     def get_ordering(self):
         """
         Overriding default's ChangeList.get_ordering so we don't sort the
@@ -18,7 +19,6 @@ class TreeChangeList(ChangeList):
         if not check_empty_dict(self.params):
             return super(TreeChangeList, self).get_ordering()
         return None, 'asc'
-
 
 
 class TreeAdmin(admin.ModelAdmin):

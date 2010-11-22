@@ -15,7 +15,7 @@
 </thead>
 <tbody>
 {% for node_id, parent_id, node_level, has_children, result in results %}
-<tr class="{% cycle 'row1' 'row2' %}" level="{{node_level}}" children-num="{{children_num}}" parent="{{parent_id}}" node="{{node_id}}">{% for item in result %}
+<tr id="node-{{node_id}}" class="{% cycle 'row1' 'row2' %}" level="{{node_level}}" children-num="{{children_num}}" parent="{{parent_id}}" node="{{node_id}}">{% for item in result %}
 {% if forloop.counter == 1 %}
 {% for spacer in item.depth%}<span class="grab">&nbsp;</span>{% endfor %}
 {% endif %}
