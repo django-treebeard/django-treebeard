@@ -60,3 +60,6 @@ text-align: center;
 border: 1px solid #000;
 vertical-align: center;
 }
+/*tr:target { I'm handling the highlight with js to have more control
+background-color: #FF0;
+}*/
