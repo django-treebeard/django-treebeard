@@ -1,6 +1,14 @@
 (function($){
 // Ok, let's do eeet
 
+ACTIVE_NODE_BG_COLOR = '#B7D7E8';
+RECENTLY_MOVED_COLOR = '#FFFF00';
+RECENTLY_MOVED_FADEOUT = '#FFFFFF';
+ABORT_COLOR = '#EECCCC';
+DRAG_LINE_COLOR = '#AA00AA';
+
+RECENTLY_FADE_DURATION = 2000;
+
 // This is the basic Node class, which handles UI tree operations for each 'row'
 var Node = function(elem) {
     var $elem = $(elem);
@@ -76,10 +84,20 @@ $(document).ready(function(){
         $drag_line = $('<div id="drag_line"><span></span></div>');
         $ghost.appendTo($body);
         $drag_line.appendTo($body);
+
+        var stop_drag = function() {
+            $ghost.remove();
+            $drag_line.remove();
+            $body.enableSelection().unbind('mousemove').unbind('mouseup');
+            node.elem.removeAttribute('style');
+        }
         
         // Create a clone create the illusion that we're moving the node
         var node = new Node($(this).closest('tr')[0]);
         cloned_node = node.clone();
+        node.$elem.css({
+            'background': ACTIVE_NODE_BG_COLOR
+        });
 
         $targetRow = null;
         as_child = false;
@@ -116,7 +134,7 @@ $(document).ready(function(){
                         'height': rowHeight,
                         'borderWidth': 0,
                         'opacity': 0.8,
-                        'backgroundColor': '#ECC'
+                        'backgroundColor': ABORT_COLOR
                     });
                 } else
                 // Check if mouse is over this row
@@ -136,6 +154,10 @@ $(document).ready(function(){
                 } else if (evt2.pageY >= rtop + rowHeight/2 && evt2.pageY <= rtop + rowHeight) {
                     // The mouse is positioned on the bottom half of a row
                     $targetRow = $row;
+                    target_node = new Node($targetRow[0]);
+                    if (target_node.is_collapsed()) {
+                        target_node.expand();
+                    }
                     as_child = true;
                     $drag_line.css({
                         'top': rtop,
@@ -144,7 +166,7 @@ $(document).ready(function(){
                         'opacity': 0.4,
                         'width': node.$elem.width(),
                         'borderWidth': 0,
-                        'backgroundColor': '#A0A'
+                        'backgroundColor': DRAG_LINE_COLOR
                     });
                     $tooltip.text('As child');
                 }
@@ -183,15 +205,11 @@ $(document).ready(function(){
                     });
                 }
             }
-            $ghost.remove();
-            $drag_line.remove();
-            $body.enableSelection().unbind('mousemove').unbind('mouseup');
+            stop_drag();
         }).bind('keyup', function(kbevt) {
             // Cancel drag on escape
             if (kbevt.keyCode === 27) {
-                $ghost.remove();
-                $drag_line.remove();
-                $body.enableSelection().unbind('mousemove').unbind('mouseup');
+                stop_drag();
             } 
         });
     });
@@ -206,11 +224,11 @@ $(document).ready(function(){
     // doesn't, I'm doing this to avoid scrolling the page... is that a good thing?
     if (hash) {
         $(hash + '-id').animate({
-            backgroundColor:'#FF0'
-        }, 3000, function() {
+            backgroundColor: RECENTLY_MOVED_COLOR
+        }, RECENTLY_FADE_DURATION, function() {
             $(this).animate({
-                backgroundColor:'#FFF'
-            }, 2000, function(){
+                backgroundColor: RECENTLY_MOVED_FADEOUT
+            }, RECENTLY_FADE_DURATION, function(){
                 this.removeAttribute('style');
             });
         });
