@@ -3,6 +3,7 @@ Release 1.6X (XXX XX, 2010)
 ---------------------------
 
 * Updated docs: the library supports python 2.5+
+* Small optimization to ns_tree.is_root (thanks jaap3)
 
 Release 1.61 (Jul 24, 2010)
 ---------------------------
