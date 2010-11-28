@@ -480,8 +480,11 @@ class NS_Node(Node):
         ":returns: the root node for the current node object."
         if self.lft == 1:
             return self
-        return self.__class__.objects.get(tree_id=self.tree_id,
-                                          lft=1)
+        return self.__class__.objects.get(tree_id=self.tree_id, lft=1)
+
+    def is_root(self):
+        ":returns: True if the node is a root node (else, returns False)"
+        return self.lft == 1
 
     def get_siblings(self):
         """
