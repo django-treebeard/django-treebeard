@@ -8,7 +8,7 @@ Everything you need to get working quickly.
 Prerequisites
 -------------
 
-``django-treebeard`` needs at least **Python 2.4** to run, and
+``django-treebeard`` needs at least **Python 2.5** to run, and
 **Django 1.0 or better**.
 
 
