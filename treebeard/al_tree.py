@@ -14,7 +14,7 @@ class AL_NodeManager(models.Manager):
         "Sets the custom queryset as the default."
         qset = super(AL_NodeManager, self).get_query_set()
         if self.model.node_order_by:
-            order_by = ['parent'] + self.model.node_order_by
+            order_by = ['parent'] + list(self.model.node_order_by)
         else:
             order_by = ['parent', 'sib_order']
         return qset.order_by(*order_by)
