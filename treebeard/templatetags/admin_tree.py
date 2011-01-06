@@ -9,10 +9,11 @@ from os.path import join
 
 from django.db import models
 from django.conf import settings
+from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
 from django.template import Library
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.admin.templatetags.admin_list import result_hidden_fields, result_headers, _boolean_icon
-from django.contrib.admin.util import lookup_field, display_for_field, label_for_field
+from django.contrib.admin.util import lookup_field, display_for_field
 from django.utils.safestring import mark_safe
 from django.utils.encoding import smart_unicode, force_unicode
 from django.utils.html import escape, conditional_escape
