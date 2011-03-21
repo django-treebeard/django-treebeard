@@ -36,6 +36,7 @@ Contents
    forms
    exceptions
    benchmarks
+   tests
    changes
 
 
