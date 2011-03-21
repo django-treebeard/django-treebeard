@@ -1475,6 +1475,37 @@ class TestTreeSorted(TestTreeBase):
                     (4, 1, u'fgh', 2, 0)]
         self.assertEqual(self.got(), expected)
 
+    def _multi_move_sortedsibling(self):
+            # https://bitbucket.org/tabo/django-treebeard/issue/27
+            self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
+            self.sorted_model.add_root(val1=1, val2=4, desc='bcd')
+            self.sorted_model.add_root(val1=2, val2=5, desc='zxy')
+            self.sorted_model.add_root(val1=3, val2=3, desc='abc')
+            self.sorted_model.add_root(val1=4, val2=1, desc='fgh')
+            self.sorted_model.add_root(val1=3, val2=3, desc='abc')
+            self.sorted_model.add_root(val1=2, val2=2, desc='qwe')
+            self.sorted_model.add_root(val1=3, val2=2, desc='vcx')
+            root_nodes = self.sorted_model.get_root_nodes()
+            target = root_nodes[0]
+            for node in root_nodes[1:]:
+
+                # because raw queries don't update django objects
+                node = self.sorted_model.objects.get(pk=node.id)
+                target = self.sorted_model.objects.get(pk=target.id)
+
+                node.val1 = node.val1 - 2
+                node.save()
+                node.move(target, 'sorted-sibling')
+            expected = [(0, 2, u'qwe', 1, 0),
+                        (0, 5, u'zxy', 1, 0),
+                        (1, 2, u'vcx', 1, 0),
+                        (1, 3, u'abc', 1, 0),
+                        (1, 3, u'abc', 1, 0),
+                        (1, 3, u'zxy', 1, 0),
+                        (1, 4, u'bcd', 1, 0),
+                        (2, 1, u'fgh', 1, 0)]
+            self.assertEqual(self.got(), expected)
+
 
 class TestMP_TreeAlphabet(TestCase):
 

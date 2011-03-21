@@ -1,5 +1,5 @@
 
-Release 1.6X (XXX XX, 2010)
+Release 1.6X (XXX XX, 2011)
 ---------------------------
 
 * Revamped admin interface for MP and NS trees, supporting drag&drop to reorder
@@ -14,6 +14,7 @@ Release 1.6X (XXX XX, 2010)
 * Added tox support
 * Fixed the test suite to run in Python 2.4
 * Fixed drag&drop bug in the admin (fixed by jmbarbier)
+* Fixed a bug when moving MP_Nodes (fixed by Matt Hoskins)
 
 Release 1.61 (Jul 24, 2010)
 ---------------------------
