@@ -753,7 +753,39 @@ class MP_Node(Node):
 
             newpath = cls._get_path(target.path, newdepth, newpos)
 
-            for node in siblings.reverse():
+            # If the move is amongst siblings and is to the left and there
+            # are siblings to the right of its new position then to be on
+            # the safe side we temporarily dump it on the end of the list
+            tempnewpath = None
+            if movebranch and len(oldpath) == len(newpath):
+                parentoldpath = cls._get_basepath(oldpath,
+                    (len(oldpath) / cls.steplen) - 1)
+                parentnewpath = cls._get_basepath(newpath, newdepth - 1)
+                if (parentoldpath == parentnewpath and siblings and
+                        newpath < oldpath):
+                    last = target.get_last_sibling()
+                    basenum = cls._get_lastpos_in_path(last.path)
+                    tempnewpath = cls._get_path(newpath, newdepth, basenum + 2)
+                    stmts.append(cls._get_sql_newpath_in_branches(oldpath,
+                                                               tempnewpath))
+
+            # Optimisation to only move siblings which need moving
+            # (i.e. if we've got holes, allow them to compress)
+            movesiblings = []
+            priorpath = newpath
+            for node in siblings:
+                # If the path of the node is already greater than the path
+                # of the previous node it doesn't need shifting
+                if node.path > priorpath:
+                    break
+                # It does need shifting, so add to the list
+                movesiblings.append(node)
+                # Calculate the path that it would be moved to, as that's
+                # the next "priorpath"
+                priorpath = cls._inc_path(node.path)
+            movesiblings.reverse()
+
+            for node in movesiblings:
                 # moving the siblings (and their branches) at the right of the
                 # related position one step to the right
                 sql, vals = cls._get_sql_newpath_in_branches(node.path,
@@ -772,8 +804,12 @@ class MP_Node(Node):
                         target.path = vals[0] + target.path[len(vals[0]):]
             if movebranch:
                 # node to move
-                stmts.append(cls._get_sql_newpath_in_branches(oldpath,
-                                                               newpath))
+                if tempnewpath:
+                    stmts.append(cls._get_sql_newpath_in_branches(tempnewpath,
+                                                                  newpath))
+                else:
+                    stmts.append(cls._get_sql_newpath_in_branches(oldpath,
+                                                                  newpath))
         return oldpath, newpath
 
     def _fix_move_to_child(self, pos, target, newdepth):
@@ -864,7 +900,7 @@ class MP_Node(Node):
 
         sql2 = ["path=%s" % (sqlpath, )]
         vals = [newpath, len(oldpath) + 1]
-        if (len(oldpath) != len(newpath) and 
+        if (len(oldpath) != len(newpath) and
                 cls.get_database_engine() != 'mysql'):
             # when using mysql, this won't update the depth and it has to be
             # done in another query
