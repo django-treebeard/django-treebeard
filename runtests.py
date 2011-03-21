@@ -7,7 +7,6 @@ Read docs/tests for help on how to run the test suite.
 
 import optparse
 import os
-import sys
 
 import coverage
 
@@ -52,9 +51,7 @@ def runtests():
                 'django.contrib.sessions',
                 'django.contrib.admin',
                 'treebeard',
-                'treebeard.tests'
-            ]
-        )
+                'treebeard.tests'])
 
     covlevel = int(options.coverage)
     if covlevel:
