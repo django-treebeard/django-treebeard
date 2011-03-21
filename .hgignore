@@ -14,4 +14,4 @@ MANIFEST
 .pydevproject
 .settings
 htmlcov
-taggable/fixtures/create_fixtures.py
+.tox
