@@ -13,6 +13,7 @@ Release 1.6X (XXX XX, 2010)
 * Added the runtests.py test runner
 * Added tox support
 * Fixed the test suite to run in Python 2.4
+* Fixed drag&drop bug in the admin (fixed by jmbarbier)
 
 Release 1.61 (Jul 24, 2010)
 ---------------------------
