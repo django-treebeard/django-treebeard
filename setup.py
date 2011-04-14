@@ -31,7 +31,7 @@ setup(
     license='Apache License 2.0',
     packages=['treebeard', 'treebeard.templatetags'],
     package_dir={'treebeard': 'treebeard'},
-    package_data={'treebeard': ['templates/admin/*.html']},
+    package_data={'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
     description='Efficient tree implementations for Django 1.0+',
     classifiers=classifiers,
     long_description=long_desc,
