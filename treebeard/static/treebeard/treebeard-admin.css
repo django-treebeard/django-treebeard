@@ -16,8 +16,9 @@ font-size: 12px;
 #roots li input {
 margin: 0 5px;
 }
-.drag-handler {
+.oder-grabber {
     width: 1.5em;
+    text-align: center;
 }
 .drag-handler span {
 width: 16px;

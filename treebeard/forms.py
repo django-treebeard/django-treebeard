@@ -1,9 +1,9 @@
 "Forms for treebeard."
 
-from django.forms.models import model_to_dict, ErrorList, BaseModelForm
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.forms.models import BaseModelForm, ErrorList, model_to_dict
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
 
 class MoveNodeForm(forms.ModelForm):
