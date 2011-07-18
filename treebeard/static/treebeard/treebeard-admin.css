@@ -16,6 +16,9 @@ font-size: 12px;
 #roots li input {
 margin: 0 5px;
 }
+.drag-handler {
+    width: 1.5em;
+}
 .drag-handler span {
 width: 16px;
 background: transparent url(expand-collapse.png) no-repeat left -48px;
