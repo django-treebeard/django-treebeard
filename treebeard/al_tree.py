@@ -1,10 +1,11 @@
 "Adjacency List"
 
 from django.core import serializers
-from django.db import models, transaction, connection
+from django.db import connection, models, transaction
+from django.utils.translation import ugettext_noop as _
 
-from treebeard.models import Node
 from treebeard.exceptions import InvalidMoveToDescendant
+from treebeard.models import Node
 
 
 class AL_NodeManager(models.Manager):
@@ -315,7 +316,7 @@ class AL_Node(Node):
                     sib_order = 1
 
         if target.is_descendant_of(self):
-            raise InvalidMoveToDescendant("Can't move node to a descendant.")
+            raise InvalidMoveToDescendant(_("Can't move node to a descendant."))
 
         if self == target and (
               (pos == 'left') or \

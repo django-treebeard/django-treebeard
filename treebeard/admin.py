@@ -1,13 +1,16 @@
 "Django admin support for treebeard"
 
+from treebeard.exceptions import InvalidMoveToDescendant, InvalidPosition, MissingNodeOrderBy, \
+    PathOverflow
+from treebeard.forms import MoveNodeForm
+
+from django.conf.urls.defaults import patterns, url
 from django.contrib import admin, messages
 from django.contrib.admin.views.main import ChangeList
-from django.conf.urls.defaults import url, patterns
-from django.http import HttpResponseBadRequest, HttpResponse
-
-from treebeard.forms import MoveNodeForm
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.utils.encoding import force_unicode
+from django.utils.translation import ugettext_lazy as _
 from treebeard.templatetags.admin_tree import check_empty_dict
-from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy, InvalidMoveToDescendant, PathOverflow
 
 class TreeChangeList(ChangeList):
 
@@ -106,15 +109,26 @@ class TreeAdmin(admin.ModelAdmin):
             node = self.model.objects.get(pk=node.pk)
             node.save()
             # If we are here, means that we moved it in one of the tries
-            messages.info(request, u'Moved node "%s" as %s of "%s"' % (node,
-                ('sibling', 'child')[as_child], sibling))
+            if as_child:
+                messages.info(request,
+                    _(u'Moved node "%(node)s" as child of "%(other)s"') % {
+                        'node': node,
+                        'other': sibling
+                    })
+            else:
+                messages.info(request,
+                    _(u'Moved node "%(node)s" as sibling of "%(other)s"') % {
+                        'node': node,
+                        'other': sibling
+                    })
 
         except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,
             InvalidPosition), e:
             # An error was raised while trying to move the node, then set an
             # error message and return 400, this will cause a reload on the client
             # to show the message
-            messages.error(request, u'Exception raised while moving node: %s' % e)
+            messages.error(request,_(u'Exception raised while moving node: %s')
+                % _(force_unicode(e)))
             return HttpResponseBadRequest(u'Exception raised during move')
             
         return HttpResponse('OK')
