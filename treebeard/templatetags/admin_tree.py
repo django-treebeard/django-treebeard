@@ -5,8 +5,6 @@ nodes change list - @jjdelc
 
 """
 
-from os.path import join
-
 from django.conf import settings
 from django.contrib.admin.templatetags.admin_list import _boolean_icon, result_headers, \
     result_hidden_fields
@@ -166,7 +164,7 @@ def treebeard_css():
     if not path:
         path = getattr(settings, 'MEDIA_URL', None)
     LINK_HTML = """<link rel="stylesheet" type="text/css" href="%s"/>"""
-    css_file = join(path, 'treebeard', 'treebeard-admin.css')
+    css_file = '/'.join([path.rstrip('/'), 'treebeard', 'treebeard-admin.css'])
     return LINK_HTML % css_file
 
 @register.simple_tag
@@ -178,7 +176,7 @@ def treebeard_js():
     if not path:
         path = getattr(settings, 'MEDIA_URL', None)
     SCRIPT_HTML = """<script type="text/javascript" src="%s"></script>"""
-    js_file = join(path, 'treebeard', 'treebeard-admin.js')
+    js_file = '/'.join([path.rstrip('/'), 'treebeard', 'treebeard-admin.js'])
 
     # Jquery UI is needed to call disableSelection() on drag and drop so
     # text selections arent marked while dragging a table row
@@ -187,7 +185,7 @@ def treebeard_js():
     <script>(function($){jQuery = $.noConflict(true);})(django.jQuery);</script>
     <script type="text/javascript" src="%s"></script>
     """
-    jquery_ui = join(path, 'treebeard', 'jquery-ui-1.8.5.custom.min.js')
+    jquery_ui = '/'.join([path.rstrip('/'), 'treebeard', 'jquery-ui-1.8.5.custom.min.js'])
 
     scripts = [SCRIPT_HTML % 'jsi18n', SCRIPT_HTML % js_file, JQUERY_UI % jquery_ui]
     return ''.join(scripts)
