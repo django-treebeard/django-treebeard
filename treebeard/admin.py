@@ -89,7 +89,7 @@ class TreeAdmin(admin.ModelAdmin):
                 # If it happened because the node is not a 'sorted-sibling' or 
                 # 'sorted-child' then try to move just a child without preserving the
                 # order, so try a different move
-                if  as_child:
+                if as_child:
                     try:
                         # Try as unsorted tree
                         node.move(sibling, pos='last-child')
@@ -99,7 +99,11 @@ class TreeAdmin(admin.ModelAdmin):
                 else:
                     node.move(sibling)
 
-            # If we are here, means that we moved it in onf of the tries
+            # Call the save method on the (reloaded) node in order to trigger
+            # possible signal handlers etc.
+            node = self.model.objects.get(pk=node.pk)
+            node.save()
+            # If we are here, means that we moved it in one of the tries
             messages.info(request, u'Moved node "%s" as %s of "%s"' % (node,
                 ('sibling', 'child')[as_child], sibling))
 
