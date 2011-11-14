@@ -447,7 +447,7 @@ class MP_Node(Node):
         :returns: A queryset of all the node's descendants as DFS, doesn't
             include the node itself
         """
-        return self.__class__.get_tree(self).exclude(pk=self.id)
+        return self.__class__.get_tree(self).exclude(pk=self.pk)
 
     def get_prev_sibling(self):
         """
