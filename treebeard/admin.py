@@ -6,19 +6,17 @@ from django.conf.urls.defaults import url, patterns
 from django.http import HttpResponseBadRequest, HttpResponse
 
 from treebeard.forms import MoveNodeForm
-from treebeard.templatetags.admin_tree import check_empty_dict
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy, InvalidMoveToDescendant, PathOverflow
 
 class TreeChangeList(ChangeList):
-
-    def get_ordering(self):
+    #def get_ordering(self):
         """
         Overriding default's ChangeList.get_ordering so we don't sort the
         results by '-id' as default
         """
-        if not check_empty_dict(self.params):
-            return super(TreeChangeList, self).get_ordering()
-        return None, 'asc'
+        #if not check_empty_dict(self.params):
+        #    return super(TreeChangeList, self).get_ordering()
+        #return None, 'asc'
 
 
 class TreeAdmin(admin.ModelAdmin):
