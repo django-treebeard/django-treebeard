@@ -1,33 +1,18 @@
 "Django admin support for treebeard"
 
 from django.contrib import admin, messages
-from django.contrib.admin.views.main import ChangeList
 from django.conf.urls.defaults import url, patterns
 from django.http import HttpResponseBadRequest, HttpResponse
 
 from treebeard.forms import MoveNodeForm
-from treebeard.templatetags.admin_tree import check_empty_dict
-from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy, InvalidMoveToDescendant, PathOverflow
-
-class TreeChangeList(ChangeList):
-
-    def get_ordering(self):
-        """
-        Overriding default's ChangeList.get_ordering so we don't sort the
-        results by '-id' as default
-        """
-        if not check_empty_dict(self.params):
-            return super(TreeChangeList, self).get_ordering()
-        return None, 'asc'
+from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
+                                  InvalidMoveToDescendant, PathOverflow)
 
 
 class TreeAdmin(admin.ModelAdmin):
     "Django Admin class for treebeard"
     change_list_template = 'admin/tree_change_list.html'
     form = MoveNodeForm
-
-    def get_changelist(self, request):
-        return TreeChangeList
 
     def queryset(self, request):
         from treebeard.al_tree import AL_Node
@@ -43,7 +28,7 @@ class TreeAdmin(admin.ModelAdmin):
         from treebeard.al_tree import AL_Node
         if issubclass(self.model, AL_Node):
             # For AL trees, use the old admin display
-            self.change_list_template = 'admin/tree_list.html' 
+            self.change_list_template = 'admin/tree_list.html'
         return super(TreeAdmin, self).changelist_view(request, extra_context)
 
     def get_urls(self):
@@ -84,11 +69,11 @@ class TreeAdmin(admin.ModelAdmin):
                 # This could be due two reasons (from the docs):
                 # :raise InvalidPosition: when passing an invalid ``pos`` parm
                 # :raise InvalidPosition: when :attr:`node_order_by` is enabled and
-                #   the``pos`` parm wasn't ``sorted-sibling`` or ``sorted-child``
-                # 
-                # If it happened because the node is not a 'sorted-sibling' or 
-                # 'sorted-child' then try to move just a child without preserving the
-                # order, so try a different move
+                # the``pos`` parm wasn't ``sorted-sibling`` or ``sorted-child``
+                #
+                # If it happened because the node is not a 'sorted-sibling' or
+                # 'sorted-child' then try to move just a child without
+                # preserving theorder, so try a different move
                 if  as_child:
                     try:
                         # Try as unsorted tree
@@ -106,10 +91,9 @@ class TreeAdmin(admin.ModelAdmin):
         except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,
             InvalidPosition), e:
             # An error was raised while trying to move the node, then set an
-            # error message and return 400, this will cause a reload on the client
-            # to show the message
+            # error message and return 400, this will cause a reload on the
+            # client to show the message
             messages.error(request, u'Exception raised while moving node: %s' % e)
             return HttpResponseBadRequest(u'Exception raised during move')
-            
-        return HttpResponse('OK')
 
+        return HttpResponse('OK')
