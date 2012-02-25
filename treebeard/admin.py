@@ -1,31 +1,17 @@
 "Django admin support for treebeard"
 
 from django.contrib import admin, messages
-from django.contrib.admin.views.main import ChangeList
 from django.conf.urls.defaults import url, patterns
 from django.http import HttpResponseBadRequest, HttpResponse
 
 from treebeard.forms import MoveNodeForm
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy, InvalidMoveToDescendant, PathOverflow
 
-class TreeChangeList(ChangeList):
-    #def get_ordering(self):
-        """
-        Overriding default's ChangeList.get_ordering so we don't sort the
-        results by '-id' as default
-        """
-        #if not check_empty_dict(self.params):
-        #    return super(TreeChangeList, self).get_ordering()
-        #return None, 'asc'
-
 
 class TreeAdmin(admin.ModelAdmin):
     "Django Admin class for treebeard"
     change_list_template = 'admin/tree_change_list.html'
     form = MoveNodeForm
-
-    def get_changelist(self, request):
-        return TreeChangeList
 
     def queryset(self, request):
         from treebeard.al_tree import AL_Node
