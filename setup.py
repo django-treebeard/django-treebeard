@@ -1,30 +1,31 @@
 #!/usr/bin/env python
 
 import os
-from distutils.core import setup
+from setuptools import setup
+from setuptools.command.test import test
 
-version = '1.62a'
 
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python",
-    "Operating System :: OS Independent",
-    "Topic :: Software Development :: Libraries",
-    "Topic :: Utilities",
-    "Environment :: Web Environment",
-    "Framework :: Django",
-]
+def root_dir():
+    rd = os.path.dirname(__file__)
+    if rd:
+        return rd
+    return '.'
 
-root_dir = os.path.dirname(__file__)
-if not root_dir:
-    root_dir = '.'
-long_desc = open(root_dir + '/README').read()
 
-setup(
+class pytest_test(test):
+    def finalize_options(self):
+        test.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
+
+    def run_tests(self):
+        import pytest
+        pytest.main([])
+
+
+setup_args = dict(
     name='django-treebeard',
-    version=version,
+    version='1.62a',
     url='https://tabo.pe/projects/django-treebeard/',
     author='Gustavo Picon',
     author_email='tabo@tabo.pe',
@@ -33,6 +34,20 @@ setup(
     package_dir={'treebeard': 'treebeard'},
     package_data={'treebeard': ['templates/admin/*.html']},
     description='Efficient tree implementations for Django 1.0+',
-    classifiers=classifiers,
-    long_description=long_desc,
-)
+    long_description=open(root_dir() + '/README').read(),
+    cmdclass={'test': pytest_test},
+    install_requires=['Django>=1.2'],
+    tests_require=['pytest'],
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python',
+        'Operating System :: OS Independent',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: Utilities',
+        'Environment :: Web Environment',
+        'Framework :: Django'])
+
+if __name__ == '__main__':
+    setup(**setup_args)
