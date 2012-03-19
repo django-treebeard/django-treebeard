@@ -1,7 +1,9 @@
 
-Release 1.6X (XXX XX, 2011)
+Release 1.6X (XXX XX, 2012)
 ---------------------------
 
+* Updated setup.py to use distribute/setuptools instead of distutils
+* Now using pytest for testing
 * Revamped admin interface for MP and NS trees, supporting drag&drop to reorder
   nodes. Work on this patch was sponsored by the Oregon Center for
   Applied Science (http://www.orcasinc.com/), developed by Aureal
