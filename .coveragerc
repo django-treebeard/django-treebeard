@@ -1,0 +1,14 @@
+[run]
+branch = True
+source = treebeard
+parallel = True
+
+[paths]
+source =
+    treebeard/
+    */.tox/*/site-packages/treebeard/
+
+[report]
+omit =
+    */tests/*
+precision = 2
