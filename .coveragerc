@@ -6,6 +6,7 @@ parallel = True
 [paths]
 source =
     treebeard/
+    */.jenkins/*/treebeard/
     */.tox/*/site-packages/treebeard/
 
 [report]
