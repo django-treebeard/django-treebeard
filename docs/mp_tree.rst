@@ -5,7 +5,7 @@ Materialized Path trees
 .. moduleauthor:: Gustavo Picon <tabo@tabo.pe>
 
 This is an efficient implementation of Materialized Path
-trees for Django 1.0+, as described by `Vadim Tropashko`_ in `SQL Design
+trees for Django 1.2+, as described by `Vadim Tropashko`_ in `SQL Design
 Patterns`_. Materialized Path is probably the fastest way of working with
 trees in SQL without the need of extra work in the database, like Oracle's
 ``CONNECT BY`` or sprocs and triggers for nested intervals.
