@@ -4,7 +4,7 @@ import os
 from django.contrib.admin.options import ModelAdmin
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
-from django.db import models, transaction
+from django.db import transaction
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.conf import settings
@@ -15,7 +15,7 @@ from treebeard import numconv
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
     PathOverflow, MissingNodeOrderBy
 from treebeard.forms import MoveNodeForm
-from treebeard.tests.models import *
+import models
 
 # ghetto app detection, there is probably some introspection method,
 # but meh, this works
@@ -38,15 +38,14 @@ BASE_DATA = [
 ]
 
 
-def testtype(treetype, proxy):
+def thetype(treetype, proxy):
 
     def decorator(f):
 
         @wraps(f)
         def _testtype(self):
-            {'MP': self.set_MP,
-             'AL': self.set_AL,
-             'NS': self.set_NS}[treetype](proxy)
+            # tyreetype = MP, AL, NS
+            getattr(self, 'set_' + treetype)(proxy)
             try:
                 f(self)
             finally:
@@ -68,7 +67,7 @@ def _load_test_methods(cls, proxy=True):
             continue
         for t in ('MP', 'AL', 'NS'):
             for p in proxyopts:
-                deco = testtype(t, p)
+                deco = thetype(t, p)
                 if p:
                     _proxy = '_proxy'
                 else:
@@ -77,6 +76,7 @@ def _load_test_methods(cls, proxy=True):
                                           _proxy,
                                           m.split('_', 2)[2])
                 setattr(cls, name, deco(getattr(cls, m)))
+        delattr(cls, m)
 
 
 class TestTreeBase(TestCase):
@@ -96,32 +96,32 @@ class TestTreeBase(TestCase):
 
     def set_MP(self, proxy=False):
         if proxy and DJANGO_VERSION >= (1, 1):
-            self.model = MP_TestNode_Proxy
+            self.model = models.MP_TestNode_Proxy
         else:
-            self.model = MP_TestNode
-        self.sorted_model = MP_TestNodeSorted
-        self.dep_model = MP_TestNodeSomeDep
+            self.model = models.MP_TestNode
+        self.sorted_model = models.MP_TestNodeSorted
+        self.dep_model = models.MP_TestNodeSomeDep
 
     def set_NS(self, proxy=False):
         if proxy and DJANGO_VERSION >= (1, 1):
-            self.model = NS_TestNode_Proxy
+            self.model = models.NS_TestNode_Proxy
         else:
-            self.model = NS_TestNode
-        self.sorted_model = NS_TestNodeSorted
-        self.dep_model = NS_TestNodeSomeDep
+            self.model = models.NS_TestNode
+        self.sorted_model = models.NS_TestNodeSorted
+        self.dep_model = models.NS_TestNodeSomeDep
 
     def set_AL(self, proxy=False):
         if proxy and DJANGO_VERSION >= (1, 1):
-            self.model = AL_TestNode_Proxy
+            self.model = models.AL_TestNode_Proxy
         else:
-            self.model = AL_TestNode
-        self.sorted_model = AL_TestNodeSorted
-        self.dep_model = AL_TestNodeSomeDep
+            self.model = models.AL_TestNode
+        self.sorted_model = models.AL_TestNodeSorted
+        self.dep_model = models.AL_TestNodeSomeDep
 
     def got(self):
-        nsmodels = [NS_TestNode]
+        nsmodels = [models.NS_TestNode]
         if DJANGO_VERSION >= (1, 1):
-            nsmodels.append(NS_TestNode_Proxy)
+            nsmodels.append(models.NS_TestNode_Proxy)
         if self.model in nsmodels:
             # this slows down nested sets tests quite a bit, but it has the
             # advantage that we'll check the node edges are correct
@@ -189,9 +189,9 @@ class TestNonEmptyTree(TestTreeBase):
 
     def setUp(self):
         super(TestNonEmptyTree, self).setUp()
-        MP_TestNode.load_bulk(BASE_DATA)
-        AL_TestNode.load_bulk(BASE_DATA)
-        NS_TestNode.load_bulk(BASE_DATA)
+        models.MP_TestNode.load_bulk(BASE_DATA)
+        models.AL_TestNode.load_bulk(BASE_DATA)
+        models.NS_TestNode.load_bulk(BASE_DATA)
 
 
 class TestClassMethods(TestNonEmptyTree):
@@ -1523,21 +1523,22 @@ class TestMP_TreeAlphabet(TestCase):
             expected.append(alphabet[2] + alphabet[0])
 
             # remove all nodes
-            MP_TestNodeAlphabet.objects.all().delete()
+            models.MP_TestNodeAlphabet.objects.all().delete()
 
             # change the model's alphabet
-            MP_TestNodeAlphabet.alphabet = alphabet
+            models.MP_TestNodeAlphabet.alphabet = alphabet
 
             # insert root nodes
             for pos in range(len(alphabet) * 2):
                 try:
-                    MP_TestNodeAlphabet.add_root(numval=pos)
+                    models.MP_TestNodeAlphabet.add_root(numval=pos)
                 except:
                     got_err = True
                     break
             if got_err:
                 break
-            got = [obj.path for obj in MP_TestNodeAlphabet.objects.all()]
+            got = [obj.path
+                    for obj in models.MP_TestNodeAlphabet.objects.all()]
             if got != expected:
                 got_err = True
             last_good = alphabet
@@ -1548,7 +1549,8 @@ class TestMP_TreeAlphabet(TestCase):
 class TestHelpers(TestTreeBase):
 
     def setUp(self):
-        for model in (MP_TestNode, AL_TestNode, NS_TestNode):
+        for model in (
+                models.MP_TestNode, models.AL_TestNode, models.NS_TestNode):
             model.load_bulk(BASE_DATA)
             for node in model.get_root_nodes():
                 model.load_bulk(BASE_DATA, node)
@@ -1577,12 +1579,10 @@ class TestMP_TreeSortedAutoNow(TestCase):
     """
 
     def test_sorted_by_autonow_workaround(self):
-        """
-        workaround
-        """
+        # workaround
         import datetime
         for i in range(1, 5):
-            MP_TestNodeSortedAutoNow.add_root(desc='node%d' % (i, ),
+            models.MP_TestNodeSortedAutoNow.add_root(desc='node%d' % (i, ),
                                              created=datetime.datetime.now())
 
     def test_sorted_by_autonow_FAIL(self):
@@ -1590,28 +1590,28 @@ class TestMP_TreeSortedAutoNow(TestCase):
         This test asserts that we have a problem.
         fix this, somehow
         """
-        MP_TestNodeSortedAutoNow.add_root(desc='node1')
-        self.assertRaises(ValueError, MP_TestNodeSortedAutoNow.add_root,
+        models.MP_TestNodeSortedAutoNow.add_root(desc='node1')
+        self.assertRaises(ValueError, models.MP_TestNodeSortedAutoNow.add_root,
                           desc='node2')
 
 
 class TestMP_TreeStepOverflow(TestCase):
 
     def test_add_root(self):
-        method = MP_TestNodeSmallStep.add_root
+        method = models.MP_TestNodeSmallStep.add_root
         for i in range(1, 10):
             method()
         self.assertRaises(PathOverflow, method)
 
     def test_add_child(self):
-        root = MP_TestNodeSmallStep.add_root()
+        root = models.MP_TestNodeSmallStep.add_root()
         method = root.add_child
         for i in range(1, 10):
             method()
         self.assertRaises(PathOverflow, method)
 
     def test_add_sibling(self):
-        root = MP_TestNodeSmallStep.add_root()
+        root = models.MP_TestNodeSmallStep.add_root()
         for i in range(1, 10):
             root.add_child()
         method = root.get_last_child().add_sibling
@@ -1620,10 +1620,10 @@ class TestMP_TreeStepOverflow(TestCase):
             self.assertRaises(PathOverflow, method, pos)
 
     def test_move(self):
-        root = MP_TestNodeSmallStep.add_root()
+        root = models.MP_TestNodeSmallStep.add_root()
         for i in range(1, 10):
             root.add_child()
-        newroot = MP_TestNodeSmallStep.add_root()
+        newroot = models.MP_TestNodeSmallStep.add_root()
         targets = [(root, ['first-child', 'last-child']),
                    (root.get_first_child(), ['first-sibling',
                                             'left',
@@ -1635,13 +1635,12 @@ class TestMP_TreeStepOverflow(TestCase):
 
 
 class TestMP_TreeShortPath(TestCase):
-    """
-    Here we test a tree with a very small path field (max_length=4) and a
+    """Test a tree with a very small path field (max_length=4) and a
     steplen of 1
     """
 
     def test_short_path(self):
-        obj = MP_TestNodeShortPath.add_root()
+        obj = models.MP_TestNodeShortPath.add_root()
         obj = obj.add_child().add_child().add_child()
         self.assertRaises(PathOverflow, obj.add_child)
 
@@ -1649,7 +1648,7 @@ class TestMP_TreeShortPath(TestCase):
 class TestMP_TreeFindProblems(TestTreeBase):
 
     def test_find_problems(self):
-        model = MP_TestNodeAlphabet
+        model = models.MP_TestNodeAlphabet
         model.alphabet = '01234'
         model(path='01', depth=1, numchild=0, numval=0).save()
         model(path='1', depth=1, numchild=0, numval=0).save()
@@ -1683,7 +1682,7 @@ class TestMP_TreeFix(TestTreeBase):
     def setUp(self):
         super(TestMP_TreeFix, self).setUp()
         self.expected_no_holes = {
-            MP_TestNodeShortPath: [
+            models.MP_TestNodeShortPath: [
                 (u'1', u'b', 1, 2),
                 (u'11', u'u', 2, 1),
                 (u'111', u'i', 3, 1),
@@ -1698,7 +1697,7 @@ class TestMP_TreeFix(TestTreeBase):
                 (u'431', u'i', 3, 1),
                 (u'4311', u'e', 4, 0),
                 (u'44', u'o', 2, 0)],
-            MP_TestSortedNodeShortPath: [
+            models.MP_TestSortedNodeShortPath: [
                 (u'1', u'a', 1, 4),
                 (u'11', u'a', 2, 0),
                 (u'12', u'a', 2, 0),
@@ -1714,7 +1713,7 @@ class TestMP_TreeFix(TestTreeBase):
                 (u'3', u'd', 1, 0),
                 (u'4', u'g', 1, 0)]}
         self.expected_with_holes = {
-            MP_TestNodeShortPath: [
+            models.MP_TestNodeShortPath: [
                 (u'1', u'b', 1L, 2L),
                 (u'13', u'u', 2L, 1L),
                 (u'134', u'i', 3L, 1L),
@@ -1729,7 +1728,7 @@ class TestMP_TreeFix(TestTreeBase):
                 (u'434', u'i', 3L, 1L),
                 (u'4343', u'e', 4L, 0L),
                 (u'44', u'o', 2L, 0L)],
-            MP_TestSortedNodeShortPath: [
+            models.MP_TestSortedNodeShortPath: [
                 (u'1', u'b', 1L, 2L),
                 (u'13', u'u', 2L, 1L),
                 (u'134', u'i', 3L, 1L),
@@ -1767,7 +1766,9 @@ class TestMP_TreeFix(TestTreeBase):
 
     def test_fix_tree_non_destructive(self):
 
-        for model in (MP_TestNodeShortPath, MP_TestSortedNodeShortPath):
+        for model in (
+                models.MP_TestNodeShortPath,
+                models.MP_TestSortedNodeShortPath):
             self.add_broken_test_data(model)
             model.fix_tree(destructive=False)
             self.assertEqual(self.got(model), self.expected_with_holes[model])
@@ -1775,7 +1776,9 @@ class TestMP_TreeFix(TestTreeBase):
 
     def test_fix_tree_destructive(self):
 
-        for model in (MP_TestNodeShortPath, MP_TestSortedNodeShortPath):
+        for model in (
+                models.MP_TestNodeShortPath,
+                models.MP_TestSortedNodeShortPath):
             self.add_broken_test_data(model)
             model.fix_tree(destructive=True)
             self.assertEqual(self.got(model), self.expected_no_holes[model])
@@ -1783,7 +1786,7 @@ class TestMP_TreeFix(TestTreeBase):
 
 
 class TestIssues(TestCase):
-    "test for http://code.google.com/p/django-treebeard/issues/detail?id=14"
+    # test for http://code.google.com/p/django-treebeard/issues/detail?id=14
 
     def test_many_to_many_django_user_anonymous(self):
         if not HAS_DJANGO_AUTH:  # pragma: no cover
@@ -1813,7 +1816,7 @@ class TestIssues(TestCase):
         user = User.objects.create_user('test_user', 'test@example.com',
                                         'testpasswd')
         user.save()
-        root = MP_TestIssue14.add_root(name="the root node")
+        root = models.MP_TestIssue14.add_root(name="the root node")
 
         root.add_child(name="first")
         second = root.add_child(name="second")
