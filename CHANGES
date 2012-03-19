@@ -9,7 +9,7 @@ Release 1.6X (XXX XX, 2012)
   Applied Science (http://www.orcasinc.com/), developed by Aureal
   (http://aureal.pe/) and inspired by FeinCMS
   (http://www.feinheit.ch/media/labs/feincms/admin.html). Thanks ORCAS!
-* Updated docs: the library supports python 2.5+
+* Updated docs: the library supports python 2.4+ and Django 1.2+
 * Small optimization to ns_tree.is_root (thanks jaap3)
 * Moved treebeard.tests to it's own directory (instead of tests.py)
 * Added the runtests.py test runner

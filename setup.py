@@ -33,7 +33,7 @@ setup_args = dict(
     packages=['treebeard', 'treebeard.templatetags'],
     package_dir={'treebeard': 'treebeard'},
     package_data={'treebeard': ['templates/admin/*.html']},
-    description='Efficient tree implementations for Django 1.0+',
+    description='Efficient tree implementations for Django 1.2+',
     long_description=open(root_dir() + '/README').read(),
     cmdclass={'test': pytest_test},
     install_requires=['Django>=1.2'],
@@ -42,12 +42,17 @@ setup_args = dict(
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
+        'Environment :: Web Environment',
+        'Framework :: Django',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2.4',
+        'Programming Language :: Python :: 2.5',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
         'Operating System :: OS Independent',
         'Topic :: Software Development :: Libraries',
-        'Topic :: Utilities',
-        'Environment :: Web Environment',
-        'Framework :: Django'])
+        'Topic :: Utilities'])
+
 
 if __name__ == '__main__':
     setup(**setup_args)
