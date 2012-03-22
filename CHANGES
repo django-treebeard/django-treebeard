@@ -21,6 +21,8 @@ Release 2.0 (XXX XX, 2012)
 * Removed the Benchmark (tbbench) and example (tbexample) apps.
 * Fixed url parts join issues in the admin.
 * Fixed: Now installing the static resources (fixed by omad)
+* Fixed ManyToMany form field save handling (fixed by Alexei Vlasov and
+  Alejandro Peralta)
 
 Release 1.61 (Jul 24, 2010)
 ---------------------------
