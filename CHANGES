@@ -2,13 +2,13 @@
 Release 2.0 (XXX XX, 2012)
 ---------------------------
 
-* Updated setup.py to use distribute/setuptools instead of distutils
-* Now using pytest for testing
 * Revamped admin interface for MP and NS trees, supporting drag&drop to reorder
   nodes. Work on this patch was sponsored by the Oregon Center for
   Applied Science (http://www.orcasinc.com/), developed by Aureal
   (http://aureal.pe/) and inspired by FeinCMS
   (http://www.feinheit.ch/media/labs/feincms/admin.html). Thanks ORCAS!
+* Updated setup.py to use distribute/setuptools instead of distutils
+* Now using pytest for testing
 * Updated docs: the library supports python 2.4+ and Django 1.2+
 * Small optimization to ns_tree.is_root (thanks jaap3)
 * Moved treebeard.tests to it's own directory (instead of tests.py)
@@ -17,6 +17,10 @@ Release 2.0 (XXX XX, 2012)
 * Fixed the test suite to run in Python 2.4
 * Fixed drag&drop bug in the admin (fixed by jmbarbier)
 * Fixed a bug when moving MP_Nodes (fixed by Matt Hoskins)
+* Using .pk instead of .id when accessing nodes.
+* Removed the Benchmark (tbbench) and example (tbexample) apps.
+* Fixed url parts join issues in the admin.
+* Fixed: Now installing the static resources (fixed by omad)
 
 Release 1.61 (Jul 24, 2010)
 ---------------------------
