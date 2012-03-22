@@ -150,7 +150,7 @@ class AL_Node(Node):
                 if 'children' not in parentobj:
                     parentobj['children'] = []
                 parentobj['children'].append(newobj)
-            lnk[node.id] = newobj
+            lnk[node.pk] = newobj
         return ret
 
     def add_child(self, **kwargs):

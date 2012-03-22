@@ -245,7 +245,7 @@ class TestClassMethods(TestNonEmptyTree):
         self.model.load_bulk(BASE_DATA, node)
 
         # the tree was modified by load_bulk, so we reload our node object
-        node = self.model.objects.get(pk=node.id)
+        node = self.model.objects.get(pk=node.pk)
 
         got = [(o.desc, o.get_depth(), o.get_children_count())
                 for o in self.model.get_tree(node)]
@@ -296,7 +296,7 @@ class TestClassMethods(TestNonEmptyTree):
         self.model.load_bulk(BASE_DATA, node)
 
         # the tree was modified by load_bulk, so we reload our node object
-        node = self.model.objects.get(pk=node.id)
+        node = self.model.objects.get(pk=node.pk)
 
         got = self.model.dump_bulk(node, False)
         expected = [{'data':{'desc':u'231'}, 'children':BASE_DATA}]
@@ -1430,8 +1430,8 @@ class TestTreeSorted(TestTreeBase):
 
         get_node = lambda node_id: self.sorted_model.objects.get(pk=node_id)
 
-        root_id = self.sorted_model.add_root(val1=0, val2=0, desc='a').id
-        node_id = get_node(root_id).add_child(val1=0, val2=0, desc='ac').id
+        root_id = self.sorted_model.add_root(val1=0, val2=0, desc='a').pk
+        node_id = get_node(root_id).add_child(val1=0, val2=0, desc='ac').pk
         get_node(root_id).add_child(val1=0, val2=0, desc='aa')
         get_node(root_id).add_child(val1=0, val2=0, desc='av')
         get_node(node_id).add_child(val1=0, val2=0, desc='aca')
@@ -1461,8 +1461,8 @@ class TestTreeSorted(TestTreeBase):
         for node in root_nodes[1:]:
 
             # because raw queries don't update django objects
-            node = self.sorted_model.objects.get(pk=node.id)
-            target = self.sorted_model.objects.get(pk=target.id)
+            node = self.sorted_model.objects.get(pk=node.pk)
+            target = self.sorted_model.objects.get(pk=target.pk)
 
             node.move(target, 'sorted-child')
         expected = [(1, 4, u'bcd', 1, 7),
@@ -1490,8 +1490,8 @@ class TestTreeSorted(TestTreeBase):
             for node in root_nodes[1:]:
 
                 # because raw queries don't update django objects
-                node = self.sorted_model.objects.get(pk=node.id)
-                target = self.sorted_model.objects.get(pk=target.id)
+                node = self.sorted_model.objects.get(pk=node.pk)
+                target = self.sorted_model.objects.get(pk=target.pk)
 
                 node.val1 = node.val1 - 2
                 node.save()
@@ -1872,7 +1872,7 @@ class TestMoveNodeForm(TestTreeBase):
         for obj in self.model.get_tree():
             if node != obj or obj.is_descendant_of(node):
                 rtpl += '<option value="%d">%sNode %d</option>\n' % (
-                    obj.id, '. . ' * (obj.get_depth() - 1), obj.id)
+                    obj.pk, '. . ' * (obj.get_depth() - 1), obj.pk)
         rtpl += '</select></td></tr>'
         formstr = unicode(form).replace(u' selected="selected"', u'')
         self.assertEqual(rtpl, formstr)
@@ -1888,7 +1888,7 @@ class TestMoveNodeForm(TestTreeBase):
         for obj in self.model.get_tree():
             if node != obj or obj.is_descendant_of(node):
                 rtpl += '<option value="%d">%sNode %d</option>\n' % (
-                    obj.id, '. . ' * (obj.get_depth() - 1), obj.id)
+                    obj.pk, '. . ' * (obj.get_depth() - 1), obj.pk)
         rtpl += '</select></td></tr>'
         formstr = unicode(form).replace(u' selected="selected"', u'')
         self.assertEqual(rtpl, formstr)
@@ -1934,7 +1934,7 @@ class TestMoveNodeForm(TestTreeBase):
             form = ma.get_form(request)()
             ids = []
             for obj in self.model.get_tree():
-                ids.extend([obj.id] * 2)
+                ids.extend([obj.pk] * 2)
             self.assertEqual(tpl % tuple(ids), unicode(form))
 
 

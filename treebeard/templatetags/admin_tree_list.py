@@ -25,13 +25,13 @@ def __line(node, request):
     if 't' in request.GET and request.GET['t'] == 'id':
         raw_id_fields = """
         onclick="opener.dismissRelatedLookupPopup(window, '%d'); return false;"
-        """ % (node.id,)
+        """ % (node.pk,)
     else:
         raw_id_fields = ''
 
     return ('<input type="checkbox" class="action-select" value="%d" '
-            'name="_selected_action" /><a href="%d/" %s>%s</a>') % (node.id,
-                                                                 node.id,
+            'name="_selected_action" /><a href="%d/" %s>%s</a>') % (node.pk,
+                                                                 node.pk,
                                                                  raw_id_fields,
                                                                  str(node),)
 

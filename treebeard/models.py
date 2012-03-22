@@ -77,7 +77,7 @@ class Node(models.Model):
                 node_obj = parent.add_child(**node_data)
             else:
                 node_obj = cls.add_root(**node_data)
-            added.append(node_obj.id)
+            added.append(node_obj.pk)
             if 'children' in node_struct:
                 # extending the stack with the current node as the parent of
                 # the new nodes
@@ -427,7 +427,7 @@ class Node(models.Model):
 
     def delete(self):
         "Removes a node and all it's descendants."
-        self.__class__.objects.filter(id=self.id).delete()
+        self.__class__.objects.filter(id=self.pk).delete()
 
     def _fix_add_sibling_opts(self, pos):
         "prepare the pos variable for the add_sibling method"

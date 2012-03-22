@@ -106,13 +106,13 @@ def items_for_result(cl, result, form):
 
 
 def results(cl):
-    parent_id = lambda n: n.get_parent().id if not n.is_root() else 0
+    parent_id = lambda n: n.get_parent().pk if not n.is_root() else 0
     if cl.formset:
         for res, form in zip(cl.result_list, cl.formset.forms):
-            yield res.id, parent_id(res), res.get_depth(), res.get_children_count(), list(items_for_result(cl, res, form))
+            yield res.pk, parent_id(res), res.get_depth(), res.get_children_count(), list(items_for_result(cl, res, form))
     else:
         for res in cl.result_list:
-            yield res.id, parent_id(res), res.get_depth(), res.get_children_count(), list(items_for_result(cl, res, None))
+            yield res.pk, parent_id(res), res.get_depth(), res.get_children_count(), list(items_for_result(cl, res, None))
 
 
 def check_empty_dict(GET_dict):

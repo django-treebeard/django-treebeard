@@ -54,7 +54,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
                         found = True
                         break
                 if not found:
-                    removed[node.id] = node
+                    removed[node.pk] = node
 
             # ok, got the minimal list of nodes to remove...
             # we must also remove their descendants
@@ -382,7 +382,7 @@ class NS_Node(Node):
 
         # we reload 'self' because lft/rgt may have changed
 
-        fromobj = cls.objects.get(pk=self.id)
+        fromobj = cls.objects.get(pk=self.pk)
 
         depthdiff = target.depth - fromobj.depth
         if parent:
@@ -439,7 +439,7 @@ class NS_Node(Node):
         # tree, iterative preorder
         added = []
         if parent:
-            parent_id = parent.id
+            parent_id = parent.pk
         else:
             parent_id = None
         # stack of nodes to analize
@@ -455,11 +455,11 @@ class NS_Node(Node):
                 node_obj = parent.add_child(**node_data)
             else:
                 node_obj = cls.add_root(**node_data)
-            added.append(node_obj.id)
+            added.append(node_obj.pk)
             if 'children' in node_struct:
                 # extending the stack with the current node as the parent of
                 # the new nodes
-                stack.extend([(node_obj.id, node) \
+                stack.extend([(node_obj.pk, node) \
                     for node in node_struct['children'][::-1]])
         transaction.commit_unless_managed()
         return added
@@ -523,11 +523,11 @@ class NS_Node(Node):
                 ret.append(newobj)
             else:
                 parentobj = pyobj.get_parent()
-                parentser = lnk[parentobj.id]
+                parentser = lnk[parentobj.pk]
                 if 'children' not in parentser:
                     parentser['children'] = []
                 parentser['children'].append(newobj)
-            lnk[pyobj.id] = newobj
+            lnk[pyobj.pk] = newobj
         return ret
 
     @classmethod
@@ -540,7 +540,7 @@ class NS_Node(Node):
             # return the entire tree
             return cls.objects.all()
         if parent.is_leaf():
-            return cls.objects.filter(pk=parent.id)
+            return cls.objects.filter(pk=parent.pk)
         return cls.objects.filter(
             tree_id=parent.tree_id,
             lft__range=(parent.lft, parent.rgt - 1))
@@ -552,7 +552,7 @@ class NS_Node(Node):
         """
         if self.is_leaf():
             return self.__class__.objects.none()
-        return self.__class__.get_tree(self).exclude(pk=self.id)
+        return self.__class__.get_tree(self).exclude(pk=self.pk)
 
     def get_descendant_count(self):
         ":returns: the number of descendants of a node."

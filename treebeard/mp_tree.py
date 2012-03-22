@@ -210,22 +210,22 @@ class MP_Node(Node):
             found_error = False
             for char in node.path:
                 if char not in cls.alphabet:
-                    evil_chars.append(node.id)
+                    evil_chars.append(node.pk)
                     found_error = True
                     break
             if found_error:
                 continue
             if len(node.path) % cls.steplen:
-                bad_steplen.append(node.id)
+                bad_steplen.append(node.pk)
                 continue
             try:
                 node.get_parent(True)
             except cls.DoesNotExist:
-                orphans.append(node.id)
+                orphans.append(node.pk)
                 continue
 
             if node.depth != len(node.path) / cls.steplen:
-                wrong_depth.append(node.id)
+                wrong_depth.append(node.pk)
                 continue
 
             real_numchild = cls.objects.filter(
@@ -233,7 +233,7 @@ class MP_Node(Node):
                     where=['LENGTH(path)/%d=%d' % (cls.steplen,
                                                    node.depth + 1)]).count()
             if real_numchild != node.numchild:
-                wrong_numchild.append(node.id)
+                wrong_numchild.append(node.pk)
                 continue
 
         return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
@@ -338,7 +338,7 @@ class MP_Node(Node):
         if not parent.is_leaf():
             return cls.objects.filter(path__startswith=parent.path,
                                       depth__gte=parent.depth)
-        return cls.objects.filter(pk=parent.id)
+        return cls.objects.filter(pk=parent.pk)
 
     @classmethod
     def get_root_nodes(cls):
@@ -447,7 +447,7 @@ class MP_Node(Node):
         :returns: A queryset of all the node's descendants as DFS, doesn't
             include the node itself
         """
-        return self.__class__.get_tree(self).exclude(pk=self.id)
+        return self.__class__.get_tree(self).exclude(pk=self.pk)
 
     def get_prev_sibling(self):
         """
