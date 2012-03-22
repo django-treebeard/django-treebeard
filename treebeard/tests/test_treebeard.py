@@ -8,7 +8,6 @@ from django.db import transaction
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.conf import settings
-from django import VERSION as DJANGO_VERSION
 from django.utils.functional import wraps
 
 from treebeard import numconv
@@ -58,7 +57,7 @@ def thetype(treetype, proxy):
 
 
 def _load_test_methods(cls, proxy=True):
-    if proxy and DJANGO_VERSION >= (1, 1):
+    if proxy:
         proxyopts = (False, True)
     else:
         proxyopts = (False,)
@@ -95,7 +94,7 @@ class TestTreeBase(TestCase):
                           (u'41', 2, 0)]
 
     def set_MP(self, proxy=False):
-        if proxy and DJANGO_VERSION >= (1, 1):
+        if proxy:
             self.model = models.MP_TestNode_Proxy
         else:
             self.model = models.MP_TestNode
@@ -103,7 +102,7 @@ class TestTreeBase(TestCase):
         self.dep_model = models.MP_TestNodeSomeDep
 
     def set_NS(self, proxy=False):
-        if proxy and DJANGO_VERSION >= (1, 1):
+        if proxy:
             self.model = models.NS_TestNode_Proxy
         else:
             self.model = models.NS_TestNode
@@ -111,7 +110,7 @@ class TestTreeBase(TestCase):
         self.dep_model = models.NS_TestNodeSomeDep
 
     def set_AL(self, proxy=False):
-        if proxy and DJANGO_VERSION >= (1, 1):
+        if proxy:
             self.model = models.AL_TestNode_Proxy
         else:
             self.model = models.AL_TestNode
@@ -119,10 +118,7 @@ class TestTreeBase(TestCase):
         self.dep_model = models.AL_TestNodeSomeDep
 
     def got(self):
-        nsmodels = [models.NS_TestNode]
-        if DJANGO_VERSION >= (1, 1):
-            nsmodels.append(models.NS_TestNode_Proxy)
-        if self.model in nsmodels:
+        if self.model in [models.NS_TestNode, models.NS_TestNode_Proxy]:
             # this slows down nested sets tests quite a bit, but it has the
             # advantage that we'll check the node edges are correct
             d = {}
