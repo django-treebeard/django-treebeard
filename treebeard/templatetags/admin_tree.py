@@ -182,16 +182,25 @@ def result_tree(cl, request):
     }
 
 
+def get_static_url():
+    "Return a base static url, always ending with a /"
+    path = getattr(settings, 'STATIC_URL', None)
+    if not path:
+        path = getattr(settings, 'MEDIA_URL', None)
+    if not path:
+        path = '/'
+    if not path.endswith('/'):
+        path += '/'
+    return path
+
+
 @register.simple_tag
 def treebeard_css():
     """
     Template tag to print out the proper <link/> tag to include a custom .css
     """
-    path = getattr(settings, 'STATIC_URL', None)
-    if not path:
-        path = getattr(settings, 'MEDIA_URL', None)
     LINK_HTML = """<link rel="stylesheet" type="text/css" href="%s"/>"""
-    css_file = urljoin(path, 'treebeard/treebeard-admin.css')
+    css_file = urljoin(get_static_url(), 'treebeard/treebeard-admin.css')
     return LINK_HTML % css_file
 
 
@@ -200,9 +209,7 @@ def treebeard_js():
     """
     Template tag to print out the proper <script/> tag to include a custom .js
     """
-    path = getattr(settings, 'STATIC_URL', None)
-    if not path:
-        path = getattr(settings, 'MEDIA_URL', None)
+    path = get_static_url()
     SCRIPT_HTML = """<script type="text/javascript" src="%s"></script>"""
     js_file = urljoin(path, 'treebeard/treebeard-admin.js')
 
