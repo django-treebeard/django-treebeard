@@ -14,11 +14,14 @@ def get_db_conf():
         engine = 'sqlite3'
     elif engine in ('postgres', 'postgresql', 'psycopg2'):
         engine = 'postgresql_psycopg2'
+    if '.' not in engine:
+        engine = 'django.db.backends.' + engine
     conf['ENGINE'] = engine
 
-    if engine == 'sqlite3':
+    if engine == 'django.db.backends.sqlite3':
         conf['TEST_NAME'] = conf['NAME'] = ':memory:'
-    elif engine in ('mysql', 'postgresql_psycopg2'):
+    elif engine in ('django.db.backends.mysql',
+                    'django.db.backends.postgresql_psycopg2'):
         if not conf['NAME']:
             conf['NAME'] = 'treebeard'
         # randomizing the test db name, so we can safely run multiple tests at
@@ -27,9 +30,9 @@ def get_db_conf():
             ''.join(random.choice(string.letters) for _ in range(15)))
         if conf['USER'] == '':
             conf['USER'] = {
-                    'mysql': 'root',
-                    'postgresql_psycopg2': 'postgres'}[engine]
-        if engine == 'mysql':
+                'django.db.backends.mysql': 'root',
+                'django.db.backends.postgresql_psycopg2': 'postgres'}[engine]
+        if engine == 'django.db.backends.mysql':
             conf['OPTIONS'] = {
                'init_command': 'SET storage_engine=INNODB,'
                                'character_set_connection=utf8,'
