@@ -32,7 +32,8 @@ setup_args = dict(
     license='Apache License 2.0',
     packages=['treebeard', 'treebeard.templatetags'],
     package_dir={'treebeard': 'treebeard'},
-    package_data={'treebeard': ['templates/admin/*.html']},
+    package_data={
+        'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
     description='Efficient tree implementations for Django 1.2+',
     long_description=open(root_dir() + '/README').read(),
     cmdclass={'test': pytest_test},
