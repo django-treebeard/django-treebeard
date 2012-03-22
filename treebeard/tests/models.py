@@ -1,6 +1,5 @@
 from django.db import models, transaction
 from django.contrib.auth.models import User
-from django import VERSION as DJANGO_VERSION
 from django.conf import settings
 
 from treebeard.mp_tree import MP_Node
@@ -133,21 +132,19 @@ class MP_TestNodeShortPath(MP_Node):
 MP_TestNodeShortPath._meta.get_field('path').max_length = 4
 
 
-if DJANGO_VERSION >= (1, 1):  # pragma: no cover
-
-    class MP_TestNode_Proxy(MP_TestNode):
-        class Meta:
-            proxy = True
+class MP_TestNode_Proxy(MP_TestNode):
+    class Meta:
+        proxy = True
 
 
-    class NS_TestNode_Proxy(NS_TestNode):
-        class Meta:
-            proxy = True
+class NS_TestNode_Proxy(NS_TestNode):
+    class Meta:
+        proxy = True
 
 
-    class AL_TestNode_Proxy(AL_TestNode):
-        class Meta:
-            proxy = True
+class AL_TestNode_Proxy(AL_TestNode):
+    class Meta:
+        proxy = True
 
 
 class MP_TestSortedNodeShortPath(MP_Node):
