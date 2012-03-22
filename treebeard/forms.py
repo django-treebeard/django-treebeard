@@ -2,6 +2,7 @@
 
 from django.forms.models import model_to_dict, ErrorList, BaseModelForm
 from django import forms
+from django.db.models.query import QuerySet
 from django.utils.translation import ugettext as _
 
 
@@ -129,19 +130,27 @@ class MoveNodeForm(forms.ModelForm):
         reference_node_id = 0
         if '_ref_node_id' in self.cleaned_data:
             reference_node_id = self.cleaned_data['_ref_node_id']
-        position_type = self.cleaned_data['_position']
 
-        # delete auxilary fields not belonging to node model
-        del self.cleaned_data['_ref_node_id']
-        del self.cleaned_data['_position']
+            # delete auxilary fields not belonging to node model
+            del self.cleaned_data['_ref_node_id']
+
+        if '_position' in self.cleaned_data:
+            position_type = self.cleaned_data['_position']
+            # delete auxilary fields not belonging to node model
+            del self.cleaned_data['_position']
+
         if self.instance.pk is None:
+            cl_data = {}
+            for field in self.cleaned_data:
+                if not isinstance(self.cleaned_data[field], (list, QuerySet)):
+                    cl_data[field] = self.cleaned_data[field]
             if reference_node_id:
                 reference_node = self.Meta.model.objects.get(
                     pk=reference_node_id)
-                self.instance = reference_node.add_child(** self.cleaned_data)
+                self.instance = reference_node.add_child(**cl_data)
                 self.instance.move(reference_node, pos=position_type)
             else:
-                self.instance = self.Meta.model.add_root(** self.cleaned_data)
+                self.instance = self.Meta.model.add_root(**cl_data)
         else:
             # this is needed in django >= 1.2
             self.instance.save()
