@@ -472,9 +472,9 @@ class Node(models.Model):
         :returns: A queryset of the nodes that must be moved
         to the right. Called only for Node models with :attr:`node_order_by`
 
-        This function was taken from django-mptt (BSD licensed) by Jonathan
-        Buchanan:
-        http://code.google.com/p/django-mptt/source/browse/trunk/mptt/signals.py?spec=svn100&r=100#12
+        This function is based on _insertion_target_filters from django-mptt
+        (BSD licensed) by Jonathan Buchanan:
+        https://github.com/django-mptt/django-mptt/blob/0.3.0/mptt/signals.py
         """
 
         fields, filters = [], []
@@ -558,7 +558,6 @@ class Node(models.Model):
         if engine is None:
             engine = settings.DATABASE_ENGINE
         return engine.split('.')[-1]
-
 
     class Meta:
         "Abstract model."

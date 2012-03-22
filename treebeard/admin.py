@@ -7,7 +7,9 @@ from django.http import HttpResponseBadRequest, HttpResponse
 
 from treebeard.forms import MoveNodeForm
 from treebeard.templatetags.admin_tree import check_empty_dict
-from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy, InvalidMoveToDescendant, PathOverflow
+from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
+        InvalidMoveToDescendant, PathOverflow)
+
 
 class TreeChangeList(ChangeList):
 
@@ -43,7 +45,7 @@ class TreeAdmin(admin.ModelAdmin):
         from treebeard.al_tree import AL_Node
         if issubclass(self.model, AL_Node):
             # For AL trees, use the old admin display
-            self.change_list_template = 'admin/tree_list.html' 
+            self.change_list_template = 'admin/tree_list.html'
         return super(TreeAdmin, self).changelist_view(request, extra_context)
 
     def get_urls(self):
@@ -60,7 +62,6 @@ class TreeAdmin(admin.ModelAdmin):
     def move_node(self, request):
         try:
             node_id = request.POST['node_id']
-            parent_id = request.POST['parent_id']
             sibling_id = request.POST['sibling_id']
             as_child = request.POST.get('as_child', False)
             as_child = bool(int(as_child))
@@ -82,13 +83,16 @@ class TreeAdmin(admin.ModelAdmin):
                     node.move(sibling, pos='left')
             except InvalidPosition, e:
                 # This could be due two reasons (from the docs):
-                # :raise InvalidPosition: when passing an invalid ``pos`` parm
-                # :raise InvalidPosition: when :attr:`node_order_by` is enabled and
-                #   the``pos`` parm wasn't ``sorted-sibling`` or ``sorted-child``
-                # 
-                # If it happened because the node is not a 'sorted-sibling' or 
-                # 'sorted-child' then try to move just a child without preserving the
-                # order, so try a different move
+                # :raise InvalidPosition:
+                #       when passing an invalid ``pos`` parm
+                # :raise InvalidPosition:
+                #       when :attr:`node_order_by` is enabled and
+                #       the``pos`` parm wasn't ``sorted-sibling``
+                #       or ``sorted-child``
+                #
+                # If it happened because the node is not a 'sorted-sibling'
+                # or 'sorted-child' then try to move just a child without
+                # preserving the order, so try a different move
                 if  as_child:
                     try:
                         # Try as unsorted tree
@@ -106,10 +110,10 @@ class TreeAdmin(admin.ModelAdmin):
         except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,
             InvalidPosition), e:
             # An error was raised while trying to move the node, then set an
-            # error message and return 400, this will cause a reload on the client
-            # to show the message
-            messages.error(request, u'Exception raised while moving node: %s' % e)
+            # error message and return 400, this will cause a reload on the
+            # client to show the message
+            messages.error(
+                    request, u'Exception raised while moving node: %s' % e)
             return HttpResponseBadRequest(u'Exception raised during move')
-            
-        return HttpResponse('OK')
 
+        return HttpResponse('OK')

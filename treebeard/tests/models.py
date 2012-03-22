@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
 
@@ -165,5 +165,3 @@ if 'django.contrib.auth' in settings.INSTALLED_APPS:
     class MP_TestIssue14(MP_Node):
         name = models.CharField(max_length=255)
         users = models.ManyToManyField(User)
-
-
