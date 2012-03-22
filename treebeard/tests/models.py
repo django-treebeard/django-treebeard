@@ -14,28 +14,28 @@ class MP_TestNode(MP_Node):
     desc = models.CharField(max_length=255)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class MP_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(MP_TestNode)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class NS_TestNode(NS_Node):
     desc = models.CharField(max_length=255)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class NS_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(NS_TestNode)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class AL_TestNode(AL_Node):
@@ -47,14 +47,14 @@ class AL_TestNode(AL_Node):
     desc = models.CharField(max_length=255)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class AL_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(AL_TestNode)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class MP_TestNodeSorted(MP_Node):
@@ -65,7 +65,7 @@ class MP_TestNodeSorted(MP_Node):
     desc = models.CharField(max_length=255)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class NS_TestNodeSorted(NS_Node):
@@ -75,7 +75,7 @@ class NS_TestNodeSorted(NS_Node):
     desc = models.CharField(max_length=255)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class AL_TestNodeSorted(AL_Node):
@@ -89,7 +89,7 @@ class AL_TestNodeSorted(AL_Node):
     desc = models.CharField(max_length=255)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class MP_TestNodeAlphabet(MP_Node):
@@ -98,7 +98,7 @@ class MP_TestNodeAlphabet(MP_Node):
     numval = models.IntegerField()
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class MP_TestNodeSmallStep(MP_Node):
@@ -106,7 +106,7 @@ class MP_TestNodeSmallStep(MP_Node):
     alphabet = '0123456789'
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class MP_TestNodeSortedAutoNow(MP_Node):
@@ -116,7 +116,7 @@ class MP_TestNodeSortedAutoNow(MP_Node):
     node_order_by = ['created']
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 
 class MP_TestNodeShortPath(MP_Node):
@@ -125,7 +125,7 @@ class MP_TestNodeShortPath(MP_Node):
     desc = models.CharField(max_length=255)
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 # This is how you change the default fields defined in a Django abstract class
 # (in this case, MP_Node), since Django doesn't allow overriding fields, only
@@ -158,7 +158,7 @@ class MP_TestSortedNodeShortPath(MP_Node):
     node_order_by = ['desc']
 
     def __unicode__(self):  # pragma: no cover
-        return 'Node %d' % self.id
+        return 'Node %d' % self.pk
 
 MP_TestSortedNodeShortPath._meta.get_field('path').max_length = 4
 
