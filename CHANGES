@@ -1,5 +1,5 @@
 
-Release 1.6X (XXX XX, 2012)
+Release 2.0 (XXX XX, 2012)
 ---------------------------
 
 * Updated setup.py to use distribute/setuptools instead of distutils
