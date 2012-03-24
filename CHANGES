@@ -9,7 +9,7 @@ Release 2.0 (XXX XX, 2012)
   (http://www.feinheit.ch/media/labs/feincms/admin.html). Thanks ORCAS!
 * Updated setup.py to use distribute/setuptools instead of distutils
 * Now using pytest for testing
-* Updated docs: the library supports python 2.4+ and Django 1.2+
+* Updated docs: the library supports python 2.4+ and Django 1.3+
 * Small optimization to ns_tree.is_root (thanks jaap3)
 * Moved treebeard.tests to it's own directory (instead of tests.py)
 * Added the runtests.py test runner
