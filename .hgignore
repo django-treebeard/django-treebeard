@@ -15,3 +15,6 @@ MANIFEST
 .settings
 htmlcov
 .tox
+*.xml
+.coverage.*
+*.egg-info
