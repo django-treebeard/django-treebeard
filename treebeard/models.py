@@ -405,9 +405,10 @@ class Node(models.Model):
               the ``target`` node according to the value of
               :attr:`node_order_by`
 
-            .. note:: If no ``pos`` is given the library will use
-                     ``last-sibling``, or ``sorted-sibling`` if
-                     :attr:`node_order_by` is enabled.
+            .. note::
+
+               If no ``pos`` is given the library will use ``last-sibling``,
+               or ``sorted-sibling`` if :attr:`node_order_by` is enabled.
 
         :returns: None
 
