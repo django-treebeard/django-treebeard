@@ -37,10 +37,27 @@ extra steps, materialized path is more efficient than other approaches.
    ``LIKE`` clauses that don't **start** with a ``%`` character will use
    the index. This is what makes the materialized path approach so fast.
 
+.. warning::
+
+   Due to a `bug in Django 1.3`_, Materialized Path could be problematic
+   **ONLY** under the following conditions:
+
+       * Proxy models are used. Most users don't use this. If you are not
+         sure that you are using proxy models, then you are not, and
+         shouldn't worry about this.
+       * Django 1.3.X is used
+       * Python 2.4, 2.5 or 2.6 is used.
+       * MySQL is being used.
+
+   Solutions to this problem:
+
+       * Use PostgreSQL
+       * Use Django 1.4
 
 .. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/
 .. _`Sql Design Patterns`:
    http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm
+.. _`bug in Django 1.3`: https://code.djangoproject.com/ticket/17918
 
 .. inheritance-diagram:: MP_Node
 .. autoclass:: MP_Node
