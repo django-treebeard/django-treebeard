@@ -533,8 +533,10 @@ class NS_Node(Node):
     @classmethod
     def get_tree(cls, parent=None):
         """
-        :returns: A *queryset* of nodes ordered as DFS, including the parent.
-                  If no parent is given, all trees are returned.
+        :returns:
+
+            A *queryset* of nodes ordered as DFS, including the parent.
+            If no parent is given, all trees are returned.
         """
         if parent is None:
             # return the entire tree
