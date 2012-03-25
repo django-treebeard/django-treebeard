@@ -90,8 +90,6 @@ def _load_test_methods(cls, proxy=True):
                         p and
                         # using Django is 1.3.X, and
                         DJANGO_VERSION[:2] == (1, 3) and
-                        # using Python 2.4, 2.5 or 2.6, and
-                        sys.version_info < (2, 7) and
                         # database is MySQL
                         settings.DATABASES['default']['ENGINE'].endswith(
                             '.mysql')):

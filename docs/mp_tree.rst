@@ -46,7 +46,6 @@ extra steps, materialized path is more efficient than other approaches.
          sure that you are using proxy models, then you are not, and
          shouldn't worry about this.
        * Django 1.3.X is used
-       * Python 2.4, 2.5 or 2.6 is used.
        * MySQL is being used.
 
    Solutions to this problem:
