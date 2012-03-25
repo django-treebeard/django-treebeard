@@ -1,6 +1,8 @@
 "Unit/Functional tests"
 
 import os
+import sys
+from django import VERSION as DJANGO_VERSION
 from django.contrib.admin.options import ModelAdmin
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
@@ -15,6 +17,8 @@ from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
     PathOverflow, MissingNodeOrderBy
 from treebeard.forms import MoveNodeForm
 import models
+
+import pytest
 
 # ghetto app detection, there is probably some introspection method,
 # but meh, this works
@@ -74,7 +78,29 @@ def _load_test_methods(cls, proxy=True):
                 name = 'test_%s%s_%s' % (t.lower(),
                                           _proxy,
                                           m.split('_', 2)[2])
-                setattr(cls, name, deco(getattr(cls, m)))
+                test = deco(getattr(cls, m))
+
+                # expected test failures
+                if (
+                        # Test class is TestDelete, and
+                        cls.__name__ == 'TestDelete' and
+                        # testing Materialized Path trees, and
+                        t == 'MP' and
+                        # testing proxy models, and
+                        p and
+                        # using Django is 1.3.X, and
+                        DJANGO_VERSION[:2] == (1, 3) and
+                        # using Python 2.4, 2.5 or 2.6, and
+                        sys.version_info < (2, 7) and
+                        # database is MySQL
+                        settings.DATABASES['default']['ENGINE'].endswith(
+                            '.mysql')):
+                    # If the above conditions are met, we expect this test to
+                    # fail due to a bug in Django.
+                    # See: Issue 44 in the bug tracker.
+                    test = pytest.mark.xfail(test)
+
+                setattr(cls, name, test)
         delattr(cls, m)
 
 
