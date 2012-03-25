@@ -142,8 +142,10 @@ class Node(models.Model):
     @classmethod
     def get_tree(cls, parent=None):
         """
-        :returns: A list of nodes ordered as DFS, including the parent. If
-                  no parent is given, the entire tree is returned.
+        :returns:
+
+            A list of nodes ordered as DFS, including the parent. If
+            no parent is given, the entire tree is returned.
         """
         raise NotImplementedError
 
@@ -181,7 +183,9 @@ class Node(models.Model):
 
     def get_siblings(self):  # pragma: no cover
         """
-        :returns: A queryset of all the node's siblings, including the node
+        :returns:
+
+            A queryset of all the node's siblings, including the node
             itself.
         """
         raise NotImplementedError
@@ -199,7 +203,9 @@ class Node(models.Model):
 
     def get_descendants(self):
         """
-        :returns: A queryset of all the node's descendants, doesn't
+        :returns:
+
+            A queryset of all the node's descendants, doesn't
             include the node itself (some subclasses may return a list).
         """
         raise NotImplementedError
@@ -224,21 +230,27 @@ class Node(models.Model):
 
     def get_first_sibling(self):
         """
-        :returns: The leftmost node's sibling, can return the node itself if
+        :returns:
+
+            The leftmost node's sibling, can return the node itself if
             it was the leftmost sibling.
         """
         return self.get_siblings()[0]
 
     def get_last_sibling(self):
         """
-        :returns: The rightmost node's sibling, can return the node itself if
+        :returns:
+
+            The rightmost node's sibling, can return the node itself if
             it was the rightmost sibling.
         """
         return self.get_siblings().reverse()[0]
 
     def get_prev_sibling(self):
         """
-        :returns: The previous node's sibling, or None if it was the leftmost
+        :returns:
+
+            The previous node's sibling, or None if it was the leftmost
             sibling.
         """
 
@@ -251,7 +263,9 @@ class Node(models.Model):
 
     def get_next_sibling(self):
         """
-        :returns: The next node's sibling, or None if it was the rightmost
+        :returns:
+
+            The next node's sibling, or None if it was the rightmost
             sibling.
         """
         siblings = self.get_siblings()
@@ -358,7 +372,9 @@ class Node(models.Model):
 
     def get_ancestors(self):  # pragma: no cover
         """
-        :returns: A queryset containing the current node object's ancestors,
+        :returns:
+
+            A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
             (some subclasses may return a list)
         """

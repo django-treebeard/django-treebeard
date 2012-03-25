@@ -323,8 +323,10 @@ class MP_Node(Node):
     @classmethod
     def get_tree(cls, parent=None):
         """
-        :returns: A *queryset* of nodes ordered as DFS, including the parent.
-                  If no parent is given, the entire tree is returned.
+        :returns:
+
+            A *queryset* of nodes ordered as DFS, including the parent.
+            If no parent is given, the entire tree is returned.
         """
         if parent is None:
             # return the entire tree
