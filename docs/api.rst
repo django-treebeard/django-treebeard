@@ -40,7 +40,7 @@ API
 
         Examples::
 
-         node.add_sibling('sorted-sibling', numval=1, strval='abc')
+           node.add_sibling('sorted-sibling', numval=1, strval='abc')
 
   .. automethod:: delete
 
@@ -50,6 +50,7 @@ API
            will handle extra maintenance.
 
   .. automethod:: get_tree
+
   .. automethod:: get_depth
 
         Example::
