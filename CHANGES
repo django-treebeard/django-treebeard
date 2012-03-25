@@ -10,27 +10,25 @@ Release 2.0 (XXX XX, 2012)
 * Updated setup.py to use distribute/setuptools instead of distutils
 * Now using pytest for testing
 * Updated docs: the library supports python 2.4+ and Django 1.3+
-* Small optimization to ns_tree.is_root (thanks jaap3)
+* Small optimization to ns_tree.is_root
 * Moved treebeard.tests to it's own directory (instead of tests.py)
 * Added the runtests.py test runner
 * Added tox support
 * Fixed the test suite to run in Python 2.4
-* Fixed drag&drop bug in the admin (fixed by jmbarbier)
-* Fixed a bug when moving MP_Nodes (fixed by Matt Hoskins)
+* Fixed drag&drop bug in the admin
+* Fixed a bug when moving MP_Nodes
 * Using .pk instead of .id when accessing nodes.
 * Removed the Benchmark (tbbench) and example (tbexample) apps.
 * Fixed url parts join issues in the admin.
-* Fixed: Now installing the static resources (fixed by omad)
-* Fixed ManyToMany form field save handling (fixed by Alexei Vlasov and
-  Alejandro Peralta)
+* Fixed: Now installing the static resources
+* Fixed ManyToMany form field save handling
 * Documented a Django bug in mp_tree.rst, marked some delete tests as
   expected failures under certain conditions (issue #44)
 
 Release 1.61 (Jul 24, 2010)
 ---------------------------
 
-* Added admin i18n contributed by http://bitbucket.org/chembervint
-  Included translations: es, ru
+* Added admin i18n. Included translations: es, ru
 * Fixed a bug when trying to introspect the database engine used in Django 1.2+
   while using new style db settings (DATABASES). Added
   Node.get_database_engine to deal with this.
@@ -38,7 +36,7 @@ Release 1.61 (Jul 24, 2010)
 Release 1.60 (Apr 18, 2010)
 ---------------------------
 
-* Added get_annotated_list, contributed by Alexey Kinyov
+* Added get_annotated_list
 * Complete revamp of the documentation. It's now divided in sections for easier
   reading, and the package includes .rst files instead of the html build.
 * Added raw id fields support in the admin
@@ -98,7 +96,7 @@ New features added
     and adding a new Meta.
 
   - HTML documentation is now included in the package.
-  
+
   - CHANGES file and section in the docs.
 
 * Other changes:
