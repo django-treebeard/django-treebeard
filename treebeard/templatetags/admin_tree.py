@@ -5,7 +5,7 @@ nodes change list - @jjdelc
 
 """
 
-from urlpath import urljoin
+from urlparse import urljoin
 
 from django.db import models
 from django.conf import settings
