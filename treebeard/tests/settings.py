@@ -40,6 +40,7 @@ def get_db_conf():
     return conf
 
 DATABASES = {'default': get_db_conf()}
+SECRET_KEY = '7r33b34rd'
 
 INSTALLED_APPS = [
             'django.contrib.auth',
