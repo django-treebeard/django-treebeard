@@ -45,9 +45,9 @@ def __subtree(node, request):
     return __line(node, request) + tree
 
 
-@register.simple_tag
-def result_tree(cl, request):
+@register.simple_tag(takes_context=True)
+def result_tree(context, cl):
     tree = ''
     for root_node in cl.model.get_root_nodes():
-        tree = tree + '<li>%s</li>' % __subtree(root_node, request)
+        tree = tree + '<li>%s</li>' % __subtree(root_node, context['request'])
     return "<ul>%s</ul>" % tree

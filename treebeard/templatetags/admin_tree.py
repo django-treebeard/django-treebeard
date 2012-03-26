@@ -158,8 +158,9 @@ def check_empty_dict(GET_dict):
     return empty
 
 
-@register.inclusion_tag('admin/tree_change_list_results.html')
-def result_tree(cl, request):
+@register.inclusion_tag('admin/tree_change_list_results.html',
+        takes_context=True)
+def result_tree(context, cl):
     """
     Added 'filtered' param, so the template's js knows whether the results have
     been affected by a GET param or not. Only when the results are not filtered
@@ -171,11 +172,11 @@ def result_tree(cl, request):
     headers.insert(1, {
         'text': '+',
         'sortable': True,
-        'url': request.path,
+        'url': context['request'].path,
         'tooltip': u'Return to ordered Tree',
         })
     return {
-        'filtered': not check_empty_dict(request.GET),
+        'filtered': not check_empty_dict(context['request'].GET),
         'result_hidden_fields': list(result_hidden_fields(cl)),
         'result_headers': headers,
         'results': list(results(cl)),
