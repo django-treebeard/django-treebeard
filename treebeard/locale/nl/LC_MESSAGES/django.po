@@ -1,0 +1,45 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Django-treebeard\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-03-26 16:25+0200\n"
+"PO-Revision-Date: 2012-03-26 16:16+0200\n"
+"Last-Translator: Ewoud Kohl van Wijngaarden <ewoud@kohlvanwijgaarden.nl\n"
+"Language-Team: Dutch\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+#: forms.py:17
+msgid "Child of"
+msgstr "Kind van"
+
+#: forms.py:18
+msgid "Sibling of"
+msgstr "Zelfde ouder als"
+
+#: forms.py:22
+msgid "First child of"
+msgstr "Eerste kind van"
+
+#: forms.py:23
+msgid "Before"
+msgstr "Voor"
+
+#: forms.py:24
+msgid "After"
+msgstr "Na"
+
+#: forms.py:27
+msgid "Position"
+msgstr "Positie"
+
+#: forms.py:31
+msgid "Relative to"
+msgstr "Relatief aan"
+
+#: forms.py:81
+msgid "-- root --"
+msgstr "-- wortel --"
