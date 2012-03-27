@@ -13,14 +13,20 @@ from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
 
 class TreeChangeList(ChangeList):
 
-    def get_ordering(self):
+    def get_ordering(self, *args):
         """
-        Overriding default's ChangeList.get_ordering so we don't sort the
-        results by '-id' as default
+        Overriding ChangeList.get_ordering if using the Django version <= 1.3
+        default of '-id' but passing through the >= 1.4 default of '[]'.
         """
-        if not check_empty_dict(self.params):
-            return super(TreeChangeList, self).get_ordering()
-        return None, 'asc'
+        ordering = super(TreeChangeList, self).get_ordering(*args)
+
+        if type(ordering) != type([]):
+            if not check_empty_dict(self.params):
+                return ordering
+            else:
+                return None, 'asc'
+
+        return ordering
 
 
 class TreeAdmin(admin.ModelAdmin):
@@ -28,7 +34,7 @@ class TreeAdmin(admin.ModelAdmin):
     change_list_template = 'admin/tree_change_list.html'
     form = MoveNodeForm
 
-    def get_changelist(self, request):
+    def get_changelist(self, request, **kwargs):
         return TreeChangeList
 
     def queryset(self, request):
