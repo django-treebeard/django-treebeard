@@ -20,7 +20,7 @@ class TreeChangeList(ChangeList):
         """
         ordering = super(TreeChangeList, self).get_ordering(*args)
 
-        if type(ordering) != type([]):
+        if not isinstance(ordering, list):
             if not check_empty_dict(self.params):
                 return ordering
             else:
