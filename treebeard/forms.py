@@ -154,7 +154,6 @@ class MoveNodeForm(forms.ModelForm):
             else:
                 self.instance = self.Meta.model.add_root(**cl_data)
         else:
-            # this is needed in django >= 1.2
             self.instance.save()
             if reference_node_id:
                 reference_node = self.Meta.model.objects.get(
