@@ -1,4 +1,4 @@
-   
+
 django-treebeard
 ================
 
@@ -18,7 +18,11 @@ django-treebeard is:
 - **Easy**: Uses Django Model Inheritance with abstract classes to define your own
   models.
 - **Clean**: Testable and well tested code base. Code/branch test coverage is above
-  96%.
+  96%. Tests are available in Jenkins:
+
+  - Test suite running on different versions of Python, Django and database
+    engine: https://tabo.pe/jenkins/job/django-treebeard/
+  - Code quality: https://tabo.pe/jenkins/job/django-treebeard-quality/
 
 You can find the documentation in
 
