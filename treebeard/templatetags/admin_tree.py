@@ -9,15 +9,16 @@ from urlparse import urljoin
 
 from django.db import models
 from django.conf import settings
-from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
-from django.template import Library
-from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.admin.templatetags.admin_list import (
-    result_hidden_fields, result_headers, _boolean_icon)
-from django.contrib.admin.util import lookup_field, display_for_field
+    _boolean_icon, result_headers, result_hidden_fields)
+from django.contrib.admin.util import display_for_field, lookup_field
+from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
+from django.core.exceptions import ObjectDoesNotExist
+from django.template import Library
+from django.utils.encoding import force_unicode, smart_unicode
+from django.utils.html import conditional_escape, escape
 from django.utils.safestring import mark_safe
-from django.utils.encoding import smart_unicode, force_unicode
-from django.utils.html import escape, conditional_escape
+from django.utils.translation import ugettext_lazy as _
 
 
 register = Library()
@@ -172,7 +173,8 @@ def result_tree(cl, request):
         'text': '+',
         'sortable': True,
         'url': request.path,
-        'tooltip': u'Return to ordered Tree',
+        'tooltip': _(u'Return to ordered tree'),
+        'class_attrib': mark_safe(' class="oder-grabber"')
         })
     return {
         'filtered': not check_empty_dict(request.GET),
@@ -211,7 +213,7 @@ def treebeard_js():
     """
     path = get_static_url()
     SCRIPT_HTML = """<script type="text/javascript" src="%s"></script>"""
-    js_file = urljoin(path, 'treebeard/treebeard-admin.js')
+    js_file = '/'.join([path.rstrip('/'), 'treebeard', 'treebeard-admin.js'])
 
     # Jquery UI is needed to call disableSelection() on drag and drop so
     # text selections arent marked while dragging a table row
@@ -224,5 +226,7 @@ def treebeard_js():
     """
     jquery_ui = urljoin(path, 'treebeard/jquery-ui-1.8.5.custom.min.js')
 
-    scripts = [SCRIPT_HTML % js_file, JQUERY_UI % jquery_ui]
+    scripts = [SCRIPT_HTML % 'jsi18n',
+               SCRIPT_HTML % js_file,
+               JQUERY_UI % jquery_ui]
     return ''.join(scripts)

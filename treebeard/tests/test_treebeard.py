@@ -1892,7 +1892,10 @@ class TestMoveNodeForm(TestTreeBase):
         for obj in self.model.get_tree():
             if node != obj or obj.is_descendant_of(node):
                 rtpl += '<option value="%d">%sNode %d</option>\n' % (
-                    obj.pk, '. . ' * (obj.get_depth() - 1), obj.pk)
+                    obj.pk,
+                    '&nbsp;&nbsp;&nbsp;&nbsp;' * (obj.get_depth() - 1),
+                    obj.pk
+                )
         rtpl += '</select></td></tr>'
         formstr = unicode(form).replace(u' selected="selected"', u'')
         self.assertEqual(rtpl, formstr)
@@ -1908,7 +1911,10 @@ class TestMoveNodeForm(TestTreeBase):
         for obj in self.model.get_tree():
             if node != obj or obj.is_descendant_of(node):
                 rtpl += '<option value="%d">%sNode %d</option>\n' % (
-                    obj.pk, '. . ' * (obj.get_depth() - 1), obj.pk)
+                    obj.pk,
+                    '&nbsp;&nbsp;&nbsp;&nbsp;' * (obj.get_depth() - 1),
+                    obj.pk
+                )
         rtpl += '</select></td></tr>'
         formstr = unicode(form).replace(u' selected="selected"', u'')
         self.assertEqual(rtpl, formstr)
@@ -1928,14 +1934,16 @@ class TestMoveNodeForm(TestTreeBase):
                '<option value="0">-- root --</option>\n'
                '<option value="%d">Node %d</option>\n'
                '<option value="%d">Node %d</option>\n'
-               '<option value="%d">. . Node %d</option>\n'
-               '<option value="%d">. . Node %d</option>\n'
-               '<option value="%d">. . Node %d</option>\n'
-               '<option value="%d">. . . . Node %d</option>\n'
-               '<option value="%d">. . Node %d</option>\n'
+               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
+               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
+               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
+               '<option value="%d">'
+               '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Node %d'
+               '</option>\n'
+               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
                '<option value="%d">Node %d</option>\n'
                '<option value="%d">Node %d</option>\n'
-               '<option value="%d">. . Node %d</option>\n'
+               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
                '</select></td></tr>')
         request = None
         self.model.load_bulk(BASE_DATA)

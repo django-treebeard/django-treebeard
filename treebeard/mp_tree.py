@@ -6,6 +6,7 @@ from numconv import NumConv
 from django.core import serializers
 from django.db import models, transaction, connection
 from django.db.models import Q
+from django.utils.translation import ugettext_noop as _
 
 from treebeard.models import Node
 from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow
@@ -513,9 +514,9 @@ class MP_Node(Node):
             newobj.path = self._get_path(self.path, newobj.depth, 1)
             if len(newobj.path) > \
                     newobj.__class__._meta.get_field('path').max_length:
-                raise PathOverflow('The new node is too deep in the tree, try'
+                raise PathOverflow(_('The new node is too deep in the tree, try'
                                    ' increasing the path.max_length property'
-                                   ' and UPDATE your  database')
+                                   ' and UPDATE your database'))
         # saving the instance before returning it
         newobj.save()
         newobj._cached_parent_obj = self
@@ -633,7 +634,7 @@ class MP_Node(Node):
             target, target.depth)
 
         if target.is_descendant_of(self):
-            raise InvalidMoveToDescendant("Can't move node to a descendant.")
+            raise InvalidMoveToDescendant(_("Can't move node to a descendant."))
 
         if oldpath == target.path and (
               (pos == 'left') or \
@@ -694,7 +695,7 @@ class MP_Node(Node):
         newpos = cls._str2int(path[-cls.steplen:]) + 1
         key = cls._int2str(newpos)
         if len(key) > cls.steplen:
-            raise PathOverflow("Path Overflow from: '%s'" % (path, ))
+            raise PathOverflow(_("Path Overflow from: '%s'" % (path, )))
         return '%s%s%s' % (path[:-cls.steplen],
                            '0' * (cls.steplen - len(key)),
                            key)
