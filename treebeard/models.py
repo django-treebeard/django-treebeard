@@ -80,8 +80,10 @@ class Node(models.Model):
             if 'children' in node_struct:
                 # extending the stack with the current node as the parent of
                 # the new nodes
-                stack.extend([(node_obj, node) \
-                    for node in node_struct['children'][::-1]])
+                stack.extend([
+                    (node_obj, node)
+                    for node in node_struct['children'][::-1]
+                ])
         transaction.commit_unless_managed()
         return added
 

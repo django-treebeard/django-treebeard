@@ -514,9 +514,10 @@ class MP_Node(Node):
             newobj.path = self._get_path(self.path, newobj.depth, 1)
             if len(newobj.path) > \
                     newobj.__class__._meta.get_field('path').max_length:
-                raise PathOverflow(_('The new node is too deep in the tree, try'
-                                   ' increasing the path.max_length property'
-                                   ' and UPDATE your database'))
+                raise PathOverflow(
+                        _('The new node is too deep in the tree, try'
+                          ' increasing the path.max_length property'
+                          ' and UPDATE your database'))
         # saving the instance before returning it
         newobj.save()
         newobj._cached_parent_obj = self
@@ -634,13 +635,14 @@ class MP_Node(Node):
             target, target.depth)
 
         if target.is_descendant_of(self):
-            raise InvalidMoveToDescendant(_("Can't move node to a descendant."))
+            raise InvalidMoveToDescendant(
+                    _("Can't move node to a descendant."))
 
         if oldpath == target.path and (
-              (pos == 'left') or \
-              (pos in ('right', 'last-sibling') and \
-                target.path == target.get_last_sibling().path) or \
-              (pos == 'first-sibling' and \
+              (pos == 'left') or
+              (pos in ('right', 'last-sibling') and
+                target.path == target.get_last_sibling().path) or
+              (pos == 'first-sibling' and
                 target.path == target.get_first_sibling().path)):
             # special cases, not actually moving the node so no need to UPDATE
             return

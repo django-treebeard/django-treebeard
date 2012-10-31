@@ -316,13 +316,14 @@ class AL_Node(Node):
                     sib_order = 1
 
         if target.is_descendant_of(self):
-            raise InvalidMoveToDescendant(_("Can't move node to a descendant."))
+            raise InvalidMoveToDescendant(
+                    _("Can't move node to a descendant."))
 
         if self == target and (
-              (pos == 'left') or \
-              (pos in ('right', 'last-sibling') and \
-                target == target.get_last_sibling()) or \
-              (pos == 'first-sibling' and \
+              (pos == 'left') or
+              (pos in ('right', 'last-sibling') and
+                target == target.get_last_sibling()) or
+              (pos == 'first-sibling' and
                 target == target.get_first_sibling())):
             # special cases, not actually moving the node so no need to UPDATE
             return
