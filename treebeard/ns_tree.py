@@ -1,13 +1,13 @@
 "Nested Sets"
 
-import operator
-
-from django.db.models import Q
 from django.core import serializers
-from django.db import models, transaction, connection
+from django.db import connection, models, transaction
+from django.db.models import Q
+from django.utils.translation import ugettext_noop as _
 
-from treebeard.models import Node
+import operator
 from treebeard.exceptions import InvalidMoveToDescendant
+from treebeard.models import Node
 
 
 class NS_NodeQuerySet(models.query.QuerySet):
@@ -305,7 +305,7 @@ class NS_Node(Node):
                        'sorted-child': 'sorted-sibling'}[pos]
 
         if target.is_descendant_of(self):
-            raise InvalidMoveToDescendant("Can't move node to a descendant.")
+            raise InvalidMoveToDescendant(_("Can't move node to a descendant."))
 
         if self == target and (
               (pos == 'left') or \

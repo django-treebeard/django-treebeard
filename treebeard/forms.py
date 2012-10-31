@@ -1,9 +1,10 @@
 "Forms for treebeard."
 
-from django.forms.models import model_to_dict, ErrorList, BaseModelForm
 from django import forms
 from django.db.models.query import QuerySet
-from django.utils.translation import ugettext as _
+from django.forms.models import BaseModelForm, ErrorList, model_to_dict
+from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
 
 class MoveNodeForm(forms.ModelForm):
@@ -64,17 +65,18 @@ class MoveNodeForm(forms.ModelForm):
             is_loop_safe = lambda(possible_parent): True
             # Do actual check only if for_node is provided
             if for_node is not None:
-                is_loop_safe = lambda(possible_parent): not (\
-                            possible_parent == for_node) or \
-                            possible_parent.is_descendant_of(for_node)
+                is_loop_safe = lambda(possible_parent): not (
+                            possible_parent == for_node) or (
+                            possible_parent.is_descendant_of(for_node))
 
-            mk_indent = lambda(level): '. . ' * (level - 1)
+            mk_indent = lambda(level): '&nbsp;&nbsp;&nbsp;&nbsp;' * (level - 1)
 
             def add_subtree(node, options):
                 """ Recursively build options tree. """
                 if is_loop_safe(node):
                     options.append(
-                        (node.pk, mk_indent(node.get_depth()) + str(node)))
+                        (node.pk,
+                         mark_safe(mk_indent(node.get_depth()) + str(node))))
                     for subnode in node.get_children():
                         add_subtree(subnode, options)
 

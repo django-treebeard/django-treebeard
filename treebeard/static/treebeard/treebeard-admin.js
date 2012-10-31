@@ -154,7 +154,7 @@ $(document).ready(function(){
                 // Check if you are dragging over the same node
                 if (evt2.pageY >= node_top && evt2.pageY <= node_top + rowHeight) {
                     $targetRow = null;
-                    $tooltip.text('Abort');
+                    $tooltip.text(gettext('Abort'));
                     $drag_line.css({
                         'top': node_top,
                         'height': rowHeight,
@@ -176,7 +176,7 @@ $(document).ready(function(){
                         'height': 0,
                         'opacity': 1
                     });
-                    $tooltip.text('As Sibling');
+                    $tooltip.text(gettext('As Sibling'));
                 } else if (evt2.pageY >= rtop + rowHeight/2 && evt2.pageY <= rtop + rowHeight) {
                     // The mouse is positioned on the bottom half of a row
                     $targetRow = $row;
@@ -194,7 +194,7 @@ $(document).ready(function(){
                         'borderWidth': 0,
                         'backgroundColor': DRAG_LINE_COLOR
                     });
-                    $tooltip.text('As child');
+                    $tooltip.text(gettext('As child'));
                 }
             });
         }).bind('mouseup', function() {

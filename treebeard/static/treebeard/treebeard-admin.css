@@ -16,6 +16,10 @@ font-size: 12px;
 #roots li input {
 margin: 0 5px;
 }
+.oder-grabber {
+    width: 1.5em;
+    text-align: center;
+}
 .drag-handler span {
 width: 16px;
 background: transparent url(expand-collapse.png) no-repeat left -48px;
