@@ -305,13 +305,14 @@ class NS_Node(Node):
                        'sorted-child': 'sorted-sibling'}[pos]
 
         if target.is_descendant_of(self):
-            raise InvalidMoveToDescendant(_("Can't move node to a descendant."))
+            raise InvalidMoveToDescendant(
+                    _("Can't move node to a descendant."))
 
         if self == target and (
-              (pos == 'left') or \
-              (pos in ('right', 'last-sibling') and \
-                target == target.get_last_sibling()) or \
-              (pos == 'first-sibling' and \
+              (pos == 'left') or
+              (pos in ('right', 'last-sibling') and
+                target == target.get_last_sibling()) or
+              (pos == 'first-sibling' and
                 target == target.get_first_sibling())):
             # special cases, not actually moving the node so no need to UPDATE
             return
@@ -459,8 +460,10 @@ class NS_Node(Node):
             if 'children' in node_struct:
                 # extending the stack with the current node as the parent of
                 # the new nodes
-                stack.extend([(node_obj.pk, node) \
-                    for node in node_struct['children'][::-1]])
+                stack.extend([
+                    (node_obj.pk, node)
+                    for node in node_struct['children'][::-1]
+                ])
         transaction.commit_unless_managed()
         return added
 
