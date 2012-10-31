@@ -34,10 +34,10 @@ setup_args = dict(
     package_dir={'treebeard': 'treebeard'},
     package_data={
         'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
-    description='Efficient tree implementations for Django 1.2+',
+    description='Efficient tree implementations for Django 1.3+',
     long_description=open(root_dir() + '/README').read(),
     cmdclass={'test': pytest_test},
-    install_requires=['Django>=1.2'],
+    install_requires=['Django>=1.3'],
     tests_require=['pytest'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
