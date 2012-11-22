@@ -299,7 +299,7 @@ class Node(models.Model):
 
     def is_descendant_of(self, node):  # pragma: no cover
         """
-        :returns: ``True`` if the node if a descendant of another node given
+        :returns: ``True`` if the node is a descendant of another node given
             as an argument, else, returns ``False``
 
         :param node:
