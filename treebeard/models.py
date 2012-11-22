@@ -54,7 +54,7 @@ class Node(models.Model):
 
         :param keep_ids:
 
-            If enabled, lads the nodes with the same id that are given in the
+            If enabled, loads the nodes with the same id that are given in the
             structure. Will error if there are nodes without id info or if the
             ids are already used.
 
