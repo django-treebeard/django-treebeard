@@ -100,7 +100,7 @@ class Node(models.Model):
             Stores the id value (primary key) of every node. Enabled by
             default.
 
-        :returns: A python data structure, describen with detail in
+        :returns: A python data structure, described with detail in
                   :meth:`load_bulk`
         """
         raise NotImplementedError
