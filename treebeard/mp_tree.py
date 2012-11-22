@@ -465,7 +465,7 @@ class MP_Node(Node):
 
     def is_sibling_of(self, node):
         """
-        :returns: ``True`` if the node if a sibling of another node given as an
+        :returns: ``True`` if the node is a sibling of another node given as an
             argument, else, returns ``False``
         """
         aux = self.depth == node.depth
