@@ -469,10 +469,12 @@ class MP_Node(Node):
             argument, else, returns ``False``
         """
         aux = self.depth == node.depth
-        if self.depth > 1:
+
+        #Check non-root nodes share a parent only if they have the same depth
+        if aux and self.depth > 1:
             # making sure the non-root nodes share a parent
             parentpath = self._get_basepath(self.path, self.depth - 1)
-            return aux and node.path.startswith(parentpath)
+            return node.path.startswith(parentpath)
         return aux
 
     def is_child_of(self, node):
