@@ -3,8 +3,9 @@
 In Python because of portability with Windows.
 """
 
-import os
 import sys
+
+import os
 
 
 def main():

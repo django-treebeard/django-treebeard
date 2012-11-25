@@ -460,7 +460,7 @@ class Node(models.Model):
         if self.node_order_by and pos != 'sorted-sibling':
             raise InvalidPosition('Must use %s in add_sibling when'
                                   ' node_order_by is enabled' % (
-                                  'sorted-sibling', ))
+                                      'sorted-sibling', ))
         if pos == 'sorted-sibling' and not self.node_order_by:
             raise MissingNodeOrderBy('Missing node_order_by attribute.')
         return pos
@@ -480,9 +480,11 @@ class Node(models.Model):
                                               'sorted-sibling'):
             raise InvalidPosition('Must use %s or %s in add_sibling when'
                                   ' node_order_by is enabled' % (
-                                  'sorted-sibling', 'sorted-child'))
-        if pos in ('sorted-child', 'sorted-sibling') and \
-                not self.node_order_by:
+                                      'sorted-sibling', 'sorted-child'))
+        if (
+                pos in ('sorted-child', 'sorted-sibling') and
+                not self.node_order_by
+        ):
             raise MissingNodeOrderBy('Missing node_order_by attribute.')
         return pos
 
@@ -499,9 +501,12 @@ class Node(models.Model):
         fields, filters = [], []
         for field in self.node_order_by:
             value = getattr(newobj, field)
-            filters.append(Q(*
-                [Q(**{f: v}) for f, v in fields] +
-                [Q(**{'%s__gt' % field: value})]))
+            filters.append(
+                Q(
+                    *[Q(**{f: v}) for f, v in fields] +
+                     [Q(**{'%s__gt' % field: value})]
+                )
+            )
             fields.append((field, value))
         return siblings.filter(reduce(operator.or_, filters))
 
@@ -521,7 +526,6 @@ class Node(models.Model):
         start_depth, prev_depth = (None, None)
 
         for node in cls.get_tree(parent):
-
             depth = node.get_depth()
 
             if start_depth is None:
@@ -572,7 +576,7 @@ class Node(models.Model):
             engine = settings.DATABASES['default']['ENGINE']
         except (AttributeError, KeyError):
             engine = None
-        # the old style settings still work in Django 1.2+ if there is no
+            # the old style settings still work in Django 1.2+ if there is no
         # DATABASES setting
         if engine is None:
             engine = settings.DATABASE_ENGINE

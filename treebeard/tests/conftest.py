@@ -1,5 +1,7 @@
-import os
 import time
+
+import os
+
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'treebeard.tests.settings'
 
@@ -43,7 +45,6 @@ def pytest_unconfigure(config):
 
 
 def pytest_funcarg__client(request):
-
     def setup():
         mail.outbox = []
         return Client()

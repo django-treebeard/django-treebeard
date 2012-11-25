@@ -126,6 +126,7 @@ class MP_TestNodeShortPath(MP_Node):
     def __unicode__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
+
 # This is how you change the default fields defined in a Django abstract class
 # (in this case, MP_Node), since Django doesn't allow overriding fields, only
 # mehods and attributes
@@ -157,11 +158,10 @@ class MP_TestSortedNodeShortPath(MP_Node):
     def __unicode__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
+
 MP_TestSortedNodeShortPath._meta.get_field('path').max_length = 4
 
-
 if 'django.contrib.auth' in settings.INSTALLED_APPS:
-
     class MP_TestIssue14(MP_Node):
         name = models.CharField(max_length=255)
         users = models.ManyToManyField(User)

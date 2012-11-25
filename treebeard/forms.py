@@ -15,15 +15,15 @@ class MoveNodeForm(forms.ModelForm):
     """
 
     __position_choices_sorted = (
-                        ('sorted-child', _(u'Child of')),
-                        ('sorted-sibling', _(u'Sibling of')),
-                    )
+        ('sorted-child', _(u'Child of')),
+        ('sorted-sibling', _(u'Sibling of')),
+    )
 
     __position_choices_unsorted = (
-                        ('first-child', _(u'First child of')),
-                        ('left', _(u'Before')),
-                        ('right', _(u'After')),
-                    )
+        ('first-child', _(u'First child of')),
+        ('left', _(u'Before')),
+        ('right', _(u'After')),
+    )
 
     _position = forms.ChoiceField(required=True, label=_(u"Position"))
 
@@ -44,7 +44,6 @@ class MoveNodeForm(forms.ModelForm):
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
                  initial=None, error_class=ErrorList, label_suffix=':',
                  empty_permitted=False, instance=None):
-
         opts = self._meta
         if instance:
             opts.model = type(instance)
@@ -53,23 +52,23 @@ class MoveNodeForm(forms.ModelForm):
         #self.is_sorted = (len(opts.model.node_order_by) > 0)
 
         if self.is_sorted:
-            self.declared_fields['_position'].choices = \
-                self.__class__.__position_choices_sorted
+            choices_sort_mode = self.__class__.__position_choices_sorted
         else:
-            self.declared_fields['_position'].choices = \
-                self.__class__.__position_choices_unsorted
+            choices_sort_mode = self.__class__.__position_choices_unsorted
+        self.declared_fields['_position'].choices = choices_sort_mode
 
         def mk_dropdown_tree(for_node=None):
             """ Creates a tree-like list of choices """
 
-            is_loop_safe = lambda(possible_parent): True
-            # Do actual check only if for_node is provided
-            if for_node is not None:
-                is_loop_safe = lambda(possible_parent): not (
-                            possible_parent == for_node) or (
-                            possible_parent.is_descendant_of(for_node))
+            def is_loop_safe(possible_parent):
+                if for_node is not None:
+                    return not (
+                        possible_parent == for_node
+                    ) or (possible_parent.is_descendant_of(for_node))
+                return True
 
-            mk_indent = lambda(level): '&nbsp;&nbsp;&nbsp;&nbsp;' * (level - 1)
+            def mk_indent(level):
+                return '&nbsp;&nbsp;&nbsp;&nbsp;' * (level - 1)
 
             def add_subtree(node, options):
                 """ Recursively build options tree. """
@@ -95,29 +94,33 @@ class MoveNodeForm(forms.ModelForm):
             if self.is_sorted:
                 node_parent = instance.get_parent()
                 if node_parent is None:
-                    object_data.update({'_ref_node_id': '',
-                                        '_position': 'sorted-child',
-                                        })
+                    object_data.update({
+                        '_ref_node_id': '',
+                        '_position': 'sorted-child',
+                    })
                 else:
-                    object_data.update({'_ref_node_id': node_parent.pk,
-                                        '_position': 'sorted-child',
-                                        })
+                    object_data.update({
+                        '_ref_node_id': node_parent.pk,
+                        '_position': 'sorted-child',
+                    })
             else:
                 prev_sibling = instance.get_prev_sibling()
                 if prev_sibling is None:
-                    if(instance.is_root()):
-                        object_data.update({'_ref_node_id': '',
-                                            '_position': 'first-child',
-                                            })
+                    if (instance.is_root()):
+                        object_data.update({
+                            '_ref_node_id': '',
+                            '_position': 'first-child',
+                        })
                     else:
-                        object_data.update(
-                            {'_ref_node_id': instance.get_parent().pk,
-                             '_position': 'first-child',
-                            })
+                        object_data.update({
+                            '_ref_node_id': instance.get_parent().pk,
+                            '_position': 'first-child',
+                        })
                 else:
-                    object_data.update({'_ref_node_id': prev_sibling.pk,
-                                        '_position': 'right',
-                                        })
+                    object_data.update({
+                        '_ref_node_id': prev_sibling.pk,
+                        '_position': 'right',
+                    })
             self.declared_fields['_ref_node_id'].choices = mk_dropdown_tree(
                 for_node=instance)
             self.instance = instance
@@ -162,11 +165,11 @@ class MoveNodeForm(forms.ModelForm):
             else:
                 if self.is_sorted:
                     self.instance.move(self.Meta.model.get_first_root_node(),
-                                                        pos='sorted-sibling')
+                                       pos='sorted-sibling')
                 else:
                     self.instance.move(self.Meta.model.get_first_root_node(),
                                        pos='first-sibling')
-            # Reload the instance
+                    # Reload the instance
         self.instance = self.Meta.model.objects.get(pk=self.instance.pk)
         super(MoveNodeForm, self).save(commit=commit)
         return self.instance

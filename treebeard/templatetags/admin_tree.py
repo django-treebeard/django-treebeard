@@ -50,7 +50,7 @@ def items_for_result(cl, result, form):
                     result_repr = _boolean_icon(value)
                 else:
                     result_repr = smart_unicode(value)
-                # Strip HTML tags in the resulting text, except if the
+                    # Strip HTML tags in the resulting text, except if the
                 # function has an "allow_tags" attribute set to True.
                 if not allow_tags:
                     result_repr = escape(result_repr)
@@ -63,21 +63,25 @@ def items_for_result(cl, result, form):
                     result_repr = escape(getattr(result, f.name))
                 else:
                     result_repr = display_for_field(value, f)
-                if (isinstance(f, models.DateField) or
-                        isinstance(f, models.TimeField)):
+                if (
+                        isinstance(f, models.DateField) or
+                        isinstance(f, models.TimeField)
+                ):
                     row_class = ' class="nowrap"'
         if force_unicode(result_repr) == '':
             result_repr = mark_safe('&nbsp;')
-        # If list_display_links not defined, add the link tag to the
+            # If list_display_links not defined, add the link tag to the
         # first field
-        if ((first and not cl.list_display_links) or
-                field_name in cl.list_display_links):
+        if (
+            (first and not cl.list_display_links) or
+            field_name in cl.list_display_links
+        ):
             table_tag = {True: 'th', False: 'td'}[first]
 
             # This spacer indents the nodes based on their depth
             if first:
                 spacer = '<span class="spacer">&nbsp;</span>' * (
-                        result.get_depth() - 1)
+                    result.get_depth() - 1)
             else:
                 spacer = ''
 
@@ -121,7 +125,7 @@ def items_for_result(cl, result, form):
             if form and field_name in form.fields:
                 bf = form[field_name]
                 result_repr = mark_safe(
-                        force_unicode(bf.errors) + force_unicode(bf))
+                    force_unicode(bf.errors) + force_unicode(bf))
             else:
                 result_repr = conditional_escape(result_repr)
             yield mark_safe(u'<td%s>%s</td>' % (row_class, result_repr))
@@ -135,13 +139,13 @@ def results(cl):
     if cl.formset:
         for res, form in zip(cl.result_list, cl.formset.forms):
             yield (res.pk, parent_id(res), res.get_depth(),
-                    res.get_children_count(),
-                    list(items_for_result(cl, res, form)))
+                   res.get_children_count(),
+                   list(items_for_result(cl, res, form)))
     else:
         for res in cl.result_list:
             yield (res.pk, parent_id(res), res.get_depth(),
-                    res.get_children_count(),
-                    list(items_for_result(cl, res, None)))
+                   res.get_children_count(),
+                   list(items_for_result(cl, res, None)))
 
 
 def check_empty_dict(GET_dict):
@@ -175,7 +179,7 @@ def result_tree(cl, request):
         'url': request.path,
         'tooltip': _(u'Return to ordered tree'),
         'class_attrib': mark_safe(' class="oder-grabber"')
-        })
+    })
     return {
         'filtered': not check_empty_dict(request.GET),
         'result_hidden_fields': list(result_hidden_fields(cl)),

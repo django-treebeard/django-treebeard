@@ -36,7 +36,7 @@ class AL_Node(Node):
         if not cls.node_order_by:
             try:
                 max = cls.objects.filter(parent__isnull=True).order_by(
-                        'sib_order').reverse()[0].sib_order
+                    'sib_order').reverse()[0].sib_order
             except IndexError:
                 max = 0
             newobj.sib_order = max + 1
@@ -118,8 +118,10 @@ class AL_Node(Node):
         "Dumps a tree branch to a python data structure."
 
         serializable_cls = cls._get_serializable_model()
-        if parent and serializable_cls != cls and \
-                parent.__class__ != serializable_cls:
+        if (
+                parent and serializable_cls != cls and
+                parent.__class__ != serializable_cls
+        ):
             parent = serializable_cls.objects.get(pk=parent.pk)
 
         # a list of nodes: not really a queryset, but it works
@@ -143,8 +145,8 @@ class AL_Node(Node):
             if keep_ids:
                 newobj['id'] = pyobj['pk']
 
-            if (not parent and depth == 1) or \
-                    (parent and depth == parent.get_depth()):
+            if (not parent and depth == 1) or\
+               (parent and depth == parent.get_depth()):
                 ret.append(newobj)
             else:
                 parentobj = lnk[node.parent_id]
@@ -165,7 +167,7 @@ class AL_Node(Node):
         if not self.__class__.node_order_by:
             try:
                 max = self.__class__.objects.filter(parent=self).reverse(
-                    )[0].sib_order
+                )[0].sib_order
             except IndexError:
                 max = 0
             newobj.sib_order = max + 1
@@ -233,8 +235,8 @@ class AL_Node(Node):
         newobj = self.__class__(**kwargs)
 
         if not self.node_order_by:
-            newobj.sib_order = self.__class__._move_add_sibling_aux(pos,
-                                   self, stmts)
+            newobj.sib_order = self.__class__._move_add_sibling_aux(
+                pos, self, stmts)
 
         if self.parent_id:
             newobj.parent_id = self.parent_id
@@ -256,29 +258,35 @@ class AL_Node(Node):
         """
 
         sib_order = target.sib_order
-        if pos == 'last-sibling' \
-                or (pos == 'right' and target == target.get_last_sibling()):
+        if (
+                pos == 'last-sibling' or
+                (pos == 'right' and target == target.get_last_sibling())
+        ):
             sib_order = target.get_last_sibling().sib_order + 1
         else:
             siblings = target.get_siblings()
-            siblings = {'left': siblings.filter(
-                                     sib_order__gte=target.sib_order),
-                        'right': siblings.filter(
-                                     sib_order__gt=target.sib_order),
-                        'first-sibling': siblings}[pos]
-            sib_order = {'left': sib_order,
-                         'right': sib_order + 1,
-                         'first-sibling': 1}[pos]
+            siblings = {
+                'left': siblings.filter(sib_order__gte=target.sib_order),
+                'right': siblings.filter(sib_order__gt=target.sib_order),
+                'first-sibling': siblings
+            }[pos]
+            sib_order = {
+                'left': sib_order,
+                'right': sib_order + 1,
+                'first-sibling': 1
+            }[pos]
             try:
                 min = siblings.order_by('sib_order')[0].sib_order
             except IndexError:
                 min = 0
             if min:
-                sql = 'UPDATE %(table)s' \
-                      ' SET sib_order=sib_order+1' \
-                      ' WHERE sib_order >= %%s' \
-                      ' AND ' % {'table':
-                                connection.ops.quote_name(cls._meta.db_table)}
+                sql = (
+                    'UPDATE %(table)s'
+                    ' SET sib_order=sib_order+1'
+                    ' WHERE sib_order >= %%s'
+                    ' AND '
+                ) % {'table': connection.ops.quote_name(cls._meta.db_table)}
+
                 params = [min]
                 if target.is_root():
                     sql += 'parent_id IS NULL'
@@ -317,14 +325,14 @@ class AL_Node(Node):
 
         if target.is_descendant_of(self):
             raise InvalidMoveToDescendant(
-                    _("Can't move node to a descendant."))
+                _("Can't move node to a descendant."))
 
         if self == target and (
-              (pos == 'left') or
-              (pos in ('right', 'last-sibling') and
-                target == target.get_last_sibling()) or
-              (pos == 'first-sibling' and
-                target == target.get_first_sibling())):
+            (pos == 'left') or
+            (pos in ('right', 'last-sibling') and
+             target == target.get_last_sibling()) or
+            (pos == 'first-sibling' and
+             target == target.get_first_sibling())):
             # special cases, not actually moving the node so no need to UPDATE
             return
 
@@ -339,7 +347,8 @@ class AL_Node(Node):
                 self.sib_order = sib_order
             else:
                 self.sib_order = self.__class__._move_add_sibling_aux(pos,
-                                        target, stmts)
+                                                                      target,
+                                                                      stmts)
             if parent:
                 self.parent = parent
             else:
