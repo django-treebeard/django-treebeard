@@ -29,11 +29,10 @@ def __line(node, request):
     else:
         raw_id_fields = ''
 
-    return ('<input type="checkbox" class="action-select" value="%d" '
-            'name="_selected_action" /><a href="%d/" %s>%s</a>') % (node.pk,
-                                                                 node.pk,
-                                                                 raw_id_fields,
-                                                                 str(node),)
+    return (
+        '<input type="checkbox" class="action-select" value="%d" '
+        'name="_selected_action" /><a href="%d/" %s>%s</a>'
+    ) % (node.pk, node.pk, raw_id_fields, str(node))
 
 
 def __subtree(node, request):

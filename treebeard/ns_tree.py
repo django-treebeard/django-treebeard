@@ -1,11 +1,12 @@
 "Nested Sets"
 
+import operator
+
 from django.core import serializers
 from django.db import connection, models, transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_noop as _
 
-import operator
 from treebeard.exceptions import InvalidMoveToDescendant
 from treebeard.models import Node
 
@@ -66,8 +67,9 @@ class NS_NodeQuerySet(models.query.QuerySet):
                 ranges.append((node.tree_id, node.lft, node.rgt))
             if toremove:
                 self.model.objects.filter(
-                    reduce(operator.or_, toremove)).delete(
-                    removed_ranges=ranges)
+                    reduce(operator.or_,
+                           toremove)
+                ).delete(removed_ranges=ranges)
         transaction.commit_unless_managed()
 
 
@@ -127,14 +129,14 @@ class NS_Node(Node):
             lftop = '>='
         else:
             lftop = '>'
-        sql = 'UPDATE %(table)s ' \
-              ' SET lft = CASE WHEN lft %(lftop)s %(parent_rgt)d ' \
-              '                THEN lft %(incdec)+d ' \
-              '                ELSE lft END, ' \
-              '     rgt = CASE WHEN rgt >= %(parent_rgt)d ' \
-              '                THEN rgt %(incdec)+d ' \
-              '                ELSE rgt END ' \
-              ' WHERE rgt >= %(parent_rgt)d AND ' \
+        sql = 'UPDATE %(table)s '\
+              ' SET lft = CASE WHEN lft %(lftop)s %(parent_rgt)d '\
+              '                THEN lft %(incdec)+d '\
+              '                ELSE lft END, '\
+              '     rgt = CASE WHEN rgt >= %(parent_rgt)d '\
+              '                THEN rgt %(incdec)+d '\
+              '                ELSE rgt END '\
+              ' WHERE rgt >= %(parent_rgt)d AND '\
               '       tree_id = %(tree_id)s' % {
                   'table': connection.ops.quote_name(cls._meta.db_table),
                   'parent_rgt': rgt,
@@ -145,8 +147,8 @@ class NS_Node(Node):
 
     @classmethod
     def _move_tree_right(cls, tree_id):
-        sql = 'UPDATE %(table)s ' \
-              ' SET tree_id = tree_id+1 ' \
+        sql = 'UPDATE %(table)s '\
+              ' SET tree_id = tree_id+1 '\
               ' WHERE tree_id >= %(tree_id)d' % {
                   'table': connection.ops.quote_name(cls._meta.db_table),
                   'tree_id': tree_id}
@@ -214,8 +216,10 @@ class NS_Node(Node):
                     pos = 'last-sibling'
 
             last_root = target.__class__.get_last_root_node()
-            if pos == 'last-sibling' \
-                  or (pos == 'right' and target == last_root):
+            if (
+                    (pos == 'last-sibling') or
+                    (pos == 'right' and target == last_root)
+            ):
                 newobj.tree_id = last_root.tree_id + 1
             else:
                 newpos = {'first-sibling': 1,
@@ -306,14 +310,14 @@ class NS_Node(Node):
 
         if target.is_descendant_of(self):
             raise InvalidMoveToDescendant(
-                    _("Can't move node to a descendant."))
+                _("Can't move node to a descendant."))
 
         if self == target and (
-              (pos == 'left') or
-              (pos in ('right', 'last-sibling') and
-                target == target.get_last_sibling()) or
-              (pos == 'first-sibling' and
-                target == target.get_first_sibling())):
+            (pos == 'left') or
+            (pos in ('right', 'last-sibling') and
+             target == target.get_last_sibling()) or
+            (pos == 'first-sibling' and
+             target == target.get_first_sibling())):
             # special cases, not actually moving the node so no need to UPDATE
             return
 
@@ -390,12 +394,12 @@ class NS_Node(Node):
             depthdiff += 1
 
         # move the tree to the hole
-        sql = "UPDATE %(table)s " \
-              " SET tree_id = %(target_tree)d, " \
-              "     lft = lft + %(jump)d , " \
-              "     rgt = rgt + %(jump)d , " \
-              "     depth = depth + %(depthdiff)d " \
-              " WHERE tree_id = %(from_tree)d AND " \
+        sql = "UPDATE %(table)s "\
+              " SET tree_id = %(target_tree)d, "\
+              "     lft = lft + %(jump)d , "\
+              "     rgt = rgt + %(jump)d , "\
+              "     depth = depth + %(depthdiff)d "\
+              " WHERE tree_id = %(from_tree)d AND "\
               "     lft BETWEEN %(fromlft)d AND %(fromrgt)d" % {
                   'table': connection.ops.quote_name(cls._meta.db_table),
                   'from_tree': fromobj.tree_id,
@@ -408,23 +412,23 @@ class NS_Node(Node):
 
         # close the gap
         sql, params = cls._get_close_gap_sql(fromobj.lft,
-            fromobj.rgt, fromobj.tree_id)
+                                             fromobj.rgt, fromobj.tree_id)
         cursor.execute(sql, params)
 
         transaction.commit_unless_managed()
 
     @classmethod
     def _get_close_gap_sql(cls, drop_lft, drop_rgt, tree_id):
-        sql = 'UPDATE %(table)s ' \
-              ' SET lft = CASE ' \
-              '           WHEN lft > %(drop_lft)d ' \
-              '           THEN lft - %(gapsize)d ' \
-              '           ELSE lft END, ' \
-              '     rgt = CASE ' \
-              '           WHEN rgt > %(drop_lft)d ' \
-              '           THEN rgt - %(gapsize)d ' \
-              '           ELSE rgt END ' \
-              ' WHERE (lft > %(drop_lft)d ' \
+        sql = 'UPDATE %(table)s '\
+              ' SET lft = CASE '\
+              '           WHEN lft > %(drop_lft)d '\
+              '           THEN lft - %(gapsize)d '\
+              '           ELSE lft END, '\
+              '     rgt = CASE '\
+              '           WHEN rgt > %(drop_lft)d '\
+              '           THEN rgt - %(gapsize)d '\
+              '           ELSE rgt END '\
+              ' WHERE (lft > %(drop_lft)d '\
               '     OR rgt > %(drop_lft)d) AND '\
               '     tree_id=%(tree_id)d' % {
                   'table': connection.ops.quote_name(cls._meta.db_table),
@@ -443,7 +447,7 @@ class NS_Node(Node):
             parent_id = parent.pk
         else:
             parent_id = None
-        # stack of nodes to analize
+            # stack of nodes to analize
         stack = [(parent_id, node) for node in bulk_data[::-1]]
         while stack:
             parent_id, node_struct = stack.pop()
@@ -521,8 +525,8 @@ class NS_Node(Node):
             if keep_ids:
                 newobj['id'] = serobj['pk']
 
-            if (not parent and depth == 1) or \
-                    (parent and depth == parent.depth):
+            if (not parent and depth == 1) or\
+               (parent and depth == parent.depth):
                 ret.append(newobj)
             else:
                 parentobj = pyobj.get_parent()
@@ -580,9 +584,11 @@ class NS_Node(Node):
         :returns: ``True`` if the node if a descendant of another node given
             as an argument, else, returns ``False``
         """
-        return self.tree_id == node.tree_id and \
-               self.lft > node.lft and \
-               self.rgt < node.rgt
+        return (
+            self.tree_id == node.tree_id and
+            self.lft > node.lft and
+            self.rgt < node.rgt
+        )
 
     def get_parent(self, update=False):
         """
@@ -598,7 +604,7 @@ class NS_Node(Node):
                 return self._cached_parent_obj
         except AttributeError:
             pass
-        # parent = our most direct ancestor
+            # parent = our most direct ancestor
         self._cached_parent_obj = self.get_ancestors().reverse()[0]
         return self._cached_parent_obj
 

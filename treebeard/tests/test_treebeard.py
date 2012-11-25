@@ -1,7 +1,6 @@
 "Unit/Functional tests"
 
 import os
-import sys
 from django import VERSION as DJANGO_VERSION
 from django.contrib.admin.options import ModelAdmin
 from django.contrib.admin.sites import AdminSite
@@ -11,40 +10,38 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.conf import settings
 from django.utils.functional import wraps
+import pytest
 
 from treebeard import numconv
-from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant, \
+from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy
 from treebeard.forms import MoveNodeForm
 import models
 
-import pytest
 
 # ghetto app detection, there is probably some introspection method,
 # but meh, this works
 HAS_DJANGO_AUTH = 'django.contrib.auth' in settings.INSTALLED_APPS
 
 BASE_DATA = [
-  {'data':{'desc':'1'}},
-  {'data':{'desc':'2'}, 'children':[
-    {'data':{'desc':'21'}},
-    {'data':{'desc':'22'}},
-    {'data':{'desc':'23'}, 'children':[
-      {'data':{'desc':'231'}},
+    {'data': {'desc': '1'}},
+    {'data': {'desc': '2'}, 'children': [
+        {'data': {'desc': '21'}},
+        {'data': {'desc': '22'}},
+        {'data': {'desc': '23'}, 'children': [
+            {'data': {'desc': '231'}},
+        ]},
+        {'data': {'desc': '24'}},
     ]},
-    {'data':{'desc':'24'}},
-  ]},
-  {'data':{'desc':'3'}},
-  {'data':{'desc':'4'}, 'children':[
-    {'data':{'desc':'41'}},
-  ]},
+    {'data': {'desc': '3'}},
+    {'data': {'desc': '4'}, 'children': [
+        {'data': {'desc': '41'}},
+    ]},
 ]
 
 
 def thetype(treetype, proxy):
-
     def decorator(f):
-
         @wraps(f)
         def _testtype(self):
             # tyreetype = MP, AL, NS
@@ -56,7 +53,9 @@ def thetype(treetype, proxy):
                 self.model = None
                 self.sorted_model = None
                 self.dep_model = None
+
         return _testtype
+
     return decorator
 
 
@@ -76,23 +75,23 @@ def _load_test_methods(cls, proxy=True):
                 else:
                     _proxy = ''
                 name = 'test_%s%s_%s' % (t.lower(),
-                                          _proxy,
-                                          m.split('_', 2)[2])
+                                         _proxy,
+                                         m.split('_', 2)[2])
                 test = deco(getattr(cls, m))
 
                 # expected test failures
                 if (
-                        # Test class is TestDelete, and
-                        cls.__name__ == 'TestDelete' and
-                        # testing Materialized Path trees, and
-                        t == 'MP' and
-                        # testing proxy models, and
-                        p and
-                        # using Django is 1.3.X, and
-                        DJANGO_VERSION[:2] == (1, 3) and
-                        # database is MySQL
-                        settings.DATABASES['default']['ENGINE'].endswith(
-                            '.mysql')):
+                    # Test class is TestDelete, and
+                    cls.__name__ == 'TestDelete' and
+                    # testing Materialized Path trees, and
+                    t == 'MP' and
+                    # testing proxy models, and
+                    p and
+                    # using Django is 1.3.X, and
+                    DJANGO_VERSION[:2] == (1, 3) and
+                    # database is MySQL
+                    settings.DATABASES['default']['ENGINE'].endswith(
+                        '.mysql')):
                     # If the above conditions are met, we expect this test to
                     # fail due to a bug in Django.
                     # See: Issue 44 in the bug tracker.
@@ -103,7 +102,6 @@ def _load_test_methods(cls, proxy=True):
 
 
 class TestTreeBase(TestCase):
-
     def setUp(self):
         self.set_MP()
         self.unchanged = [(u'1', 1, 0),
@@ -161,12 +159,12 @@ class TestTreeBase(TestCase):
     def _assert_get_annotated_list(self, expected, parent=None):
         got = [
             (obj[0].desc, obj[1]['open'], obj[1]['close'], obj[1]['level'])
-            for obj in self.model.get_annotated_list(parent)]
+            for obj in self.model.get_annotated_list(parent)
+        ]
         self.assertEqual(expected, got)
 
 
 class TestEmptyTree(TestTreeBase):
-
     def _multi_load_bulk_empty(self):
         ids = self.model.load_bulk(BASE_DATA)
         got_descs = [obj.desc
@@ -206,7 +204,6 @@ class TestEmptyTree(TestTreeBase):
 
 
 class TestNonEmptyTree(TestTreeBase):
-
     def setUp(self):
         super(TestNonEmptyTree, self).setUp()
         models.MP_TestNode.load_bulk(BASE_DATA)
@@ -215,12 +212,10 @@ class TestNonEmptyTree(TestTreeBase):
 
 
 class TestClassMethods(TestNonEmptyTree):
-
     def setUp(self):
         super(TestClassMethods, self).setUp()
 
     def _multi_load_bulk_existing(self):
-
         # inserting on an existing node
 
         node = self.model.objects.get(desc=u'231')
@@ -254,7 +249,7 @@ class TestClassMethods(TestNonEmptyTree):
 
     def _multi_get_tree_all(self):
         got = [(o.desc, o.get_depth(), o.get_children_count())
-                for o in self.model.get_tree()]
+               for o in self.model.get_tree()]
         self.assertEqual(got, self.unchanged)
 
     def _multi_dump_bulk_all(self):
@@ -268,7 +263,7 @@ class TestClassMethods(TestNonEmptyTree):
         node = self.model.objects.get(pk=node.pk)
 
         got = [(o.desc, o.get_depth(), o.get_children_count())
-                for o in self.model.get_tree(node)]
+               for o in self.model.get_tree(node)]
         expected = [(u'231', 3, 4),
                     (u'1', 4, 0),
                     (u'2', 4, 4),
@@ -287,7 +282,7 @@ class TestClassMethods(TestNonEmptyTree):
 
         self.assertEqual(0, node.get_children_count())
         got = [(o.desc, o.get_depth(), o.get_children_count())
-                for o in self.model.get_tree(node)]
+               for o in self.model.get_tree(node)]
         expected = [(u'1', 1, 0)]
         self.assertEqual(got, expected)
 
@@ -319,7 +314,7 @@ class TestClassMethods(TestNonEmptyTree):
         node = self.model.objects.get(pk=node.pk)
 
         got = self.model.dump_bulk(node, False)
-        expected = [{'data':{'desc':u'231'}, 'children':BASE_DATA}]
+        expected = [{'data': {'desc': u'231'}, 'children': BASE_DATA}]
         self.assertEqual(got, expected)
 
     def _multi_load_and_dump_bulk_keeping_ids(self):
@@ -330,7 +325,7 @@ class TestClassMethods(TestNonEmptyTree):
         self.assertEqual(got, exp)
         # do we really have an unchaged tree after the dump/delete/load?
         got = [(o.desc, o.get_depth(), o.get_children_count())
-                for o in self.model.get_tree()]
+               for o in self.model.get_tree()]
         self.assertEqual(got, self.unchanged)
 
     def _multi_get_root_nodes(self):
@@ -353,7 +348,6 @@ class TestClassMethods(TestNonEmptyTree):
 
 
 class TestSimpleNodeMethods(TestNonEmptyTree):
-
     def _multi_is_root(self):
         data = [
             ('2', True),
@@ -624,7 +618,6 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
 
 
 class TestAddChild(TestNonEmptyTree):
-
     def _multi_add_child_to_leaf(self):
         self.model.objects.get(desc=u'231').add_child(desc='2311')
         expected = [(u'1', 1, 0),
@@ -657,7 +650,6 @@ class TestAddChild(TestNonEmptyTree):
 
 
 class TestAddSibling(TestNonEmptyTree):
-
     def _multi_add_sibling_invalid_pos(self):
         method = self.model.objects.get(desc=u'231').add_sibling
         self.assertRaises(InvalidPosition, method, 'invalid_pos')
@@ -852,7 +844,6 @@ class TestAddSibling(TestNonEmptyTree):
 
 
 class TestDelete(TestNonEmptyTree):
-
     def setUp(self):
         super(TestDelete, self).setUp()
         for node in self.model.objects.all():
@@ -932,7 +923,6 @@ class TestDelete(TestNonEmptyTree):
 
 
 class TestMoveErrors(TestNonEmptyTree):
-
     def _multi_move_invalid_pos(self):
         node = self.model.objects.get(desc=u'231')
         self.assertRaises(InvalidPosition, node.move, node, 'invalid_pos')
@@ -941,7 +931,7 @@ class TestMoveErrors(TestNonEmptyTree):
         node = self.model.objects.get(desc=u'2')
         target = self.model.objects.get(desc=u'231')
         self.assertRaises(InvalidMoveToDescendant, node.move, target,
-            'first-sibling')
+                          'first-sibling')
 
     def _multi_move_missing_nodeorderby(self):
         node = self.model.objects.get(desc=u'231')
@@ -952,14 +942,12 @@ class TestMoveErrors(TestNonEmptyTree):
 
 
 class TestMoveSortedErrors(TestNonEmptyTree):
-
     def _multi_nonsorted_move_in_sorted(self):
         node = self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
         self.assertRaises(InvalidPosition, node.move, node, 'left')
 
 
 class TestMoveLeafRoot(TestNonEmptyTree):
-
     def _multi_move_leaf_last_sibling_root(self):
         self.model.objects.get(desc=u'231').move(
             self.model.objects.get(desc=u'2'), 'last-sibling')
@@ -1052,7 +1040,6 @@ class TestMoveLeafRoot(TestNonEmptyTree):
 
 
 class TestMoveLeaf(TestNonEmptyTree):
-
     def _multi_move_leaf_last_sibling(self):
         self.model.objects.get(desc=u'231').move(
             self.model.objects.get(desc=u'22'), 'last-sibling')
@@ -1150,7 +1137,6 @@ class TestMoveLeaf(TestNonEmptyTree):
 
 
 class TestMoveBranchRoot(TestNonEmptyTree):
-
     def _multi_move_branch_first_sibling_root(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2'), 'first-sibling')
@@ -1245,15 +1231,15 @@ class TestMoveBranchRoot(TestNonEmptyTree):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2'), 'first-child')
         expected = [(u'1', 1, 0),
-                   (u'2', 1, 5),
-                   (u'4', 2, 1),
-                   (u'41', 3, 0),
-                   (u'21', 2, 0),
-                   (u'22', 2, 0),
-                   (u'23', 2, 1),
-                   (u'231', 3, 0),
-                   (u'24', 2, 0),
-                   (u'3', 1, 0)]
+                    (u'2', 1, 5),
+                    (u'4', 2, 1),
+                    (u'41', 3, 0),
+                    (u'21', 2, 0),
+                    (u'22', 2, 0),
+                    (u'23', 2, 1),
+                    (u'231', 3, 0),
+                    (u'24', 2, 0),
+                    (u'3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_last_child_root(self):
@@ -1273,7 +1259,6 @@ class TestMoveBranchRoot(TestNonEmptyTree):
 
 
 class TestMoveBranch(TestNonEmptyTree):
-
     def _multi_move_branch_first_sibling(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='23'), 'first-sibling')
@@ -1401,10 +1386,9 @@ class TestMoveBranch(TestNonEmptyTree):
 
 
 class TestTreeSorted(TestTreeBase):
-
     def got(self):
         return [(o.val1, o.val2, o.desc, o.get_depth(), o.get_children_count())
-                 for o in self.sorted_model.get_tree()]
+                for o in self.sorted_model.get_tree()]
 
     def _multi_add_root_sorted(self):
         self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
@@ -1447,7 +1431,6 @@ class TestTreeSorted(TestTreeBase):
         self.assertEqual(self.got(), expected)
 
     def _multi_add_child_nonroot_sorted(self):
-
         get_node = lambda node_id: self.sorted_model.objects.get(pk=node_id)
 
         root_id = self.sorted_model.add_root(val1=0, val2=0, desc='a').pk
@@ -1479,7 +1462,6 @@ class TestTreeSorted(TestTreeBase):
         root_nodes = self.sorted_model.get_root_nodes()
         target = root_nodes[0]
         for node in root_nodes[1:]:
-
             # because raw queries don't update django objects
             node = self.sorted_model.objects.get(pk=node.pk)
             target = self.sorted_model.objects.get(pk=target.pk)
@@ -1496,39 +1478,37 @@ class TestTreeSorted(TestTreeBase):
         self.assertEqual(self.got(), expected)
 
     def _multi_move_sortedsibling(self):
-            # https://bitbucket.org/tabo/django-treebeard/issue/27
-            self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
-            self.sorted_model.add_root(val1=1, val2=4, desc='bcd')
-            self.sorted_model.add_root(val1=2, val2=5, desc='zxy')
-            self.sorted_model.add_root(val1=3, val2=3, desc='abc')
-            self.sorted_model.add_root(val1=4, val2=1, desc='fgh')
-            self.sorted_model.add_root(val1=3, val2=3, desc='abc')
-            self.sorted_model.add_root(val1=2, val2=2, desc='qwe')
-            self.sorted_model.add_root(val1=3, val2=2, desc='vcx')
-            root_nodes = self.sorted_model.get_root_nodes()
-            target = root_nodes[0]
-            for node in root_nodes[1:]:
+        # https://bitbucket.org/tabo/django-treebeard/issue/27
+        self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
+        self.sorted_model.add_root(val1=1, val2=4, desc='bcd')
+        self.sorted_model.add_root(val1=2, val2=5, desc='zxy')
+        self.sorted_model.add_root(val1=3, val2=3, desc='abc')
+        self.sorted_model.add_root(val1=4, val2=1, desc='fgh')
+        self.sorted_model.add_root(val1=3, val2=3, desc='abc')
+        self.sorted_model.add_root(val1=2, val2=2, desc='qwe')
+        self.sorted_model.add_root(val1=3, val2=2, desc='vcx')
+        root_nodes = self.sorted_model.get_root_nodes()
+        target = root_nodes[0]
+        for node in root_nodes[1:]:
+            # because raw queries don't update django objects
+            node = self.sorted_model.objects.get(pk=node.pk)
+            target = self.sorted_model.objects.get(pk=target.pk)
 
-                # because raw queries don't update django objects
-                node = self.sorted_model.objects.get(pk=node.pk)
-                target = self.sorted_model.objects.get(pk=target.pk)
-
-                node.val1 = node.val1 - 2
-                node.save()
-                node.move(target, 'sorted-sibling')
-            expected = [(0, 2, u'qwe', 1, 0),
-                        (0, 5, u'zxy', 1, 0),
-                        (1, 2, u'vcx', 1, 0),
-                        (1, 3, u'abc', 1, 0),
-                        (1, 3, u'abc', 1, 0),
-                        (1, 3, u'zxy', 1, 0),
-                        (1, 4, u'bcd', 1, 0),
-                        (2, 1, u'fgh', 1, 0)]
-            self.assertEqual(self.got(), expected)
+            node.val1 = node.val1 - 2
+            node.save()
+            node.move(target, 'sorted-sibling')
+        expected = [(0, 2, u'qwe', 1, 0),
+                    (0, 5, u'zxy', 1, 0),
+                    (1, 2, u'vcx', 1, 0),
+                    (1, 3, u'abc', 1, 0),
+                    (1, 3, u'abc', 1, 0),
+                    (1, 3, u'zxy', 1, 0),
+                    (1, 4, u'bcd', 1, 0),
+                    (2, 1, u'fgh', 1, 0)]
+        self.assertEqual(self.got(), expected)
 
 
 class TestMP_TreeAlphabet(TestCase):
-
     def test_alphabet(self):
         if not os.getenv('TREEBEARD_TEST_ALPHABET', False):
             # run this test only if the enviroment variable is set
@@ -1558,19 +1538,18 @@ class TestMP_TreeAlphabet(TestCase):
             if got_err:
                 break
             got = [obj.path
-                    for obj in models.MP_TestNodeAlphabet.objects.all()]
+                   for obj in models.MP_TestNodeAlphabet.objects.all()]
             if got != expected:
                 got_err = True
             last_good = alphabet
-        print '\nThe best BASE85 based alphabet for your setup is: %s' \
-            % (last_good, )
+        print '\nThe best BASE85 based alphabet for your setup is: %s'\
+              % (last_good, )
 
 
 class TestHelpers(TestTreeBase):
-
     def setUp(self):
-        for model in (
-                models.MP_TestNode, models.AL_TestNode, models.NS_TestNode):
+        treemodels = models.MP_TestNode, models.AL_TestNode, models.NS_TestNode
+        for model in treemodels:
             model.load_bulk(BASE_DATA)
             for node in model.get_root_nodes():
                 model.load_bulk(BASE_DATA, node)
@@ -1601,9 +1580,12 @@ class TestMP_TreeSortedAutoNow(TestCase):
     def test_sorted_by_autonow_workaround(self):
         # workaround
         import datetime
+
         for i in range(1, 5):
-            models.MP_TestNodeSortedAutoNow.add_root(desc='node%d' % (i, ),
-                                             created=datetime.datetime.now())
+            models.MP_TestNodeSortedAutoNow.add_root(
+                desc='node%d' % (i, ),
+                created=datetime.datetime.now()
+            )
 
     def test_sorted_by_autonow_FAIL(self):
         """
@@ -1616,7 +1598,6 @@ class TestMP_TreeSortedAutoNow(TestCase):
 
 
 class TestMP_TreeStepOverflow(TestCase):
-
     def test_add_root(self):
         method = models.MP_TestNodeSmallStep.add_root
         for i in range(1, 10):
@@ -1646,9 +1627,9 @@ class TestMP_TreeStepOverflow(TestCase):
         newroot = models.MP_TestNodeSmallStep.add_root()
         targets = [(root, ['first-child', 'last-child']),
                    (root.get_first_child(), ['first-sibling',
-                                            'left',
-                                            'right',
-                                            'last-sibling'])]
+                                             'left',
+                                             'right',
+                                             'last-sibling'])]
         for target, positions in targets:
             for pos in positions:
                 self.assertRaises(PathOverflow, newroot.move, target, pos)
@@ -1666,7 +1647,6 @@ class TestMP_TreeShortPath(TestCase):
 
 
 class TestMP_TreeFindProblems(TestTreeBase):
-
     def test_find_problems(self):
         model = models.MP_TestNodeAlphabet
         model.alphabet = '01234'
@@ -1683,22 +1663,27 @@ class TestMP_TreeFindProblems(TestTreeBase):
         model(path='04', depth=10, numchild=1, numval=0).save()
         model(path='0401', depth=20, numchild=0, numval=0).save()
 
-        evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild = \
-                                                        model.find_problems()
+        (evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild) = (
+            model.find_problems())
         self.assertEqual(['abcd', 'qa#$%!'],
-            [o.path for o in model.objects.filter(id__in=evil_chars)])
+                         [o.path for o in
+                          model.objects.filter(id__in=evil_chars)])
         self.assertEqual(['1', '111'],
-            [o.path for o in model.objects.filter(id__in=bad_steplen)])
-        self.assertEqual(['0201', '020201'],
-            [o.path for o in model.objects.filter(id__in=orphans)])
+                         [o.path for o in
+                          model.objects.filter(id__in=bad_steplen)])
+        self.assertEqual(
+            ['0201', '020201'],
+            [o.path for o in model.objects.filter(id__in=orphans)]
+        )
         self.assertEqual(['03', '0301', '030102'],
-            [o.path for o in model.objects.filter(id__in=wrong_numchild)])
+                         [o.path for o in
+                          model.objects.filter(id__in=wrong_numchild)])
         self.assertEqual(['04', '0401'],
-            [o.path for o in model.objects.filter(id__in=wrong_depth)])
+                         [o.path for o in
+                          model.objects.filter(id__in=wrong_depth)])
 
 
 class TestMP_TreeFix(TestTreeBase):
-
     def setUp(self):
         super(TestMP_TreeFix, self).setUp()
         self.expected_no_holes = {
@@ -1785,20 +1770,18 @@ class TestMP_TreeFix(TestTreeBase):
         model(path='2', depth=10, numchild=3, desc='d').save()
 
     def test_fix_tree_non_destructive(self):
-
-        for model in (
-                models.MP_TestNodeShortPath,
-                models.MP_TestSortedNodeShortPath):
+        tree_models = (models.MP_TestNodeShortPath,
+                       models.MP_TestSortedNodeShortPath)
+        for model in tree_models:
             self.add_broken_test_data(model)
             model.fix_tree(destructive=False)
             self.assertEqual(self.got(model), self.expected_with_holes[model])
             model.find_problems()
 
     def test_fix_tree_destructive(self):
-
-        for model in (
-                models.MP_TestNodeShortPath,
-                models.MP_TestSortedNodeShortPath):
+        tree_models = (models.MP_TestNodeShortPath,
+                       models.MP_TestSortedNodeShortPath)
+        for model in tree_models:
             self.add_broken_test_data(model)
             model.fix_tree(destructive=True)
             self.assertEqual(self.got(model), self.expected_no_holes[model])
@@ -1871,7 +1854,6 @@ class TestModelAdmin(ModelAdmin):
 
 
 class TestMoveNodeForm(TestTreeBase):
-
     tpl = (u'<tr><th><label for="id__position">Position:</label></th>'
            '<td><select name="_position" id="id__position">\n'
            '<option value="first-child">First child of</option>\n'

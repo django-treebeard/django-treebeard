@@ -8,12 +8,11 @@ from django.utils.encoding import force_unicode
 from django.utils.translation import ugettext_lazy as _
 from treebeard.templatetags.admin_tree import check_empty_dict
 from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
-        InvalidMoveToDescendant, PathOverflow)
+                                  InvalidMoveToDescendant, PathOverflow)
 from treebeard.forms import MoveNodeForm
 
 
 class TreeChangeList(ChangeList):
-
     def get_ordering(self, *args):
         """
         Overriding ChangeList.get_ordering if using the Django version <= 1.3
@@ -40,6 +39,7 @@ class TreeAdmin(admin.ModelAdmin):
 
     def queryset(self, request):
         from treebeard.al_tree import AL_Node
+
         if issubclass(self.model, AL_Node):
             # AL Trees return a list instead of a QuerySet for .get_tree()
             # So we're returning the regular .queryset cause we will use
@@ -50,6 +50,7 @@ class TreeAdmin(admin.ModelAdmin):
 
     def changelist_view(self, request, extra_context=None):
         from treebeard.al_tree import AL_Node
+
         if issubclass(self.model, AL_Node):
             # For AL trees, use the old admin display
             self.change_list_template = 'admin/tree_list.html'
@@ -60,11 +61,12 @@ class TreeAdmin(admin.ModelAdmin):
         Adds a url to move nodes to this admin
         """
         urls = super(TreeAdmin, self).get_urls()
-        new_urls = patterns('',
-            url('^move/$',
-                self.admin_site.admin_view(self.move_node),),
-            url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog', {
-                'packages': ('treebeard',)}),
+        new_urls = patterns(
+            '',
+            url('^move/$', self.admin_site.admin_view(self.move_node), ),
+            url(r'^jsi18n/$',
+                'django.views.i18n.javascript_catalog',
+                {'packages': ('treebeard',)}),
         )
         return new_urls + urls
 
@@ -118,28 +120,32 @@ class TreeAdmin(admin.ModelAdmin):
             node.save()
             # If we are here, means that we moved it in one of the tries
             if as_child:
-                messages.info(request,
+                messages.info(
+                    request,
                     _(u'Moved node "%(node)s" as child of "%(other)s"') % {
                         'node': node,
                         'other': sibling
-                    })
+                    }
+                )
             else:
-                messages.info(request,
+                messages.info(
+                    request,
                     _(u'Moved node "%(node)s" as sibling of "%(other)s"') % {
                         'node': node,
                         'other': sibling
-                    })
+                    }
+                )
 
         except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,
-            InvalidPosition), e:
+                InvalidPosition), e:
             # An error was raised while trying to move the node, then set an
             # error message and return 400, this will cause a reload on the
             # client to show the message
             # error message and return 400, this will cause a reload on
             # the client to show the message
             messages.error(request,
-                _(u'Exception raised while moving node: %s') % _(
-                    force_unicode(e)))
+                           _(u'Exception raised while moving node: %s') % _(
+                               force_unicode(e)))
             return HttpResponseBadRequest(u'Exception raised during move')
 
         return HttpResponse('OK')

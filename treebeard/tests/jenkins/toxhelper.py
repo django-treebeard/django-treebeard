@@ -8,10 +8,11 @@ See https://tabo.pe/jenkins/ for the results.
 """
 
 import sys
+
 import os
+import pytest
 
 from coverage import coverage
-import pytest
 
 
 def run_the_tests():
