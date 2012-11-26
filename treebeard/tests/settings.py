@@ -31,7 +31,7 @@ def get_db_conf():
         # tests at the same time
         conf['TEST_NAME'] = "test_%s_%s" % (
             conf['NAME'],
-            ''.join(random.choice(string.letters) for _ in range(15))
+            ''.join(random.choice(string.ascii_letters) for _ in range(15))
         )
 
         if conf['USER'] == '':

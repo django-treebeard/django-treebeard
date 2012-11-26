@@ -1,6 +1,10 @@
 "Models and base API"
 
+import sys
 import operator
+
+if sys.version_info >= (3, 0):
+    from functools import reduce
 
 from django.db.models import Q
 from django.db import models, transaction
@@ -531,10 +535,10 @@ class Node(models.Model):
             if start_depth is None:
                 start_depth = depth
 
-            open = (depth > prev_depth)
+            open = (depth  and (prev_depth is None or depth > prev_depth))
 
-            if depth < prev_depth:
-                info['close'] = range(0, prev_depth - depth)
+            if prev_depth is not None and depth < prev_depth:
+                info['close'] = list(range(0, prev_depth - depth))
 
             info = {'open': open, 'close': [], 'level': depth - start_depth}
 
@@ -542,8 +546,8 @@ class Node(models.Model):
 
             prev_depth = depth
 
-        if start_depth > 0:
-            info['close'] = range(0, prev_depth - start_depth + 1)
+        if start_depth and start_depth > 0:
+            info['close'] = list(range(0, prev_depth - start_depth + 1))
 
         return result
 

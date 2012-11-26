@@ -1,13 +1,17 @@
 "Materialized Path Trees"
 
+import sys
 import operator
+
+if sys.version_info >= (3, 0):
+    from functools import reduce
 
 from django.core import serializers
 from django.db import models, transaction, connection
 from django.db.models import Q
 from django.utils.translation import ugettext_noop as _
 
-from numconv import NumConv
+from treebeard.numconv import NumConv
 from treebeard.models import Node
 from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow
 
@@ -32,7 +36,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
         removed = {}
         for node in self.order_by('depth', 'path'):
             found = False
-            for depth in range(1, len(node.path) / node.steplen):
+            for depth in range(1, int(len(node.path) / node.steplen)):
                 path = node._get_basepath(node.path, depth)
                 if path in removed:
                     # we are already removing a parent of this node
@@ -152,7 +156,7 @@ class MP_Node(Node):
             # django's serializer stores the attributes in 'fields'
             fields = pyobj['fields']
             path = fields['path']
-            depth = len(path) / cls.steplen
+            depth = int(len(path) / cls.steplen)
             # this will be useless in load_bulk
             del fields['depth']
             del fields['path']
@@ -219,7 +223,7 @@ class MP_Node(Node):
                 orphans.append(node.pk)
                 continue
 
-            if node.depth != len(node.path) / cls.steplen:
+            if node.depth != int(len(node.path) / cls.steplen):
                 wrong_depth.append(node.pk)
                 continue
 
@@ -605,7 +609,7 @@ class MP_Node(Node):
         :returns: the parent node of the current node object.
             Caches the result in the object itself to help in loops.
         """
-        depth = len(self.path) / self.steplen
+        depth = int(len(self.path) / self.steplen)
         if depth <= 1:
             return
         try:
@@ -767,7 +771,7 @@ class MP_Node(Node):
             if movebranch and len(oldpath) == len(newpath):
                 parentoldpath = cls._get_basepath(
                     oldpath,
-                    (len(oldpath) / cls.steplen) - 1
+                    int(len(oldpath) / cls.steplen) - 1
                 )
                 parentnewpath = cls._get_basepath(newpath, newdepth - 1)
                 if (

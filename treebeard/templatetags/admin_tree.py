@@ -5,7 +5,7 @@ nodes change list - @jjdelc
 
 """
 
-from urlparse import urljoin
+import sys
 
 from django.db import models
 from django.conf import settings
@@ -15,13 +15,20 @@ from django.contrib.admin.util import display_for_field, lookup_field
 from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
 from django.core.exceptions import ObjectDoesNotExist
 from django.template import Library
-from django.utils.encoding import force_unicode, smart_unicode
 from django.utils.html import conditional_escape, escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 
 register = Library()
+
+if sys.version_info >= (3, 0):
+    from django.utils.encoding import force_str, smart_str
+    from urllib.parse import urljoin
+else:
+    from django.utils.encoding import force_unicode as force_str
+    from django.utils.encoding import smart_unicode as smart_str
+    from urlparse import urljoin
 
 
 def items_for_result(cl, result, form):
@@ -49,7 +56,7 @@ def items_for_result(cl, result, form):
                     allow_tags = True
                     result_repr = _boolean_icon(value)
                 else:
-                    result_repr = smart_unicode(value)
+                    result_repr = smart_str(value)
                     # Strip HTML tags in the resulting text, except if the
                 # function has an "allow_tags" attribute set to True.
                 if not allow_tags:
@@ -68,7 +75,7 @@ def items_for_result(cl, result, form):
                         isinstance(f, models.TimeField)
                 ):
                     row_class = ' class="nowrap"'
-        if force_unicode(result_repr) == '':
+        if force_str(result_repr) == '':
             result_repr = mark_safe('&nbsp;')
             # If list_display_links not defined, add the link tag to the
         # first field
@@ -108,12 +115,12 @@ def items_for_result(cl, result, form):
             else:
                 attr = pk
             value = result.serializable_value(attr)
-            result_id = repr(force_unicode(value))[1:]
+            result_id = repr(force_str(value))[1:]
             onclickstr = (
                 ' onclick="opener.dismissRelatedLookupPopup(window, %s);'
                 ' return false;"')
             yield mark_safe(
-                u'%s<%s%s>%s %s <a href="%s"%s>%s</a></%s>' % (
+                '%s<%s%s>%s %s <a href="%s"%s>%s</a></%s>' % (
                     drag_handler, table_tag, row_class, spacer, collapse, url,
                     (cl.is_popup and onclickstr % result_id or ''),
                     conditional_escape(result_repr), table_tag))
@@ -125,13 +132,13 @@ def items_for_result(cl, result, form):
             if form and field_name in form.fields:
                 bf = form[field_name]
                 result_repr = mark_safe(
-                    force_unicode(bf.errors) + force_unicode(bf))
+                    force_str(bf.errors) + force_str(bf))
             else:
                 result_repr = conditional_escape(result_repr)
-            yield mark_safe(u'<td%s>%s</td>' % (row_class, result_repr))
+            yield mark_safe('<td%s>%s</td>' % (row_class, result_repr))
     if form and not form[cl.model._meta.pk.name].is_hidden:
         yield mark_safe(
-            u'<td>%s</td>' % force_unicode(form[cl.model._meta.pk.name]))
+            '<td>%s</td>' % force_str(form[cl.model._meta.pk.name]))
 
 
 def results(cl):

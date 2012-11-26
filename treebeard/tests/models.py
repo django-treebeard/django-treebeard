@@ -12,28 +12,28 @@ class MP_TestNode(MP_Node):
 
     desc = models.CharField(max_length=255)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
 class MP_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(MP_TestNode)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
 class NS_TestNode(NS_Node):
     desc = models.CharField(max_length=255)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
 class NS_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(NS_TestNode)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
@@ -45,14 +45,14 @@ class AL_TestNode(AL_Node):
     sib_order = models.PositiveIntegerField()
     desc = models.CharField(max_length=255)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
 class AL_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(AL_TestNode)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
@@ -63,7 +63,7 @@ class MP_TestNodeSorted(MP_Node):
     val2 = models.IntegerField()
     desc = models.CharField(max_length=255)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
@@ -73,7 +73,7 @@ class NS_TestNodeSorted(NS_Node):
     val2 = models.IntegerField()
     desc = models.CharField(max_length=255)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
@@ -87,7 +87,7 @@ class AL_TestNodeSorted(AL_Node):
     val2 = models.IntegerField()
     desc = models.CharField(max_length=255)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
@@ -96,7 +96,7 @@ class MP_TestNodeAlphabet(MP_Node):
 
     numval = models.IntegerField()
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
@@ -104,7 +104,7 @@ class MP_TestNodeSmallStep(MP_Node):
     steplen = 1
     alphabet = '0123456789'
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
@@ -114,7 +114,7 @@ class MP_TestNodeSortedAutoNow(MP_Node):
 
     node_order_by = ['created']
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
@@ -123,7 +123,7 @@ class MP_TestNodeShortPath(MP_Node):
     alphabet = '01234'
     desc = models.CharField(max_length=255)
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 
@@ -155,7 +155,7 @@ class MP_TestSortedNodeShortPath(MP_Node):
 
     node_order_by = ['desc']
 
-    def __unicode__(self):  # pragma: no cover
+    def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
 
 

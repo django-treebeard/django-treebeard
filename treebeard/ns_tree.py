@@ -1,6 +1,10 @@
 "Nested Sets"
 
+import sys
 import operator
+
+if sys.version_info >= (3, 0):
+    from functools import reduce
 
 from django.core import serializers
 from django.db import connection, models, transaction
