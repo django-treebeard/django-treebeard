@@ -18,7 +18,7 @@ from coverage import coverage
 def run_the_tests():
     if 'TOX_DB' in os.environ:
         os.environ['DATABASE_HOST'], os.environ['DATABASE_PORT'] = {
-            'postgres': ('dummy_test_database_server', '5434'),
+            'pgsql': ('dummy_test_database_server', '5434'),
             'mysql': ('dummy_test_database_server', '3308'),
             'sqlite': ('', ''),
         }[os.environ['TOX_DB']]

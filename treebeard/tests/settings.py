@@ -13,7 +13,7 @@ def get_db_conf():
     engine = conf['ENGINE']
     if engine == '':
         engine = 'sqlite3'
-    elif engine in ('postgres', 'postgresql', 'psycopg2'):
+    elif engine in ('pgsql', 'postgres', 'postgresql', 'psycopg2'):
         engine = 'postgresql_psycopg2'
     if '.' not in engine:
         engine = 'django.db.backends.' + engine
