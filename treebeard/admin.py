@@ -1,15 +1,21 @@
 "Django admin support for treebeard"
 
+import sys
+
 from django.conf.urls.defaults import patterns, url
 from django.contrib import admin, messages
 from django.contrib.admin.views.main import ChangeList
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.utils.encoding import force_unicode
 from django.utils.translation import ugettext_lazy as _
 from treebeard.templatetags.admin_tree import check_empty_dict
 from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
                                   InvalidMoveToDescendant, PathOverflow)
 from treebeard.forms import MoveNodeForm
+
+if sys.version_info >= (3, 0):
+    from django.utils.encoding import force_str
+else:
+    from django.utils.encoding import force_unicode as force_str
 
 
 class TreeChangeList(ChangeList):
@@ -76,9 +82,9 @@ class TreeAdmin(admin.ModelAdmin):
             sibling_id = request.POST['sibling_id']
             as_child = request.POST.get('as_child', False)
             as_child = bool(int(as_child))
-        except (KeyError, ValueError), e:
+        except (KeyError, ValueError):
             # Some parameters were missing return a BadRequest
-            return HttpResponseBadRequest(u'Malformed POST params')
+            return HttpResponseBadRequest('Malformed POST params')
 
         node = self.model.objects.get(pk=node_id)
         # Parent is not used at this time, need to handle special case
@@ -92,7 +98,7 @@ class TreeAdmin(admin.ModelAdmin):
                     node.move(sibling, pos='target')
                 else:
                     node.move(sibling, pos='left')
-            except InvalidPosition, e:
+            except InvalidPosition:
                 # This could be due two reasons (from the docs):
                 # :raise InvalidPosition:
                 #       when passing an invalid ``pos`` parm
@@ -122,7 +128,7 @@ class TreeAdmin(admin.ModelAdmin):
             if as_child:
                 messages.info(
                     request,
-                    _(u'Moved node "%(node)s" as child of "%(other)s"') % {
+                    _('Moved node "%(node)s" as child of "%(other)s"') % {
                         'node': node,
                         'other': sibling
                     }
@@ -130,22 +136,23 @@ class TreeAdmin(admin.ModelAdmin):
             else:
                 messages.info(
                     request,
-                    _(u'Moved node "%(node)s" as sibling of "%(other)s"') % {
+                    _('Moved node "%(node)s" as sibling of "%(other)s"') % {
                         'node': node,
                         'other': sibling
                     }
                 )
 
         except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,
-                InvalidPosition), e:
+                InvalidPosition):
+            e = sys.exc_info()[1]
             # An error was raised while trying to move the node, then set an
             # error message and return 400, this will cause a reload on the
             # client to show the message
             # error message and return 400, this will cause a reload on
             # the client to show the message
             messages.error(request,
-                           _(u'Exception raised while moving node: %s') % _(
-                               force_unicode(e)))
-            return HttpResponseBadRequest(u'Exception raised during move')
+                           _('Exception raised while moving node: %s') % _(
+                               force_str(e)))
+            return HttpResponseBadRequest('Exception raised during move')
 
         return HttpResponse('OK')

@@ -1,6 +1,6 @@
-import time
-
 import os
+import sys
+import time
 
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'treebeard.tests.settings'
@@ -35,8 +35,11 @@ def pytest_unconfigure(config):
         connection.autocommit = True
         connection._set_isolation_level(0)
         time.sleep(1)
-        print "Destroying test database for alias '%s' (%s)..." % (
-            connection.alias, dbtestname)
+        sys.stdout.write(
+            "Destroying test database for alias '%s' (%s)...\n" % (
+                connection.alias, dbtestname)
+        )
+        sys.stdout.flush()
         cursor.execute(
             'DROP DATABASE %s' % connection.ops.quote_name(dbtestname))
     else:

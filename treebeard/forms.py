@@ -15,21 +15,21 @@ class MoveNodeForm(forms.ModelForm):
     """
 
     __position_choices_sorted = (
-        ('sorted-child', _(u'Child of')),
-        ('sorted-sibling', _(u'Sibling of')),
+        ('sorted-child', _('Child of')),
+        ('sorted-sibling', _('Sibling of')),
     )
 
     __position_choices_unsorted = (
-        ('first-child', _(u'First child of')),
-        ('left', _(u'Before')),
-        ('right', _(u'After')),
+        ('first-child', _('First child of')),
+        ('left', _('Before')),
+        ('right', _('After')),
     )
 
-    _position = forms.ChoiceField(required=True, label=_(u"Position"))
+    _position = forms.ChoiceField(required=True, label=_("Position"))
 
     _ref_node_id = forms.TypedChoiceField(required=False,
                                           coerce=int,
-                                          label=_(u"Relative to"))
+                                          label=_("Relative to"))
 
     class Meta:
         exclude = ('path',
@@ -79,7 +79,7 @@ class MoveNodeForm(forms.ModelForm):
                     for subnode in node.get_children():
                         add_subtree(subnode, options)
 
-            options = [(0, _(u'-- root --'))]
+            options = [(0, _('-- root --'))]
             for node in opts.model.get_root_nodes():
                 add_subtree(node, options)
             return options

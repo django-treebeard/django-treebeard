@@ -1,6 +1,8 @@
 "Unit/Functional tests"
 
 import os
+import sys
+
 from django import VERSION as DJANGO_VERSION
 from django.contrib.admin.options import ModelAdmin
 from django.contrib.admin.sites import AdminSite
@@ -16,7 +18,7 @@ from treebeard import numconv
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy
 from treebeard.forms import MoveNodeForm
-import models
+from treebeard.tests import models
 
 
 # ghetto app detection, there is probably some introspection method,
@@ -104,16 +106,16 @@ def _load_test_methods(cls, proxy=True):
 class TestTreeBase(TestCase):
     def setUp(self):
         self.set_MP()
-        self.unchanged = [(u'1', 1, 0),
-                          (u'2', 1, 4),
-                          (u'21', 2, 0),
-                          (u'22', 2, 0),
-                          (u'23', 2, 1),
-                          (u'231', 3, 0),
-                          (u'24', 2, 0),
-                          (u'3', 1, 0),
-                          (u'4', 1, 1),
-                          (u'41', 2, 0)]
+        self.unchanged = [('1', 1, 0),
+                          ('2', 1, 4),
+                          ('21', 2, 0),
+                          ('22', 2, 0),
+                          ('23', 2, 1),
+                          ('231', 3, 0),
+                          ('24', 2, 0),
+                          ('3', 1, 0),
+                          ('4', 1, 1),
+                          ('41', 2, 0)]
 
     def set_MP(self, proxy=False):
         if proxy:
@@ -150,7 +152,7 @@ class TestTreeBase(TestCase):
                 d.setdefault(tree_id, []).extend([lft, rgt])
             for tree_id, got_edges in d.items():
                 self.assertEqual(len(got_edges), max(got_edges))
-                good_edges = range(1, len(got_edges) + 1)
+                good_edges = list(range(1, len(got_edges) + 1))
                 self.assertEqual(sorted(got_edges), good_edges)
 
         return [(o.desc, o.get_depth(), o.get_children_count())
@@ -178,7 +180,7 @@ class TestEmptyTree(TestTreeBase):
 
     def _multi_add_root_empty(self):
         self.model.add_root(desc='1')
-        expected = [(u'1', 1, 0)]
+        expected = [('1', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_get_root_nodes_empty(self):
@@ -218,30 +220,30 @@ class TestClassMethods(TestNonEmptyTree):
     def _multi_load_bulk_existing(self):
         # inserting on an existing node
 
-        node = self.model.objects.get(desc=u'231')
+        node = self.model.objects.get(desc='231')
         ids = self.model.load_bulk(BASE_DATA, node)
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 4),
-                    (u'1', 4, 0),
-                    (u'2', 4, 4),
-                    (u'21', 5, 0),
-                    (u'22', 5, 0),
-                    (u'23', 5, 1),
-                    (u'231', 6, 0),
-                    (u'24', 5, 0),
-                    (u'3', 4, 0),
-                    (u'4', 4, 1),
-                    (u'41', 5, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
-        expected_descs = [u'1', u'2', u'21', u'22', u'23', u'231', u'24',
-                          u'3', u'4', u'41']
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 4),
+                    ('1', 4, 0),
+                    ('2', 4, 4),
+                    ('21', 5, 0),
+                    ('22', 5, 0),
+                    ('23', 5, 1),
+                    ('231', 6, 0),
+                    ('24', 5, 0),
+                    ('3', 4, 0),
+                    ('4', 4, 1),
+                    ('41', 5, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
+        expected_descs = ['1', '2', '21', '22', '23', '231', '24',
+                          '3', '4', '41']
         got_descs = [obj.desc
                      for obj in self.model.objects.filter(id__in=ids)]
         self.assertEqual(sorted(got_descs), sorted(expected_descs))
@@ -256,7 +258,7 @@ class TestClassMethods(TestNonEmptyTree):
         self.assertEqual(self.model.dump_bulk(keep_ids=False), BASE_DATA)
 
     def _multi_get_tree_node(self):
-        node = self.model.objects.get(desc=u'231')
+        node = self.model.objects.get(desc='231')
         self.model.load_bulk(BASE_DATA, node)
 
         # the tree was modified by load_bulk, so we reload our node object
@@ -264,57 +266,57 @@ class TestClassMethods(TestNonEmptyTree):
 
         got = [(o.desc, o.get_depth(), o.get_children_count())
                for o in self.model.get_tree(node)]
-        expected = [(u'231', 3, 4),
-                    (u'1', 4, 0),
-                    (u'2', 4, 4),
-                    (u'21', 5, 0),
-                    (u'22', 5, 0),
-                    (u'23', 5, 1),
-                    (u'231', 6, 0),
-                    (u'24', 5, 0),
-                    (u'3', 4, 0),
-                    (u'4', 4, 1),
-                    (u'41', 5, 0)]
+        expected = [('231', 3, 4),
+                    ('1', 4, 0),
+                    ('2', 4, 4),
+                    ('21', 5, 0),
+                    ('22', 5, 0),
+                    ('23', 5, 1),
+                    ('231', 6, 0),
+                    ('24', 5, 0),
+                    ('3', 4, 0),
+                    ('4', 4, 1),
+                    ('41', 5, 0)]
         self.assertEqual(got, expected)
 
     def _multi_get_tree_leaf(self):
-        node = self.model.objects.get(desc=u'1')
+        node = self.model.objects.get(desc='1')
 
         self.assertEqual(0, node.get_children_count())
         got = [(o.desc, o.get_depth(), o.get_children_count())
                for o in self.model.get_tree(node)]
-        expected = [(u'1', 1, 0)]
+        expected = [('1', 1, 0)]
         self.assertEqual(got, expected)
 
     def _multi_get_annotated_list_all(self):
-        expected = [(u'1', True, [], 0), (u'2', False, [], 0),
-                    (u'21', True, [], 1), (u'22', False, [], 1),
-                    (u'23', False, [], 1), (u'231', True, [0], 2),
-                    (u'24', False, [0], 1), (u'3', False, [], 0),
-                    (u'4', False, [], 0), (u'41', True, [0, 1], 1)]
+        expected = [('1', True, [], 0), ('2', False, [], 0),
+                    ('21', True, [], 1), ('22', False, [], 1),
+                    ('23', False, [], 1), ('231', True, [0], 2),
+                    ('24', False, [0], 1), ('3', False, [], 0),
+                    ('4', False, [], 0), ('41', True, [0, 1], 1)]
         self._assert_get_annotated_list(expected)
 
     def _multi_get_annotated_list_node(self):
-        node = self.model.objects.get(desc=u'2')
-        expected = [(u'2', True, [], 0), (u'21', True, [], 1),
-                    (u'22', False, [], 1), (u'23', False, [], 1),
-                    (u'231', True, [0], 2), (u'24', False, [0, 1], 1)]
+        node = self.model.objects.get(desc='2')
+        expected = [('2', True, [], 0), ('21', True, [], 1),
+                    ('22', False, [], 1), ('23', False, [], 1),
+                    ('231', True, [0], 2), ('24', False, [0, 1], 1)]
         self._assert_get_annotated_list(expected, node)
 
     def _multi_get_annotated_list_leaf(self):
-        node = self.model.objects.get(desc=u'1')
-        expected = [(u'1', True, [0], 0)]
+        node = self.model.objects.get(desc='1')
+        expected = [('1', True, [0], 0)]
         self._assert_get_annotated_list(expected, node)
 
     def _multi_dump_bulk_node(self):
-        node = self.model.objects.get(desc=u'231')
+        node = self.model.objects.get(desc='231')
         self.model.load_bulk(BASE_DATA, node)
 
         # the tree was modified by load_bulk, so we reload our node object
         node = self.model.objects.get(pk=node.pk)
 
         got = self.model.dump_bulk(node, False)
-        expected = [{'data': {'desc': u'231'}, 'children': BASE_DATA}]
+        expected = [{'data': {'desc': '231'}, 'children': BASE_DATA}]
         self.assertEqual(got, expected)
 
     def _multi_load_and_dump_bulk_keeping_ids(self):
@@ -619,227 +621,227 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
 
 class TestAddChild(TestNonEmptyTree):
     def _multi_add_child_to_leaf(self):
-        self.model.objects.get(desc=u'231').add_child(desc='2311')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 1),
-                    (u'2311', 4, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').add_child(desc='2311')
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 1),
+                    ('2311', 4, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_child_to_node(self):
-        self.model.objects.get(desc=u'2').add_child(desc='25')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'25', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='2').add_child(desc='25')
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('25', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
 class TestAddSibling(TestNonEmptyTree):
     def _multi_add_sibling_invalid_pos(self):
-        method = self.model.objects.get(desc=u'231').add_sibling
+        method = self.model.objects.get(desc='231').add_sibling
         self.assertRaises(InvalidPosition, method, 'invalid_pos')
 
     def _multi_add_sibling_missing_nodeorderby(self):
-        node_wchildren = self.model.objects.get(desc=u'2')
+        node_wchildren = self.model.objects.get(desc='2')
         method = node_wchildren.add_sibling
         self.assertRaises(MissingNodeOrderBy, method, 'sorted-sibling',
                           desc='aaa')
 
     def _multi_add_sibling_last_root(self):
-        node_wchildren = self.model.objects.get(desc=u'2')
+        node_wchildren = self.model.objects.get(desc='2')
         obj = node_wchildren.add_sibling('last-sibling', desc='5')
         self.assertEqual(obj.get_depth(), 1)
-        self.assertEqual(node_wchildren.get_last_sibling().desc, u'5')
+        self.assertEqual(node_wchildren.get_last_sibling().desc, '5')
 
     def _multi_add_sibling_last(self):
-        node = self.model.objects.get(desc=u'231')
+        node = self.model.objects.get(desc='231')
         obj = node.add_sibling('last-sibling', desc='232')
         self.assertEqual(obj.get_depth(), 3)
-        self.assertEqual(node.get_last_sibling().desc, u'232')
+        self.assertEqual(node.get_last_sibling().desc, '232')
 
     def _multi_add_sibling_first_root(self):
-        node_wchildren = self.model.objects.get(desc=u'2')
+        node_wchildren = self.model.objects.get(desc='2')
         obj = node_wchildren.add_sibling('first-sibling', desc='new')
         self.assertEqual(obj.get_depth(), 1)
-        expected = [(u'new', 1, 0),
-                    (u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('new', 1, 0),
+                    ('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_sibling_first(self):
-        node_wchildren = self.model.objects.get(desc=u'23')
+        node_wchildren = self.model.objects.get(desc='23')
         obj = node_wchildren.add_sibling('first-sibling', desc='new')
         self.assertEqual(obj.get_depth(), 2)
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'new', 2, 0),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('new', 2, 0),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_sibling_left_root(self):
-        node_wchildren = self.model.objects.get(desc=u'2')
+        node_wchildren = self.model.objects.get(desc='2')
         obj = node_wchildren.add_sibling('left', desc='new')
         self.assertEqual(obj.get_depth(), 1)
-        expected = [(u'1', 1, 0),
-                    (u'new', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('new', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_sibling_left(self):
-        node_wchildren = self.model.objects.get(desc=u'23')
+        node_wchildren = self.model.objects.get(desc='23')
         obj = node_wchildren.add_sibling('left', desc='new')
         self.assertEqual(obj.get_depth(), 2)
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'new', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('new', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_sibling_left_noleft_root(self):
-        node = self.model.objects.get(desc=u'1')
+        node = self.model.objects.get(desc='1')
         obj = node.add_sibling('left', desc='new')
         self.assertEqual(obj.get_depth(), 1)
-        expected = [(u'new', 1, 0),
-                    (u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('new', 1, 0),
+                    ('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_sibling_left_noleft(self):
-        node = self.model.objects.get(desc=u'231')
+        node = self.model.objects.get(desc='231')
         obj = node.add_sibling('left', desc='new')
         self.assertEqual(obj.get_depth(), 3)
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 2),
-                    (u'new', 3, 0),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 2),
+                    ('new', 3, 0),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_sibling_right_root(self):
-        node_wchildren = self.model.objects.get(desc=u'2')
+        node_wchildren = self.model.objects.get(desc='2')
         obj = node_wchildren.add_sibling('right', desc='new')
         self.assertEqual(obj.get_depth(), 1)
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'new', 1, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('new', 1, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_sibling_right(self):
-        node_wchildren = self.model.objects.get(desc=u'23')
+        node_wchildren = self.model.objects.get(desc='23')
         obj = node_wchildren.add_sibling('right', desc='new')
         self.assertEqual(obj.get_depth(), 2)
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'new', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('new', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_sibling_right_noright_root(self):
-        node = self.model.objects.get(desc=u'4')
+        node = self.model.objects.get(desc='4')
         obj = node.add_sibling('right', desc='new')
         self.assertEqual(obj.get_depth(), 1)
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0),
-                    (u'new', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0),
+                    ('new', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_sibling_right_noright(self):
-        node = self.model.objects.get(desc=u'231')
+        node = self.model.objects.get(desc='231')
         obj = node.add_sibling('right', desc='new')
         self.assertEqual(obj.get_depth(), 3)
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 2),
-                    (u'231', 3, 0),
-                    (u'new', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 2),
+                    ('231', 3, 0),
+                    ('new', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -850,52 +852,52 @@ class TestDelete(TestNonEmptyTree):
             self.dep_model(node=node).save()
 
     def _multi_delete_leaf(self):
-        self.model.objects.get(desc=u'231').delete()
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').delete()
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_delete_node(self):
-        self.model.objects.get(desc=u'23').delete()
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 3),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='23').delete()
+        expected = [('1', 1, 0),
+                    ('2', 1, 3),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_delete_root(self):
-        self.model.objects.get(desc=u'2').delete()
-        expected = [(u'1', 1, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='2').delete()
+        expected = [('1', 1, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_delete_filter_root_nodes(self):
         self.model.objects.filter(desc__in=('2', '3')).delete()
-        expected = [(u'1', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_delete_filter_children(self):
         self.model.objects.filter(
             desc__in=('2', '23', '231')).delete()
-        expected = [(u'1', 1, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_delete_nonexistant_nodes(self):
@@ -905,10 +907,10 @@ class TestDelete(TestNonEmptyTree):
     def _multi_delete_same_node_twice(self):
         self.model.objects.filter(
             desc__in=('2', '2')).delete()
-        expected = [(u'1', 1, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_delete_all_root_nodes(self):
@@ -924,17 +926,17 @@ class TestDelete(TestNonEmptyTree):
 
 class TestMoveErrors(TestNonEmptyTree):
     def _multi_move_invalid_pos(self):
-        node = self.model.objects.get(desc=u'231')
+        node = self.model.objects.get(desc='231')
         self.assertRaises(InvalidPosition, node.move, node, 'invalid_pos')
 
     def _multi_move_to_descendant(self):
-        node = self.model.objects.get(desc=u'2')
-        target = self.model.objects.get(desc=u'231')
+        node = self.model.objects.get(desc='2')
+        target = self.model.objects.get(desc='231')
         self.assertRaises(InvalidMoveToDescendant, node.move, target,
                           'first-sibling')
 
     def _multi_move_missing_nodeorderby(self):
-        node = self.model.objects.get(desc=u'231')
+        node = self.model.objects.get(desc='231')
         self.assertRaises(MissingNodeOrderBy, node.move, node,
                           'sorted-child')
         self.assertRaises(MissingNodeOrderBy, node.move, node,
@@ -949,190 +951,190 @@ class TestMoveSortedErrors(TestNonEmptyTree):
 
 class TestMoveLeafRoot(TestNonEmptyTree):
     def _multi_move_leaf_last_sibling_root(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'2'), 'last-sibling')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0),
-                    (u'231', 1, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='2'), 'last-sibling')
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0),
+                    ('231', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_first_sibling_root(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'2'), 'first-sibling')
-        expected = [(u'231', 1, 0),
-                    (u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='2'), 'first-sibling')
+        expected = [('231', 1, 0),
+                    ('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_left_sibling_root(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'2'), 'left')
-        expected = [(u'1', 1, 0),
-                    (u'231', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='2'), 'left')
+        expected = [('1', 1, 0),
+                    ('231', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_right_sibling_root(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'2'), 'right')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'231', 1, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='2'), 'right')
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('231', 1, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_last_child_root(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'2'), 'last-child')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'231', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='2'), 'last-child')
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('231', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_first_child_root(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'2'), 'first-child')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'231', 2, 0),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='2'), 'first-child')
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('231', 2, 0),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
 class TestMoveLeaf(TestNonEmptyTree):
     def _multi_move_leaf_last_sibling(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'22'), 'last-sibling')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'231', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='22'), 'last-sibling')
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('231', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_first_sibling(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'22'), 'first-sibling')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'231', 2, 0),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='22'), 'first-sibling')
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('231', 2, 0),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_left_sibling(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'22'), 'left')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'231', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='22'), 'left')
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('231', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_right_sibling(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'22'), 'right')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'231', 2, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='22'), 'right')
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('231', 2, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_left_sibling_itself(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'231'), 'left')
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='231'), 'left')
         self.assertEqual(self.got(), self.unchanged)
 
     def _multi_move_leaf_last_child(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'22'), 'last-child')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 1),
-                    (u'231', 3, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='22'), 'last-child')
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 1),
+                    ('231', 3, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_leaf_first_child(self):
-        self.model.objects.get(desc=u'231').move(
-            self.model.objects.get(desc=u'22'), 'first-child')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 1),
-                    (u'231', 3, 0),
-                    (u'23', 2, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        self.model.objects.get(desc='231').move(
+            self.model.objects.get(desc='22'), 'first-child')
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 1),
+                    ('231', 3, 0),
+                    ('23', 2, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -1140,121 +1142,121 @@ class TestMoveBranchRoot(TestNonEmptyTree):
     def _multi_move_branch_first_sibling_root(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2'), 'first-sibling')
-        expected = [(u'4', 1, 1),
-                    (u'41', 2, 0),
-                    (u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('4', 1, 1),
+                    ('41', 2, 0),
+                    ('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_last_sibling_root(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2'), 'last-sibling')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_left_sibling_root(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2'), 'left')
-        expected = [(u'1', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_right_sibling_root(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2'), 'right')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_left_noleft_sibling_root(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2').get_first_sibling(), 'left')
-        expected = [(u'4', 1, 1),
-                    (u'41', 2, 0),
-                    (u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('4', 1, 1),
+                    ('41', 2, 0),
+                    ('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_right_noright_sibling_root(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2').get_last_sibling(), 'right')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0),
-                    (u'4', 1, 1),
-                    (u'41', 2, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_first_child_root(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2'), 'first-child')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'4', 2, 1),
-                    (u'41', 3, 0),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('4', 2, 1),
+                    ('41', 3, 0),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_last_child_root(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='2'), 'last-child')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'4', 2, 1),
-                    (u'41', 3, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('4', 2, 1),
+                    ('41', 3, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -1262,91 +1264,91 @@ class TestMoveBranch(TestNonEmptyTree):
     def _multi_move_branch_first_sibling(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='23'), 'first-sibling')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'4', 2, 1),
-                    (u'41', 3, 0),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('4', 2, 1),
+                    ('41', 3, 0),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_last_sibling(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='23'), 'last-sibling')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'4', 2, 1),
-                    (u'41', 3, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('4', 2, 1),
+                    ('41', 3, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_left_sibling(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='23'), 'left')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'4', 2, 1),
-                    (u'41', 3, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('4', 2, 1),
+                    ('41', 3, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_right_sibling(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='23'), 'right')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'4', 2, 1),
-                    (u'41', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('4', 2, 1),
+                    ('41', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_left_noleft_sibling(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='23').get_first_sibling(), 'left')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'4', 2, 1),
-                    (u'41', 3, 0),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('4', 2, 1),
+                    ('41', 3, 0),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_right_noright_sibling(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='23').get_last_sibling(), 'right')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 5),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 1),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'4', 2, 1),
-                    (u'41', 3, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 5),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('4', 2, 1),
+                    ('41', 3, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_left_itself_sibling(self):
@@ -1357,31 +1359,31 @@ class TestMoveBranch(TestNonEmptyTree):
     def _multi_move_branch_first_child(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='23'), 'first-child')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 2),
-                    (u'4', 3, 1),
-                    (u'41', 4, 0),
-                    (u'231', 3, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 2),
+                    ('4', 3, 1),
+                    ('41', 4, 0),
+                    ('231', 3, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_branch_last_child(self):
         self.model.objects.get(desc='4').move(
             self.model.objects.get(desc='23'), 'last-child')
-        expected = [(u'1', 1, 0),
-                    (u'2', 1, 4),
-                    (u'21', 2, 0),
-                    (u'22', 2, 0),
-                    (u'23', 2, 2),
-                    (u'231', 3, 0),
-                    (u'4', 3, 1),
-                    (u'41', 4, 0),
-                    (u'24', 2, 0),
-                    (u'3', 1, 0)]
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 2),
+                    ('231', 3, 0),
+                    ('4', 3, 1),
+                    ('41', 4, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -1399,14 +1401,14 @@ class TestTreeSorted(TestTreeBase):
         self.sorted_model.add_root(val1=3, val2=3, desc='abc')
         self.sorted_model.add_root(val1=2, val2=2, desc='qwe')
         self.sorted_model.add_root(val1=3, val2=2, desc='vcx')
-        expected = [(1, 4, u'bcd', 1, 0),
-                    (2, 2, u'qwe', 1, 0),
-                    (2, 5, u'zxy', 1, 0),
-                    (3, 2, u'vcx', 1, 0),
-                    (3, 3, u'abc', 1, 0),
-                    (3, 3, u'abc', 1, 0),
-                    (3, 3, u'zxy', 1, 0),
-                    (4, 1, u'fgh', 1, 0)]
+        expected = [(1, 4, 'bcd', 1, 0),
+                    (2, 2, 'qwe', 1, 0),
+                    (2, 5, 'zxy', 1, 0),
+                    (3, 2, 'vcx', 1, 0),
+                    (3, 3, 'abc', 1, 0),
+                    (3, 3, 'abc', 1, 0),
+                    (3, 3, 'zxy', 1, 0),
+                    (4, 1, 'fgh', 1, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_child_root_sorted(self):
@@ -1419,15 +1421,15 @@ class TestTreeSorted(TestTreeBase):
         root.add_child(val1=3, val2=3, desc='abc')
         root.add_child(val1=2, val2=2, desc='qwe')
         root.add_child(val1=3, val2=2, desc='vcx')
-        expected = [(0, 0, u'aaa', 1, 8),
-                    (1, 4, u'bcd', 2, 0),
-                    (2, 2, u'qwe', 2, 0),
-                    (2, 5, u'zxy', 2, 0),
-                    (3, 2, u'vcx', 2, 0),
-                    (3, 3, u'abc', 2, 0),
-                    (3, 3, u'abc', 2, 0),
-                    (3, 3, u'zxy', 2, 0),
-                    (4, 1, u'fgh', 2, 0)]
+        expected = [(0, 0, 'aaa', 1, 8),
+                    (1, 4, 'bcd', 2, 0),
+                    (2, 2, 'qwe', 2, 0),
+                    (2, 5, 'zxy', 2, 0),
+                    (3, 2, 'vcx', 2, 0),
+                    (3, 3, 'abc', 2, 0),
+                    (3, 3, 'abc', 2, 0),
+                    (3, 3, 'zxy', 2, 0),
+                    (4, 1, 'fgh', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_add_child_nonroot_sorted(self):
@@ -1441,13 +1443,13 @@ class TestTreeSorted(TestTreeBase):
         get_node(node_id).add_child(val1=0, val2=0, desc='acc')
         get_node(node_id).add_child(val1=0, val2=0, desc='acb')
 
-        expected = [(0, 0, u'a', 1, 3),
-                    (0, 0, u'aa', 2, 0),
-                    (0, 0, u'ac', 2, 3),
-                    (0, 0, u'aca', 3, 0),
-                    (0, 0, u'acb', 3, 0),
-                    (0, 0, u'acc', 3, 0),
-                    (0, 0, u'av', 2, 0)]
+        expected = [(0, 0, 'a', 1, 3),
+                    (0, 0, 'aa', 2, 0),
+                    (0, 0, 'ac', 2, 3),
+                    (0, 0, 'aca', 3, 0),
+                    (0, 0, 'acb', 3, 0),
+                    (0, 0, 'acc', 3, 0),
+                    (0, 0, 'av', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_sorted(self):
@@ -1467,14 +1469,14 @@ class TestTreeSorted(TestTreeBase):
             target = self.sorted_model.objects.get(pk=target.pk)
 
             node.move(target, 'sorted-child')
-        expected = [(1, 4, u'bcd', 1, 7),
-                    (2, 2, u'qwe', 2, 0),
-                    (2, 5, u'zxy', 2, 0),
-                    (3, 2, u'vcx', 2, 0),
-                    (3, 3, u'abc', 2, 0),
-                    (3, 3, u'abc', 2, 0),
-                    (3, 3, u'zxy', 2, 0),
-                    (4, 1, u'fgh', 2, 0)]
+        expected = [(1, 4, 'bcd', 1, 7),
+                    (2, 2, 'qwe', 2, 0),
+                    (2, 5, 'zxy', 2, 0),
+                    (3, 2, 'vcx', 2, 0),
+                    (3, 3, 'abc', 2, 0),
+                    (3, 3, 'abc', 2, 0),
+                    (3, 3, 'zxy', 2, 0),
+                    (4, 1, 'fgh', 2, 0)]
         self.assertEqual(self.got(), expected)
 
     def _multi_move_sortedsibling(self):
@@ -1497,14 +1499,14 @@ class TestTreeSorted(TestTreeBase):
             node.val1 = node.val1 - 2
             node.save()
             node.move(target, 'sorted-sibling')
-        expected = [(0, 2, u'qwe', 1, 0),
-                    (0, 5, u'zxy', 1, 0),
-                    (1, 2, u'vcx', 1, 0),
-                    (1, 3, u'abc', 1, 0),
-                    (1, 3, u'abc', 1, 0),
-                    (1, 3, u'zxy', 1, 0),
-                    (1, 4, u'bcd', 1, 0),
-                    (2, 1, u'fgh', 1, 0)]
+        expected = [(0, 2, 'qwe', 1, 0),
+                    (0, 5, 'zxy', 1, 0),
+                    (1, 2, 'vcx', 1, 0),
+                    (1, 3, 'abc', 1, 0),
+                    (1, 3, 'abc', 1, 0),
+                    (1, 3, 'zxy', 1, 0),
+                    (1, 4, 'bcd', 1, 0),
+                    (2, 1, 'fgh', 1, 0)]
         self.assertEqual(self.got(), expected)
 
 
@@ -1542,8 +1544,11 @@ class TestMP_TreeAlphabet(TestCase):
             if got != expected:
                 got_err = True
             last_good = alphabet
-        print '\nThe best BASE85 based alphabet for your setup is: %s'\
-              % (last_good, )
+        sys.stdout.write(
+            '\nThe best BASE85 based alphabet for your setup is: %s\n' % (
+                last_good, )
+        )
+        sys.stdout.flush()
 
 
 class TestHelpers(TestTreeBase):
@@ -1688,66 +1693,66 @@ class TestMP_TreeFix(TestTreeBase):
         super(TestMP_TreeFix, self).setUp()
         self.expected_no_holes = {
             models.MP_TestNodeShortPath: [
-                (u'1', u'b', 1, 2),
-                (u'11', u'u', 2, 1),
-                (u'111', u'i', 3, 1),
-                (u'1111', u'e', 4, 0),
-                (u'12', u'o', 2, 0),
-                (u'2', u'd', 1, 0),
-                (u'3', u'g', 1, 0),
-                (u'4', u'a', 1, 4),
-                (u'41', u'a', 2, 0),
-                (u'42', u'a', 2, 0),
-                (u'43', u'u', 2, 1),
-                (u'431', u'i', 3, 1),
-                (u'4311', u'e', 4, 0),
-                (u'44', u'o', 2, 0)],
+                ('1', 'b', 1, 2),
+                ('11', 'u', 2, 1),
+                ('111', 'i', 3, 1),
+                ('1111', 'e', 4, 0),
+                ('12', 'o', 2, 0),
+                ('2', 'd', 1, 0),
+                ('3', 'g', 1, 0),
+                ('4', 'a', 1, 4),
+                ('41', 'a', 2, 0),
+                ('42', 'a', 2, 0),
+                ('43', 'u', 2, 1),
+                ('431', 'i', 3, 1),
+                ('4311', 'e', 4, 0),
+                ('44', 'o', 2, 0)],
             models.MP_TestSortedNodeShortPath: [
-                (u'1', u'a', 1, 4),
-                (u'11', u'a', 2, 0),
-                (u'12', u'a', 2, 0),
-                (u'13', u'o', 2, 0),
-                (u'14', u'u', 2, 1),
-                (u'141', u'i', 3, 1),
-                (u'1411', u'e', 4, 0),
-                (u'2', u'b', 1, 2),
-                (u'21', u'o', 2, 0),
-                (u'22', u'u', 2, 1),
-                (u'221', u'i', 3, 1),
-                (u'2211', u'e', 4, 0),
-                (u'3', u'd', 1, 0),
-                (u'4', u'g', 1, 0)]}
+                ('1', 'a', 1, 4),
+                ('11', 'a', 2, 0),
+                ('12', 'a', 2, 0),
+                ('13', 'o', 2, 0),
+                ('14', 'u', 2, 1),
+                ('141', 'i', 3, 1),
+                ('1411', 'e', 4, 0),
+                ('2', 'b', 1, 2),
+                ('21', 'o', 2, 0),
+                ('22', 'u', 2, 1),
+                ('221', 'i', 3, 1),
+                ('2211', 'e', 4, 0),
+                ('3', 'd', 1, 0),
+                ('4', 'g', 1, 0)]}
         self.expected_with_holes = {
             models.MP_TestNodeShortPath: [
-                (u'1', u'b', 1L, 2L),
-                (u'13', u'u', 2L, 1L),
-                (u'134', u'i', 3L, 1L),
-                (u'1343', u'e', 4L, 0L),
-                (u'14', u'o', 2L, 0L),
-                (u'2', u'd', 1L, 0L),
-                (u'3', u'g', 1L, 0L),
-                (u'4', u'a', 1L, 4L),
-                (u'41', u'a', 2L, 0L),
-                (u'42', u'a', 2L, 0L),
-                (u'43', u'u', 2L, 1L),
-                (u'434', u'i', 3L, 1L),
-                (u'4343', u'e', 4L, 0L),
-                (u'44', u'o', 2L, 0L)],
+                ('1', 'b', 1, 2),
+                ('13', 'u', 2, 1),
+                ('134', 'i', 3, 1),
+                ('1343', 'e', 4, 0),
+                ('14', 'o', 2, 0),
+                ('2', 'd', 1, 0),
+                ('3', 'g', 1, 0),
+                ('4', 'a', 1, 4),
+                ('41', 'a', 2, 0),
+                ('42', 'a', 2, 0),
+                ('43', 'u', 2, 1),
+                ('434', 'i', 3, 1),
+                ('4343', 'e', 4, 0),
+                ('44', 'o', 2, 0)],
             models.MP_TestSortedNodeShortPath: [
-                (u'1', u'b', 1L, 2L),
-                (u'13', u'u', 2L, 1L),
-                (u'134', u'i', 3L, 1L),
-                (u'1343', u'e', 4L, 0L),
-                (u'14', u'o', 2L, 0L),
-                (u'2', u'd', 1L, 0L),
-                (u'3', u'g', 1L, 0L),
-                (u'4', u'a', 1L, 4L),
-                (u'41', u'a', 2L, 0L),
-                (u'42', u'a', 2L, 0L),
-                (u'43', u'u', 2L, 1L),
-                (u'434', u'i', 3L, 1L),
-                (u'4343', u'e', 4L, 0L),
-                (u'44', u'o', 2L, 0L)]}
+                ('1', 'b', 1, 2),
+                ('13', 'u', 2, 1),
+                ('134', 'i', 3, 1),
+                ('1343', 'e', 4, 0),
+                ('14', 'o', 2, 0),
+                ('2', 'd', 1, 0),
+                ('3', 'g', 1, 0),
+                ('4', 'a', 1, 4),
+                ('41', 'a', 2, 0),
+                ('42', 'a', 2, 0),
+                ('43', 'u', 2, 1),
+                ('434', 'i', 3, 1),
+                ('4343', 'e', 4, 0),
+                ('44', 'o', 2, 0)]}
 
     def got(self, model):
         return [(o.path, o.desc, o.get_depth(), o.get_children_count())
@@ -1854,87 +1859,71 @@ class TestModelAdmin(ModelAdmin):
 
 
 class TestMoveNodeForm(TestTreeBase):
-    tpl = (u'<tr><th><label for="id__position">Position:</label></th>'
-           '<td><select name="_position" id="id__position">\n'
-           '<option value="first-child">First child of</option>\n'
-           '<option value="left">Before</option>\n'
-           '<option value="right">After</option>\n'
-           '</select></td></tr>\n'
-           '<tr><th><label for="id__ref_node_id">Relative to:</label>'
-           '</th><td><select name="_ref_node_id" id="id__ref_node_id">\n'
-           '<option value="0">-- root --</option>\n')
-
-    def _multi_form_html_root_node(self):
-        self.model.load_bulk(BASE_DATA)
-        node = self.model.get_tree()[0]
-        form = MoveNodeForm(instance=node)
-        rtpl = self.tpl
-        self.assertEqual(['_position', '_ref_node_id'],
-                         form.base_fields.keys())
-        for obj in self.model.get_tree():
-            if node != obj or obj.is_descendant_of(node):
-                rtpl += '<option value="%d">%sNode %d</option>\n' % (
-                    obj.pk,
-                    '&nbsp;&nbsp;&nbsp;&nbsp;' * (obj.get_depth() - 1),
-                    obj.pk
+    def _get_nodes_list(self, nodes):
+        res = []
+        for pk, depth in nodes:
+            res.append((
+                pk,
+                '%sNode %d' % (
+                    '&nbsp;&nbsp;&nbsp;&nbsp;' * (depth - 1),
+                    pk
                 )
-        rtpl += '</select></td></tr>'
-        formstr = unicode(form).replace(u' selected="selected"', u'')
-        self.assertEqual(rtpl, formstr)
+            ))
+        return res
 
-    def _multi_form_html_leaf_node(self):
+    def _assert_nodes_in_choices(self, form, nodes):
+        choices = form.fields['_ref_node_id'].choices
+        self.assertEqual(0, choices.pop(0)[0])
+        self.assertEqual(
+            nodes,
+            [
+                (choice[0], choice[1])
+                for choice in choices
+            ]
+        )
+
+    def _move_node_helper(self, node, safe_parent_nodes):
+        form = MoveNodeForm(instance=node)
+        self.assertEqual(['_position', '_ref_node_id'],
+                         list(form.base_fields.keys()))
+        self.assertEqual(
+            ['first-child', 'left', 'right'],
+            [choice[0] for choice in form.fields['_position'].choices]
+        )
+        nodes = self._get_nodes_list(safe_parent_nodes)
+        self._assert_nodes_in_choices(form, nodes)
+
+    def _get_node_ids_and_depths(self, nodes):
+        return [
+            (node.id, node.get_depth())
+            for node in nodes
+        ]
+
+    def _multi_form_root_node(self):
         self.model.load_bulk(BASE_DATA)
         nodes = list(self.model.get_tree())
-        node = nodes[-1]
-        form = MoveNodeForm(instance=node)
-        rtpl = self.tpl
-        self.assertEqual(['_position', '_ref_node_id'],
-                         form.base_fields.keys())
-        for obj in self.model.get_tree():
-            if node != obj or obj.is_descendant_of(node):
-                rtpl += '<option value="%d">%sNode %d</option>\n' % (
-                    obj.pk,
-                    '&nbsp;&nbsp;&nbsp;&nbsp;' * (obj.get_depth() - 1),
-                    obj.pk
-                )
-        rtpl += '</select></td></tr>'
-        formstr = unicode(form).replace(u' selected="selected"', u'')
-        self.assertEqual(rtpl, formstr)
+        node = nodes.pop(0)
+        safe_parent_nodes = self._get_node_ids_and_depths(nodes)
+        self._move_node_helper(node, safe_parent_nodes)
 
-    def _multi_admin_html(self):
-        tpl = ('<tr><th><label for="id_desc">Desc:</label>'
-               '</th><td><input id="id_desc" type="text" class="vTextField" '
-               'name="desc" maxlength="255" /></td></tr>\n'
-               '<tr><th><label for="id__position">Position:</label></th>'
-               '<td><select name="_position" id="id__position">\n'
-               '<option value="first-child">First child of</option>\n'
-               '<option value="left">Before</option>\n'
-               '<option value="right">After</option>\n'
-               '</select></td></tr>\n'
-               '<tr><th><label for="id__ref_node_id">Relative to:</label>'
-               '</th><td><select name="_ref_node_id" id="id__ref_node_id">\n'
-               '<option value="0">-- root --</option>\n'
-               '<option value="%d">Node %d</option>\n'
-               '<option value="%d">Node %d</option>\n'
-               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
-               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
-               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
-               '<option value="%d">'
-               '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Node %d'
-               '</option>\n'
-               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
-               '<option value="%d">Node %d</option>\n'
-               '<option value="%d">Node %d</option>\n'
-               '<option value="%d">&nbsp;&nbsp;&nbsp;&nbsp;Node %d</option>\n'
-               '</select></td></tr>')
+    def _multi_form_leaf_node(self):
+        self.model.load_bulk(BASE_DATA)
+        nodes = list(self.model.get_tree())
+        node = nodes.pop()
+        safe_parent_nodes = self._get_node_ids_and_depths(nodes)
+        self._move_node_helper(node, safe_parent_nodes)
+
+    def _multi_form_admin(self):
         request = None
         self.model.load_bulk(BASE_DATA)
+        nodes = list(self.model.get_tree())
+        safe_parent_nodes = self._get_node_ids_and_depths(nodes)
         for node in self.model.objects.all():
             site = AdminSite()
             ma = TestModelAdmin(self.model, site)
             self.assertEqual(
                 ['desc', '_position', '_ref_node_id'],
-                ma.get_form(request).base_fields.keys())
+                list(ma.get_form(request).base_fields.keys()))
             self.assertEqual(
                 [(None, {'fields': ['desc', '_position', '_ref_node_id']})],
                 ma.get_fieldsets(request))
@@ -1942,10 +1931,8 @@ class TestMoveNodeForm(TestTreeBase):
                 [(None, {'fields': ['desc', '_position', '_ref_node_id']})],
                 ma.get_fieldsets(request, node))
             form = ma.get_form(request)()
-            ids = []
-            for obj in self.model.get_tree():
-                ids.extend([obj.pk] * 2)
-            self.assertEqual(tpl % tuple(ids), unicode(form))
+            nodes = self._get_nodes_list(safe_parent_nodes)
+            self._assert_nodes_in_choices(form, nodes)
 
 
 _load_test_methods(TestMoveNodeForm)
