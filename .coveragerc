@@ -5,9 +5,10 @@ parallel = True
 
 [paths]
 source =
-    treebeard/
-    */.jenkins/*/treebeard/
-    */.tox/*/site-packages/treebeard/
+    ./
+    *\workspace\django-treebeard\tox_db\*\tox_django\*\tox_python\*\os\windows
+    */jobs/django-treebeard/workspace/
+    */workspace/django-treebeard/
 
 [report]
 omit =
