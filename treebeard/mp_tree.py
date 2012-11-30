@@ -671,6 +671,14 @@ class MP_Node(Node):
             cursor.execute(sql, vals)
         transaction.commit_unless_managed()
 
+        #change various fields of self in memory after it is moved
+        table_name = self._meta.db_table
+        sql = "Select path, depth from %s where id=%%s" % (table_name,)
+        cursor.execute(sql, [self.id])
+        row = cursor.fetchone()
+        self.path = row[0]
+        self.depth = row[1]
+
     @classmethod
     def _get_basepath(cls, path, depth):
         ":returns: The base path of another path up to a given depth"
