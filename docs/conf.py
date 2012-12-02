@@ -17,8 +17,8 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage',
 templates_path = ['_templates']
 source_suffix = '.rst'
 master_doc = 'index'
-project = u'django-treebeard'
-copyright = u'2008-2010, Gustavo Picon'
+project = 'django-treebeard'
+copyright = '2008-2010, Gustavo Picon'
 version = '2.0a1'
 release = '2.0a1'
 exclude_trees = ['_build']
@@ -27,5 +27,5 @@ html_theme = 'default'
 html_static_path = ['_static']
 htmlhelp_basename = 'django-treebearddoc'
 latex_documents = [
-  ('index', 'django-treebeard.tex', u'django-treebeard Documentation',
-   u'Gustavo Picon', 'manual')]
+  ('index', 'django-treebeard.tex', 'django-treebeard Documentation',
+   'Gustavo Picon', 'manual')]

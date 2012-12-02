@@ -1,8 +1,8 @@
-"Django admin support for treebeard"
+"""Django admin support for treebeard"""
 
 import sys
 
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls import patterns, url
 from django.contrib import admin, messages
 from django.contrib.admin.views.main import ChangeList
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -36,7 +36,7 @@ class TreeChangeList(ChangeList):
 
 
 class TreeAdmin(admin.ModelAdmin):
-    "Django Admin class for treebeard"
+    """Django Admin class for treebeard"""
     change_list_template = 'admin/tree_change_list.html'
     form = MoveNodeForm
 

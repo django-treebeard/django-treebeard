@@ -38,7 +38,7 @@ def __line(node, request):
 def __subtree(node, request):
     tree = ''
     for subnode in node.get_children():
-        tree = tree + '<li>%s</li>' % __subtree(subnode, request)
+        tree += '<li>%s</li>' % __subtree(subnode, request)
     if tree:
         tree = '<ul>%s</ul>' % tree
     return __line(node, request) + tree
@@ -48,5 +48,5 @@ def __subtree(node, request):
 def result_tree(cl, request):
     tree = ''
     for root_node in cl.model.get_root_nodes():
-        tree = tree + '<li>%s</li>' % __subtree(root_node, request)
+        tree += '<li>%s</li>' % __subtree(root_node, request)
     return "<ul>%s</ul>" % tree

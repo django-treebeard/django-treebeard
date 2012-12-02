@@ -1,4 +1,4 @@
-"Forms for treebeard."
+"""Forms for treebeard."""
 
 from django import forms
 from django.db.models.query import QuerySet
@@ -106,7 +106,7 @@ class MoveNodeForm(forms.ModelForm):
             else:
                 prev_sibling = instance.get_prev_sibling()
                 if prev_sibling is None:
-                    if (instance.is_root()):
+                    if instance.is_root():
                         object_data.update({
                             '_ref_node_id': '',
                             '_position': 'first-child',

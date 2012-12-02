@@ -1,4 +1,4 @@
-"Adjacency List"
+"""Adjacency List"""
 
 from django.core import serializers
 from django.db import connection, models, transaction
@@ -9,10 +9,10 @@ from treebeard.models import Node
 
 
 class AL_NodeManager(models.Manager):
-    "Custom manager for nodes."
+    """Custom manager for nodes."""
 
     def get_query_set(self):
-        "Sets the custom queryset as the default."
+        """Sets the custom queryset as the default."""
         qset = super(AL_NodeManager, self).get_query_set()
         if self.model.node_order_by:
             order_by = ['parent'] + list(self.model.node_order_by)
@@ -22,14 +22,14 @@ class AL_NodeManager(models.Manager):
 
 
 class AL_Node(Node):
-    "Abstract model to create your own Adjacency List Trees."
+    """Abstract model to create your own Adjacency List Trees."""
 
     objects = AL_NodeManager()
     node_order_by = None
 
     @classmethod
     def add_root(cls, **kwargs):
-        "Adds a root node to the tree."
+        """Adds a root node to the tree."""
         newobj = cls(**kwargs)
         newobj._cached_depth = 1
 
@@ -48,7 +48,7 @@ class AL_Node(Node):
 
     @classmethod
     def get_root_nodes(cls):
-        ":returns: A queryset containing the root nodes in the tree."
+        """:returns: A queryset containing the root nodes in the tree."""
         return cls.objects.filter(parent__isnull=True)
 
     def get_depth(self, update=False):
@@ -79,11 +79,11 @@ class AL_Node(Node):
         return depth
 
     def get_children(self):
-        ":returns: A queryset of all the node's children"
+        """:returns: A queryset of all the node's children"""
         return self.__class__.objects.filter(parent=self)
 
     def get_parent(self, update=False):
-        ":returns: the parent node of the current node object."
+        """:returns: the parent node of the current node object."""
         return self.parent
 
     def get_ancestors(self):
@@ -100,7 +100,7 @@ class AL_Node(Node):
         return ancestors
 
     def get_root(self):
-        ":returns: the root node for the current node object."
+        """:returns: the root node for the current node object."""
         ancestors = self.get_ancestors()
         if ancestors:
             return ancestors[0]
@@ -115,7 +115,7 @@ class AL_Node(Node):
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
-        "Dumps a tree branch to a python data structure."
+        """Dumps a tree branch to a python data structure."""
 
         serializable_cls = cls._get_serializable_model()
         if (
@@ -157,7 +157,7 @@ class AL_Node(Node):
         return ret
 
     def add_child(self, **kwargs):
-        "Adds a child to the node."
+        """Adds a child to the node."""
         newobj = self.__class__(**kwargs)
         try:
             newobj._cached_depth = self._cached_depth + 1
@@ -212,7 +212,7 @@ class AL_Node(Node):
         return self.__class__.get_tree(parent=self)[1:]
 
     def get_descendant_count(self):
-        ":returns: the number of descendants of a nodee"
+        """:returns: the number of descendants of a nodee"""
         return len(self.get_descendants())
 
     def get_siblings(self):
@@ -225,7 +225,7 @@ class AL_Node(Node):
         return self.__class__.get_root_nodes()
 
     def add_sibling(self, pos=None, **kwargs):
-        "Adds a new node as a sibling to the current node object."
+        """Adds a new node as a sibling to the current node object."""
 
         pos = self._fix_add_sibling_opts(pos)
 
@@ -363,5 +363,5 @@ class AL_Node(Node):
         transaction.commit_unless_managed()
 
     class Meta:
-        "Abstract model."
+        """Abstract model."""
         abstract = True

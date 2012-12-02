@@ -1,4 +1,4 @@
-"Models and base API"
+"""Models and base API"""
 
 import sys
 import operator
@@ -8,13 +8,12 @@ if sys.version_info >= (3, 0):
 
 from django.db.models import Q
 from django.db import models, transaction, router, connections
-from django.conf import settings
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
 
 
 class Node(models.Model):
-    "Node class"
+    """Node class"""
 
     _db_vendor = None
 
@@ -115,12 +114,16 @@ class Node(models.Model):
 
     @classmethod
     def get_root_nodes(cls):  # pragma: no cover
-        ":returns: A queryset containing the root nodes in the tree."
+        """:returns: A queryset containing the root nodes in the tree."""
         raise NotImplementedError
 
     @classmethod
     def get_first_root_node(cls):
-        ":returns: The first root node in the tree or ``None`` if it is empty"
+        """
+        :returns:
+
+            The first root node in the tree or ``None`` if it is empty.
+        """
         try:
             return cls.get_root_nodes()[0]
         except IndexError:
@@ -128,7 +131,11 @@ class Node(models.Model):
 
     @classmethod
     def get_last_root_node(cls):
-        ":returns: The last root node in the tree or ``None`` if it is empty"
+        """
+        :returns:
+
+            The last root node in the tree or ``None`` if it is empty.
+        """
         try:
             return cls.get_root_nodes().reverse()[0]
         except IndexError:
@@ -136,7 +143,7 @@ class Node(models.Model):
 
     @classmethod
     def find_problems(cls):  # pragma: no cover
-        "Checks for problems in the tree structure."
+        """Checks for problems in the tree structure."""
         raise NotImplementedError
 
     @classmethod
@@ -186,7 +193,7 @@ class Node(models.Model):
         return nodes
 
     def get_depth(self):  # pragma: no cover
-        ":returns: the depth (level) of the node"
+        """:returns: the depth (level) of the node"""
         raise NotImplementedError
 
     def get_siblings(self):  # pragma: no cover
@@ -199,11 +206,11 @@ class Node(models.Model):
         raise NotImplementedError
 
     def get_children(self):  # pragma: no cover
-        ":returns: A queryset of all the node's children"
+        """:returns: A queryset of all the node's children"""
         raise NotImplementedError
 
     def get_children_count(self):
-        ":returns: The number of the node's children"
+        """:returns: The number of the node's children"""
 
         # this is the last resort, subclasses of Node should implement this in
         # a efficient way.
@@ -219,18 +226,26 @@ class Node(models.Model):
         raise NotImplementedError
 
     def get_descendant_count(self):
-        ":returns: the number of descendants of a node."
+        """:returns: the number of descendants of a node."""
         return self.get_descendants().count()
 
     def get_first_child(self):
-        ":returns: The leftmost node's child, or None if it has no children."
+        """
+        :returns:
+
+            The leftmost node's child, or None if it has no children.
+        """
         try:
             return self.get_children()[0]
         except IndexError:
             return None
 
     def get_last_child(self):
-        ":returns: The rightmost node's child, or None if it has no children."
+        """
+        :returns:
+
+            The rightmost node's child, or None if it has no children.
+        """
         try:
             return self.get_children().reverse()[0]
         except IndexError:
@@ -367,15 +382,15 @@ class Node(models.Model):
         raise NotImplementedError
 
     def get_root(self):  # pragma: no cover
-        ":returns: the root node for the current node object."
+        """:returns: the root node for the current node object."""
         raise NotImplementedError
 
     def is_root(self):
-        ":returns: True if the node is a root node (else, returns False)"
+        """:returns: True if the node is a root node (else, returns False)"""
         return self.get_root() == self
 
     def is_leaf(self):
-        ":returns: True if the node is a leaf node (else, returns False)"
+        """:returns: True if the node is a leaf node (else, returns False)"""
         return self.get_children_count() == 0
 
     def get_ancestors(self):  # pragma: no cover
@@ -450,11 +465,11 @@ class Node(models.Model):
         raise NotImplementedError
 
     def delete(self):
-        "Removes a node and all it's descendants."
+        """Removes a node and all it's descendants."""
         self.__class__.objects.filter(id=self.pk).delete()
 
     def _fix_add_sibling_opts(self, pos):
-        "prepare the pos variable for the add_sibling method"
+        """prepare the pos variable for the add_sibling method"""
         if pos is None:
             if self.node_order_by:
                 pos = 'sorted-sibling'
@@ -472,7 +487,7 @@ class Node(models.Model):
         return pos
 
     def _fix_move_opts(self, pos):
-        "prepare the pos var for the move method"
+        """prepare the pos var for the move method"""
         if pos is None:
             if self.node_order_by:
                 pos = 'sorted-sibling'
@@ -537,7 +552,7 @@ class Node(models.Model):
             if start_depth is None:
                 start_depth = depth
 
-            open = (depth  and (prev_depth is None or depth > prev_depth))
+            open = (depth and (prev_depth is None or depth > prev_depth))
 
             if prev_depth is not None and depth < prev_depth:
                 info['close'] = list(range(0, prev_depth - depth))
@@ -562,9 +577,10 @@ class Node(models.Model):
 
         (this is a workaround for a bug in django)
         """
-        while cls._meta.proxy:
-            cls = cls._meta.proxy_for_model
-        return cls
+        current_class = cls
+        while current_class._meta.proxy:
+            current_class = current_class._meta.proxy_for_model
+        return current_class
 
     @classmethod
     def get_database_vendor(cls, action):
@@ -586,5 +602,5 @@ class Node(models.Model):
         return cls._db_vendor[action]
 
     class Meta:
-        "Abstract model."
+        """Abstract model."""
         abstract = True
