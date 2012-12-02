@@ -1,4 +1,4 @@
-"Nested Sets"
+"""Nested Sets"""
 
 import sys
 import operator
@@ -82,12 +82,12 @@ class NS_NodeManager(models.Manager):
     """
 
     def get_query_set(self):
-        "Sets the custom queryset as the default."
+        """Sets the custom queryset as the default."""
         return NS_NodeQuerySet(self.model).order_by('tree_id', 'lft')
 
 
 class NS_Node(Node):
-    "Abstract model to create your own Nested Sets Trees."
+    """Abstract model to create your own Nested Sets Trees."""
     node_order_by = []
 
     lft = models.PositiveIntegerField(db_index=True)
@@ -99,7 +99,7 @@ class NS_Node(Node):
 
     @classmethod
     def add_root(cls, **kwargs):
-        "Adds a root node to the tree."
+        """Adds a root node to the tree."""
 
         # do we have a root node already?
         last_root = cls.get_last_root_node()
@@ -159,7 +159,7 @@ class NS_Node(Node):
         return sql, []
 
     def add_child(self, **kwargs):
-        "Adds a child to the node."
+        """Adds a child to the node."""
         if not self.is_leaf():
             # there are child nodes, delegate insertion to add_sibling
             if self.node_order_by:
@@ -182,7 +182,7 @@ class NS_Node(Node):
         newobj.rgt = self.lft + 2
 
         # this is just to update the cache
-        self.rgt = self.rgt + 2
+        self.rgt += 2
 
         newobj._cached_parent_obj = self
 
@@ -196,7 +196,7 @@ class NS_Node(Node):
         return newobj
 
     def add_sibling(self, pos=None, **kwargs):
-        "Adds a new node as a sibling to the current node object."
+        """Adds a new node as a sibling to the current node object."""
 
         pos = self._fix_add_sibling_opts(pos)
 
@@ -443,7 +443,7 @@ class NS_Node(Node):
 
     @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
-        "Loads a list/dictionary structure to the tree."
+        """Loads a list/dictionary structure to the tree."""
 
         # tree, iterative preorder
         added = []
@@ -476,25 +476,25 @@ class NS_Node(Node):
         return added
 
     def get_children(self):
-        ":returns: A queryset of all the node's children"
+        """:returns: A queryset of all the node's children"""
         return self.get_descendants().filter(depth=self.depth + 1)
 
     def get_depth(self):
-        ":returns: the depth (level) of the node"
+        """:returns: the depth (level) of the node"""
         return self.depth
 
     def is_leaf(self):
-        ":returns: True if the node is a leaf node (else, returns False)"
+        """:returns: True if the node is a leaf node (else, returns False)"""
         return self.rgt - self.lft == 1
 
     def get_root(self):
-        ":returns: the root node for the current node object."
+        """:returns: the root node for the current node object."""
         if self.lft == 1:
             return self
         return self.__class__.objects.get(tree_id=self.tree_id, lft=1)
 
     def is_root(self):
-        ":returns: True if the node is a root node (else, returns False)"
+        """:returns: True if the node is a root node (else, returns False)"""
         return self.lft == 1
 
     def get_siblings(self):
@@ -508,7 +508,7 @@ class NS_Node(Node):
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
-        "Dumps a tree branch to a python data structure."
+        """Dumps a tree branch to a python data structure."""
         qset = cls._get_serializable_model().get_tree(parent)
         ret, lnk = [], {}
         for pyobj in qset:
@@ -568,7 +568,7 @@ class NS_Node(Node):
         return self.__class__.get_tree(self).exclude(pk=self.pk)
 
     def get_descendant_count(self):
-        ":returns: the number of descendants of a node."
+        """:returns: the number of descendants of a node."""
         return (self.rgt - self.lft - 1) / 2
 
     def get_ancestors(self):
@@ -614,9 +614,9 @@ class NS_Node(Node):
 
     @classmethod
     def get_root_nodes(cls):
-        ":returns: A queryset containing the root nodes in the tree."
+        """:returns: A queryset containing the root nodes in the tree."""
         return cls.objects.filter(lft=1)
 
     class Meta:
-        "Abstract model."
+        """Abstract model."""
         abstract = True

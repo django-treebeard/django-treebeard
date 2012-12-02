@@ -1,4 +1,4 @@
-"Django settings for testing treebeard"
+"""Django settings for testing treebeard"""
 
 import random
 import string

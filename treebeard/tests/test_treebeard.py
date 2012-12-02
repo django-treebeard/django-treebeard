@@ -1,4 +1,4 @@
-"Unit/Functional tests"
+"""Unit/Functional tests"""
 
 import os
 import sys
@@ -1496,7 +1496,7 @@ class TestTreeSorted(TestTreeBase):
             node = self.sorted_model.objects.get(pk=node.pk)
             target = self.sorted_model.objects.get(pk=target.pk)
 
-            node.val1 = node.val1 - 2
+            node.val1 -= 2
             node.save()
             node.move(target, 'sorted-sibling')
         expected = [(0, 2, 'qwe', 1, 0),

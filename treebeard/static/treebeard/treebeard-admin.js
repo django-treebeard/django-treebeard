@@ -66,7 +66,7 @@
                 return $elem.clone();
             }
         }
-    }
+    };
 
     $(document).ready(function () {
 
@@ -117,7 +117,7 @@
                 $drag_line.remove();
                 $body.enableSelection().unbind('mousemove').unbind('mouseup');
                 node.elem.removeAttribute('style');
-            }
+            };
 
             // Create a clone create the illusion that we're moving the node
             var node = new Node($(this).closest('tr')[0]);

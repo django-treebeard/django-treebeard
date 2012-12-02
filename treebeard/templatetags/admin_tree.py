@@ -64,8 +64,6 @@ def items_for_result(cl, result, form):
                 else:
                     result_repr = mark_safe(result_repr)
             else:
-                if value is None:
-                    result_repr = EMPTY_CHANGELIST_VALUE
                 if isinstance(f.rel, models.ManyToOneRel):
                     result_repr = escape(getattr(result, f.name))
                 else:
@@ -141,16 +139,22 @@ def items_for_result(cl, result, form):
             '<td>%s</td>' % force_str(form[cl.model._meta.pk.name]))
 
 
+def get_parent_id(node):
+    """Return the node's parent id or 0 if node is a root node."""
+    if node.is_root():
+        return 0
+    return node.get_parent().pk
+
+
 def results(cl):
-    parent_id = lambda n: n.get_parent().pk if not n.is_root() else 0
     if cl.formset:
         for res, form in zip(cl.result_list, cl.formset.forms):
-            yield (res.pk, parent_id(res), res.get_depth(),
+            yield (res.pk, get_parent_id(res), res.get_depth(),
                    res.get_children_count(),
                    list(items_for_result(cl, res, form)))
     else:
         for res in cl.result_list:
-            yield (res.pk, parent_id(res), res.get_depth(),
+            yield (res.pk, get_parent_id(res), res.get_depth(),
                    res.get_children_count(),
                    list(items_for_result(cl, res, None)))
 
@@ -184,7 +188,7 @@ def result_tree(cl, request):
         'text': '+',
         'sortable': True,
         'url': request.path,
-        'tooltip': _(u'Return to ordered tree'),
+        'tooltip': _('Return to ordered tree'),
         'class_attrib': mark_safe(' class="oder-grabber"')
     })
     return {
@@ -196,7 +200,7 @@ def result_tree(cl, request):
 
 
 def get_static_url():
-    "Return a base static url, always ending with a /"
+    """Return a base static url, always ending with a /"""
     path = getattr(settings, 'STATIC_URL', None)
     if not path:
         path = getattr(settings, 'MEDIA_URL', None)

@@ -40,7 +40,7 @@ class NumConv(object):
     """
 
     def __init__(self, radix=10, alphabet=BASE85):
-        "basic validation and cached_map storage"
+        """basic validation and cached_map storage"""
         if int(radix) != radix:
             raise TypeError('radix must be an integer')
         if not 2 <= radix <= len(alphabet):
@@ -106,10 +106,10 @@ class NumConv(object):
 
 
 def int2str(num, radix=10, alphabet=BASE85):
-    "helper function for quick base conversions from integers to strings"
+    """helper function for quick base conversions from integers to strings"""
     return NumConv(radix, alphabet).int2str(num)
 
 
 def str2int(num, radix=10, alphabet=BASE85):
-    "helper function for quick base conversions from strings to integers"
+    """helper function for quick base conversions from strings to integers"""
     return NumConv(radix, alphabet).str2int(num)

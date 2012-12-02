@@ -1,4 +1,4 @@
-"Materialized Path Trees"
+"""Materialized Path Trees"""
 
 import sys
 import operator
@@ -75,15 +75,15 @@ class MP_NodeQuerySet(models.query.QuerySet):
 
 
 class MP_NodeManager(models.Manager):
-    "Custom manager for nodes."
+    """Custom manager for nodes."""
 
     def get_query_set(self):
-        "Sets the custom queryset as the default."
+        """Sets the custom queryset as the default."""
         return MP_NodeQuerySet(self.model).order_by('path')
 
 
 class MP_Node(Node):
-    "Abstract model to create your own Materialized Path Trees."
+    """Abstract model to create your own Materialized Path Trees."""
 
     steplen = 4
     alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -143,7 +143,7 @@ class MP_Node(Node):
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
-        "Dumps a tree branch to a python data structure."
+        """Dumps a tree branch to a python data structure."""
 
         # Because of fix_tree, this method assumes that the depth
         # and numchild properties in the nodes can be incorrect,
@@ -344,7 +344,7 @@ class MP_Node(Node):
 
     @classmethod
     def get_root_nodes(cls):
-        ":returns: A queryset containing the root nodes in the tree."
+        """:returns: A queryset containing the root nodes in the tree."""
         return cls.objects.filter(depth=1)
 
     @classmethod
@@ -411,7 +411,7 @@ class MP_Node(Node):
         return ret
 
     def get_depth(self):
-        ":returns: the depth (level) of the node"
+        """:returns: the depth (level) of the node"""
         return self.depth
 
     def get_siblings(self):
@@ -428,7 +428,7 @@ class MP_Node(Node):
         return qset
 
     def get_children(self):
-        ":returns: A queryset of all the node's children"
+        """:returns: A queryset of all the node's children"""
         if self.is_leaf():
             return self.__class__.objects.none()
         return self.__class__.objects.filter(
@@ -592,7 +592,7 @@ class MP_Node(Node):
         return newobj
 
     def get_root(self):
-        ":returns: the root node for the current node object."
+        """:returns: the root node for the current node object."""
         return self.__class__.objects.get(path=self.path[0:self.steplen])
 
     def get_ancestors(self):
@@ -681,9 +681,9 @@ class MP_Node(Node):
 
     @classmethod
     def _get_basepath(cls, path, depth):
-        ":returns: The base path of another path up to a given depth"
+        """:returns: The base path of another path up to a given depth"""
         if path:
-            return path[0:(depth) * cls.steplen]
+            return path[0:depth * cls.steplen]
         return ''
 
     @classmethod
@@ -703,7 +703,7 @@ class MP_Node(Node):
 
     @classmethod
     def _inc_path(cls, path):
-        ":returns: The path of the next sibling of a given node path."
+        """:returns: The path of the next sibling of a given node path."""
         newpos = cls._str2int(path[-cls.steplen:]) + 1
         key = cls._int2str(newpos)
         if len(key) > cls.steplen:
@@ -714,19 +714,19 @@ class MP_Node(Node):
 
     @classmethod
     def _get_lastpos_in_path(cls, path):
-        ":returns: The integer value of the last step in a path."
+        """:returns: The integer value of the last step in a path."""
         return cls._str2int(path[-cls.steplen:])
 
     @classmethod
     def _get_parent_path_from_path(cls, path):
-        ":returns: The parent path for a given path"
+        """:returns: The parent path for a given path"""
         if path:
             return path[0:len(path) - cls.steplen]
         return ''
 
     @classmethod
     def _get_children_path_interval(cls, path):
-        ":returns: An interval of all possible children paths for a node."
+        """:returns: An interval of all possible children paths for a node."""
         return (path + cls.alphabet[0] * cls.steplen,
                 path + cls.alphabet[-1] * cls.steplen)
 
@@ -830,7 +830,7 @@ class MP_Node(Node):
         return oldpath, newpath
 
     def _fix_move_to_child(self, pos, target):
-        "Update preliminar vars in :meth:`move` when moving to a child"
+        """Update preliminar vars in :meth:`move` when moving to a child"""
         newdepth = target.depth
         newpos = None
         siblings = []
@@ -947,7 +947,7 @@ class MP_Node(Node):
 
     @classmethod
     def _get_sql_update_numchild(cls, path, incdec='inc'):
-        ":returns: The sql needed the numchild value of a node"
+        """:returns: The sql needed the numchild value of a node"""
         sql = "UPDATE %s SET numchild=numchild%s1"\
               " WHERE path=%%s" % (
                   connection.ops.quote_name(cls._meta.db_table),
@@ -956,5 +956,5 @@ class MP_Node(Node):
         return sql, vals
 
     class Meta:
-        "Abstract model."
+        """Abstract model."""
         abstract = True
