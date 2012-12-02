@@ -295,7 +295,7 @@ class MP_Node(Node):
             # fix the numchild field
             vals = ['_' * cls.steplen]
             # the cake and sql portability are a lie
-            if cls.get_database_engine() == 'mysql':
+            if cls.get_database_vendor('read') == 'mysql':
                 sql = "SELECT tbn1.path, tbn1.numchild, ("\
                       "SELECT COUNT(1) "\
                       "FROM %(table)s AS tbn2 "\
@@ -865,7 +865,7 @@ class MP_Node(Node):
         2. update the number of children of parent nodes
         """
         if (
-                cls.get_database_engine() == 'mysql' and
+                cls.get_database_vendor('write') == 'mysql' and
                 len(oldpath) != len(newpath)
         ):
             # no words can describe how dumb mysql is
@@ -896,18 +896,19 @@ class MP_Node(Node):
 
         """
 
+        vendor = cls.get_database_vendor('write')
         sql1 = "UPDATE %s SET" % (
             connection.ops.quote_name(cls._meta.db_table), )
 
         # <3 "standard" sql
-        if cls.get_database_engine() == 'sqlite3':
+        if vendor == 'sqlite':
             # I know that the third argument in SUBSTR (LENGTH(path)) is
             # awful, but sqlite fails without it:
             # OperationalError: wrong number of arguments to function substr()
             # even when the documentation says that 2 arguments are valid:
             # http://www.sqlite.org/lang_corefunc.html
             sqlpath = "%s||SUBSTR(path, %s, LENGTH(path))"
-        elif cls.get_database_engine() == 'mysql':
+        elif vendor == 'mysql':
             # hooray for mysql ignoring standards in their default
             # configuration!
             # to make || work as it should, enable ansi mode
@@ -918,10 +919,7 @@ class MP_Node(Node):
 
         sql2 = ["path=%s" % (sqlpath, )]
         vals = [newpath, len(oldpath) + 1]
-        if (
-                len(oldpath) != len(newpath) and
-                cls.get_database_engine() != 'mysql'
-        ):
+        if len(oldpath) != len(newpath) and vendor != 'mysql':
             # when using mysql, this won't update the depth and it has to be
             # done in another query
             # doesn't even work with sql_mode='ANSI,TRADITIONAL'
