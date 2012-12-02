@@ -640,7 +640,7 @@ class MP_Node(Node):
         # child" to become a "move to sibling" if possible (if it can't
         # be done, it means that we are  adding the first child)
         (pos, target, newdepth, siblings, newpos) = (
-            self._fix_move_to_child(pos, target, target.depth)
+            self._fix_move_to_child(pos, target)
         )
 
         if target.is_descendant_of(self):
@@ -829,10 +829,9 @@ class MP_Node(Node):
                                                                   newpath))
         return oldpath, newpath
 
-    def _fix_move_to_child(self, pos, target, newdepth):
+    def _fix_move_to_child(self, pos, target):
         "Update preliminar vars in :meth:`move` when moving to a child"
         newdepth = target.depth
-        parent = None
         newpos = None
         siblings = []
         if pos in ('first-child', 'last-child', 'sorted-child'):
@@ -854,7 +853,6 @@ class MP_Node(Node):
             # custom UPDATE, this is only here to update django's object,
             # should be useful in loops
             parent.numchild += 1
-            parent = None
 
         return pos, target, newdepth, siblings, newpos
 
