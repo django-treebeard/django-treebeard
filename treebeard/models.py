@@ -7,7 +7,7 @@ if sys.version_info >= (3, 0):
     from functools import reduce
 
 from django.db.models import Q
-from django.db import models, transaction
+from django.db import models, transaction, router, connections
 from django.conf import settings
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
@@ -15,6 +15,8 @@ from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
 
 class Node(models.Model):
     "Node class"
+
+    _db_vendor = None
 
     @classmethod
     def add_root(cls, **kwargs):  # pragma: no cover
@@ -565,26 +567,23 @@ class Node(models.Model):
         return cls
 
     @classmethod
-    def get_database_engine(cls):
+    def get_database_vendor(cls, action):
         """
-        Returns the supported database engine used by a treebeard model.
+        Returns the supported database vendor used by a treebeard model when
+        performing read (select) or write (update, insert, delete) operations.
 
-        This will return the default database engine depending on the version
-        of Django. If you use something different, like a non-default database,
-        you need to override this method and return the correct engine.
+        :param action:
 
-        :returns: postgresql, postgresql_psycopg2, mysql or sqlite3
+            `read` or `write`
+
+        :returns: postgresql, mysql or sqlite
         """
-        engine = None
-        try:
-            engine = settings.DATABASES['default']['ENGINE']
-        except (AttributeError, KeyError):
-            engine = None
-            # the old style settings still work in Django 1.2+ if there is no
-        # DATABASES setting
-        if engine is None:
-            engine = settings.DATABASE_ENGINE
-        return engine.split('.')[-1]
+        if cls._db_vendor is None:
+            cls._db_vendor = {
+                'read': connections[router.db_for_read(cls)].vendor,
+                'write': connections[router.db_for_write(cls)].vendor
+            }
+        return cls._db_vendor[action]
 
     class Meta:
         "Abstract model."
