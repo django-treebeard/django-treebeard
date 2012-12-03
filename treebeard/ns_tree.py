@@ -34,7 +34,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
             # delete method and let it handle the removal of the user's
             # foreign keys...
             super(NS_NodeQuerySet, self).delete()
-            cursor = connection.cursor()
+            cursor = self.model._get_database_cursor('write')
 
             # Now closing the gap (Celko's trees book, page 62)
             # We do this for every gap that was left in the tree when the nodes
@@ -186,7 +186,7 @@ class NS_Node(Node):
 
         newobj._cached_parent_obj = self
 
-        cursor = connection.cursor()
+        cursor = self._get_database_cursor('write')
         cursor.execute(sql, params)
 
         # saving the instance before returning it
@@ -282,7 +282,7 @@ class NS_Node(Node):
 
         # saving the instance before returning it
         if sql:
-            cursor = connection.cursor()
+            cursor = self._get_database_cursor('write')
             cursor.execute(sql, params)
         newobj.save()
 
@@ -355,7 +355,7 @@ class NS_Node(Node):
                 target = siblings[0]
 
         # ok let's move this
-        cursor = connection.cursor()
+        cursor = self._get_database_cursor('write')
         move_right = cls._move_right
         gap = self.rgt - self.lft + 1
         sql = None

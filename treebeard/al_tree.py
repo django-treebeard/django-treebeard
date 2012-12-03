@@ -241,7 +241,7 @@ class AL_Node(Node):
         if self.parent_id:
             newobj.parent_id = self.parent_id
 
-        cursor = connection.cursor()
+        cursor = self._get_database_cursor('write')
         for sql, vals in stmts:
             cursor.execute(sql, vals)
 
@@ -356,7 +356,7 @@ class AL_Node(Node):
                 self.parent = target.parent
 
         if stmts:
-            cursor = connection.cursor()
+            cursor = self._get_database_cursor('write')
             for sql, vals in stmts:
                 cursor.execute(sql, vals)
 
