@@ -161,7 +161,6 @@ class MP_TestSortedNodeShortPath(MP_Node):
 
 MP_TestSortedNodeShortPath._meta.get_field('path').max_length = 4
 
-if 'django.contrib.auth' in settings.INSTALLED_APPS:
-    class MP_TestIssue14(MP_Node):
-        name = models.CharField(max_length=255)
-        users = models.ManyToManyField(User)
+class MP_TestIssue14(MP_Node):
+    name = models.CharField(max_length=255)
+    users = models.ManyToManyField(User)
