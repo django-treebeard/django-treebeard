@@ -281,7 +281,7 @@ class MP_Node(Node):
             cls.objects.all().delete()
             cls.load_bulk(dump, None, True)
         else:
-            cursor = connection.cursor()
+            cursor = cls._get_database_cursor('write')
 
             # fix the depth field
             # we need the WHERE to speed up postgres
@@ -398,7 +398,7 @@ class MP_Node(Node):
                   'subpathlen': depth * cls.steplen,
                   'depth': depth,
                   'extrand': extrand}
-        cursor = connection.cursor()
+        cursor = cls._get_database_cursor('write')
         cursor.execute(sql, params)
 
         ret = []
@@ -539,7 +539,7 @@ class MP_Node(Node):
               "WHERE path=%%s" % {
                   'table': connection.ops.quote_name(
                       self.__class__._meta.db_table)}
-        cursor = connection.cursor()
+        cursor = self._get_database_cursor('write')
         cursor.execute(sql, [self.path])
         transaction.commit_unless_managed()
 
@@ -580,7 +580,7 @@ class MP_Node(Node):
         if parentpath:
             stmts.append(self._get_sql_update_numchild(parentpath, 'inc'))
 
-        cursor = connection.cursor()
+        cursor = self._get_database_cursor('write')
         for sql, vals in stmts:
             cursor.execute(sql, vals)
 
@@ -678,7 +678,7 @@ class MP_Node(Node):
         # updates needed for mysql and children count in parents
         self._updates_after_move(oldpath, newpath, stmts)
 
-        cursor = connection.cursor()
+        cursor = self._get_database_cursor('write')
         for sql, vals in stmts:
             cursor.execute(sql, vals)
         transaction.commit_unless_managed()

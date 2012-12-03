@@ -15,7 +15,7 @@ from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
 class Node(models.Model):
     """Node class"""
 
-    _db_vendor = None
+    _db_connection = None
 
     @classmethod
     def add_root(cls, **kwargs):  # pragma: no cover
@@ -567,9 +567,18 @@ class Node(models.Model):
         return current_class
 
     @classmethod
+    def _get_database_connection(cls, action):
+        if cls._db_connection is None:
+            cls._db_connection = {
+                'read': connections[router.db_for_read(cls)],
+                'write': connections[router.db_for_write(cls)]
+            }
+        return cls._db_connection[action]
+
+    @classmethod
     def get_database_vendor(cls, action):
         """
-        Returns the supported database vendor used by a treebeard model when
+        returns the supported database vendor used by a treebeard model when
         performing read (select) or write (update, insert, delete) operations.
 
         :param action:
@@ -578,12 +587,11 @@ class Node(models.Model):
 
         :returns: postgresql, mysql or sqlite
         """
-        if cls._db_vendor is None:
-            cls._db_vendor = {
-                'read': connections[router.db_for_read(cls)].vendor,
-                'write': connections[router.db_for_write(cls)].vendor
-            }
-        return cls._db_vendor[action]
+        return cls._get_database_connection(action).vendor
+
+    @classmethod
+    def _get_database_cursor(cls, action):
+        return cls._get_database_connection(action).cursor()
 
     class Meta:
         """Abstract model."""
