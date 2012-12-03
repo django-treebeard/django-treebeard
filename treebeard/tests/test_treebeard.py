@@ -21,10 +21,6 @@ from treebeard.forms import MoveNodeForm
 from treebeard.tests import models
 
 
-# ghetto app detection, there is probably some introspection method,
-# but meh, this works
-HAS_DJANGO_AUTH = 'django.contrib.auth' in settings.INSTALLED_APPS
-
 BASE_DATA = [
     {'data': {'desc': '1'}},
     {'data': {'desc': '2'}, 'children': [
@@ -1797,9 +1793,6 @@ class TestIssues(TestCase):
     # test for http://code.google.com/p/django-treebeard/issues/detail?id=14
 
     def test_many_to_many_django_user_anonymous(self):
-        if not HAS_DJANGO_AUTH:  # pragma: no cover
-            self.fail('this test needs django.contrib.auth in INSTALLED_APPS')
-
         # Using AnonymousUser() in the querysets will expose non-treebeard
         # related problems in Django 1.0
         #
