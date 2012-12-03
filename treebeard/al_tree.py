@@ -13,12 +13,11 @@ class AL_NodeManager(models.Manager):
 
     def get_query_set(self):
         """Sets the custom queryset as the default."""
-        qset = super(AL_NodeManager, self).get_query_set()
         if self.model.node_order_by:
             order_by = ['parent'] + list(self.model.node_order_by)
         else:
             order_by = ['parent', 'sib_order']
-        return qset.order_by(*order_by)
+        return super(AL_NodeManager, self).get_query_set().order_by(*order_by)
 
 
 class AL_Node(Node):
@@ -94,9 +93,8 @@ class AL_Node(Node):
         ancestors = []
         node = self.parent
         while node:
-            ancestors.append(node)
+            ancestors.insert(0, node)
             node = node.parent
-        ancestors.reverse()
         return ancestors
 
     def get_root(self):
@@ -179,15 +177,15 @@ class AL_Node(Node):
         return newobj
 
     @classmethod
-    def _get_tree_recur(cls, ret, parent, depth):
+    def _get_tree_recursively(cls, results, parent, depth):
         if parent:
-            qset = cls.objects.filter(parent=parent)
+            nodes = parent.get_children()
         else:
-            qset = cls.get_root_nodes()
-        for node in qset:
+            nodes = cls.get_root_nodes()
+        for node in nodes:
             node._cached_depth = depth
-            ret.append(node)
-            cls._get_tree_recur(ret, node, depth + 1)
+            results.append(node)
+            cls._get_tree_recursively(results, node, depth + 1)
 
     @classmethod
     def get_tree(cls, parent=None):
@@ -197,12 +195,12 @@ class AL_Node(Node):
         """
         if parent:
             depth = parent.get_depth() + 1
-            ret = [parent]
+            results = [parent]
         else:
             depth = 1
-            ret = []
-        cls._get_tree_recur(ret, parent, depth)
-        return ret
+            results = []
+        cls._get_tree_recursively(results, parent, depth)
+        return results
 
     def get_descendants(self):
         """
@@ -227,7 +225,7 @@ class AL_Node(Node):
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
 
-        pos = self._fix_add_sibling_opts(pos)
+        pos = self._prepare_pos_var_for_add_sibling(pos)
 
         stmts = []
 
@@ -235,8 +233,10 @@ class AL_Node(Node):
         newobj = self.__class__(**kwargs)
 
         if not self.node_order_by:
-            newobj.sib_order = self.__class__._move_add_sibling_aux(
-                pos, self, stmts)
+            newobj.sib_order = \
+                self.__class__._make_hole_between_siblings_for_node(pos,
+                                                                    self,
+                                                                    stmts)
 
         if self.parent_id:
             newobj.parent_id = self.parent_id
@@ -251,7 +251,7 @@ class AL_Node(Node):
         return newobj
 
     @classmethod
-    def _move_add_sibling_aux(cls, pos, target, stmts):
+    def _make_hole_between_siblings_for_node(cls, pos, target, stmts):
         """
         helper that makes a hole between siblings for a new node (only for not
         sorted trees)
@@ -302,7 +302,7 @@ class AL_Node(Node):
         relative to another node.
         """
 
-        pos = self._fix_move_opts(pos)
+        pos = self._prepare_pos_var_for_move(pos)
 
         stmts = []
         sib_order = None
@@ -346,9 +346,10 @@ class AL_Node(Node):
             if sib_order:
                 self.sib_order = sib_order
             else:
-                self.sib_order = self.__class__._move_add_sibling_aux(pos,
-                                                                      target,
-                                                                      stmts)
+                self.sib_order = \
+                    self.__class__._make_hole_between_siblings_for_node(pos,
+                                                                        target,
+                                                                        stmts)
             if parent:
                 self.parent = parent
             else:

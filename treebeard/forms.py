@@ -49,7 +49,6 @@ class MoveNodeForm(forms.ModelForm):
             opts.model = type(instance)
         self.is_sorted = (hasattr(opts.model, 'node_order_by') and
                           opts.model.node_order_by)
-        #self.is_sorted = (len(opts.model.node_order_by) > 0)
 
         if self.is_sorted:
             choices_sort_mode = self.__class__.__position_choices_sorted

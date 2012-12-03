@@ -50,19 +50,17 @@ def items_for_result(cl, result, form):
             result_repr = EMPTY_CHANGELIST_VALUE
         else:
             if f is None:
-                allow_tags = getattr(attr, 'allow_tags', False)
-                boolean = getattr(attr, 'boolean', False)
-                if boolean:
+                if getattr(attr, 'boolean', False):
                     allow_tags = True
                     result_repr = _boolean_icon(value)
                 else:
+                    allow_tags = getattr(attr, 'allow_tags', False)
                     result_repr = smart_str(value)
-                    # Strip HTML tags in the resulting text, except if the
-                # function has an "allow_tags" attribute set to True.
-                if not allow_tags:
-                    result_repr = escape(result_repr)
-                else:
+                if allow_tags:
                     result_repr = mark_safe(result_repr)
+                else:
+                    # strip HTML tags
+                    result_repr = escape(result_repr)
             else:
                 if isinstance(f.rel, models.ManyToOneRel):
                     result_repr = escape(getattr(result, f.name))
@@ -75,7 +73,7 @@ def items_for_result(cl, result, form):
                     row_class = ' class="nowrap"'
         if force_str(result_repr) == '':
             result_repr = mark_safe('&nbsp;')
-            # If list_display_links not defined, add the link tag to the
+        # If list_display_links not defined, add the link tag to the
         # first field
         if (
             (first and not cl.list_display_links) or
