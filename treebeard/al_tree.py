@@ -31,7 +31,6 @@ class AL_Node(Node):
         """Adds a root node to the tree."""
         newobj = cls(**kwargs)
         newobj._cached_depth = 1
-
         if not cls.node_order_by:
             try:
                 max = cls.objects.filter(parent__isnull=True).order_by(
@@ -39,8 +38,6 @@ class AL_Node(Node):
             except IndexError:
                 max = 0
             newobj.sib_order = max + 1
-
-        # saving the instance before returning it
         newobj.save()
         transaction.commit_unless_managed()
         return newobj
@@ -161,7 +158,6 @@ class AL_Node(Node):
             newobj._cached_depth = self._cached_depth + 1
         except AttributeError:
             pass
-
         if not self.__class__.node_order_by:
             try:
                 max = self.__class__.objects.filter(parent=self).reverse(
@@ -169,8 +165,6 @@ class AL_Node(Node):
             except IndexError:
                 max = 0
             newobj.sib_order = max + 1
-
-        # saving the instance before returning it
         newobj.parent = self
         newobj.save()
         transaction.commit_unless_managed()
@@ -224,76 +218,57 @@ class AL_Node(Node):
 
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
-
         pos = self._prepare_pos_var_for_add_sibling(pos)
-
-        stmts = []
-
-        # creating a new object
         newobj = self.__class__(**kwargs)
-
         if not self.node_order_by:
-            newobj.sib_order = \
-                self.__class__._make_hole_between_siblings_for_node(pos,
-                                                                    self,
-                                                                    stmts)
-
-        if self.parent_id:
-            newobj.parent_id = self.parent_id
-
-        cursor = self._get_database_cursor('write')
-        for sql, vals in stmts:
-            cursor.execute(sql, vals)
-
-        # saving the instance before returning it
+            newobj.sib_order = self.__class__._get_new_sibling_order(pos,
+                                                                     self)
+        newobj.parent_id = self.parent_id
         newobj.save()
         transaction.commit_unless_managed()
         return newobj
 
     @classmethod
-    def _make_hole_between_siblings_for_node(cls, pos, target, stmts):
-        """
-        helper that makes a hole between siblings for a new node (only for not
-        sorted trees)
-        """
+    def _is_target_pos_the_last_sibling(cls, pos, target):
+        return pos == 'last-sibling' or (
+            pos == 'right' and target == target.get_last_sibling())
 
-        sib_order = target.sib_order
-        if (
-                pos == 'last-sibling' or
-                (pos == 'right' and target == target.get_last_sibling())
-        ):
-            sib_order = target.get_last_sibling().sib_order + 1
+    @classmethod
+    def _make_hole_in_db(cls, min, target_node):
+        qset = cls.objects.filter(sib_order__gte=min)
+        if target_node.is_root():
+            qset = qset.filter(parent__isnull=True)
         else:
-            siblings = target.get_siblings()
-            siblings = {
-                'left': siblings.filter(sib_order__gte=target.sib_order),
-                'right': siblings.filter(sib_order__gt=target.sib_order),
-                'first-sibling': siblings
-            }[pos]
-            sib_order = {
-                'left': sib_order,
-                'right': sib_order + 1,
-                'first-sibling': 1
-            }[pos]
-            try:
-                min = siblings.order_by('sib_order')[0].sib_order
-            except IndexError:
-                min = 0
-            if min:
-                sql = (
-                    'UPDATE %(table)s'
-                    ' SET sib_order=sib_order+1'
-                    ' WHERE sib_order >= %%s'
-                    ' AND '
-                ) % {'table': connection.ops.quote_name(cls._meta.db_table)}
+            qset = qset.filter(parent=target_node.parent)
+        qset.update(sib_order=models.F('sib_order')+1)
 
-                params = [min]
-                if target.is_root():
-                    sql += 'parent_id IS NULL'
-                else:
-                    sql += 'parent_id=%s'
-                    params.append(target.parent_id)
-                stmts.append((sql, params))
+    @classmethod
+    def _make_hole_and_get_sibling_order(cls, pos, target_node):
+        siblings = target_node.get_siblings()
+        siblings = {
+            'left': siblings.filter(sib_order__gte=target_node.sib_order),
+            'right': siblings.filter(sib_order__gt=target_node.sib_order),
+            'first-sibling': siblings
+        }[pos]
+        sib_order = {
+            'left': target_node.sib_order,
+            'right': target_node.sib_order + 1,
+            'first-sibling': 1
+        }[pos]
+        try:
+            min = siblings.order_by('sib_order')[0].sib_order
+        except IndexError:
+            min = 0
+        if min:
+            cls._make_hole_in_db(min, target_node)
+        return sib_order
+
+    @classmethod
+    def _get_new_sibling_order(cls, pos, target_node):
+        if cls._is_target_pos_the_last_sibling(pos, target_node):
+            sib_order = target_node.get_last_sibling().sib_order + 1
+        else:
+            sib_order = cls._make_hole_and_get_sibling_order(pos, target_node)
         return sib_order
 
     def move(self, target, pos=None):
@@ -304,7 +279,6 @@ class AL_Node(Node):
 
         pos = self._prepare_pos_var_for_move(pos)
 
-        stmts = []
         sib_order = None
         parent = None
 
@@ -337,7 +311,6 @@ class AL_Node(Node):
             return
 
         if pos == 'sorted-sibling':
-            # easy, just change the parent
             if parent:
                 self.parent = parent
             else:
@@ -346,19 +319,12 @@ class AL_Node(Node):
             if sib_order:
                 self.sib_order = sib_order
             else:
-                self.sib_order = \
-                    self.__class__._make_hole_between_siblings_for_node(pos,
-                                                                        target,
-                                                                        stmts)
+                self.sib_order = self.__class__._get_new_sibling_order(pos,
+                                                                       target)
             if parent:
                 self.parent = parent
             else:
                 self.parent = target.parent
-
-        if stmts:
-            cursor = self._get_database_cursor('write')
-            for sql, vals in stmts:
-                cursor.execute(sql, vals)
 
         self.save()
         transaction.commit_unless_managed()
