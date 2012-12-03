@@ -553,7 +553,7 @@ class MP_Node(Node):
            node's new position
         """
 
-        pos = self._fix_add_sibling_opts(pos)
+        pos = self._prepare_pos_var_for_add_sibling(pos)
 
         # creating a new object
         newobj = self.__class__(**kwargs)
@@ -595,6 +595,10 @@ class MP_Node(Node):
         """:returns: the root node for the current node object."""
         return self.__class__.objects.get(path=self.path[0:self.steplen])
 
+    def is_leaf(self):
+        """:returns: True if the node is a leaf node (else, returns False)"""
+        return self.numchild == 0
+
     def get_ancestors(self):
         """
         :returns: A queryset containing the current node object's ancestors,
@@ -632,7 +636,7 @@ class MP_Node(Node):
            node's new position
         """
 
-        pos = self._fix_move_opts(pos)
+        pos = self._prepare_pos_var_for_move(pos)
 
         oldpath = self.path
 

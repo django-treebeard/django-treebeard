@@ -180,9 +180,6 @@ class Node(models.Model):
             A `list` (**NOT** a Queryset) of node objects with an extra
             attribute: `descendants_count`.
         """
-
-        # this is the slowest possible implementation, subclasses should do
-        # better
         if parent is None:
             qset = cls.get_root_nodes()
         else:
@@ -211,9 +208,6 @@ class Node(models.Model):
 
     def get_children_count(self):
         """:returns: The number of the node's children"""
-
-        # this is the last resort, subclasses of Node should implement this in
-        # a efficient way.
         return self.get_children().count()
 
     def get_descendants(self):
@@ -276,7 +270,6 @@ class Node(models.Model):
             The previous node's sibling, or None if it was the leftmost
             sibling.
         """
-
         siblings = self.get_siblings()
         ids = [obj.pk for obj in siblings]
         if self.pk in ids:
@@ -307,7 +300,7 @@ class Node(models.Model):
 
             The node that will be checked as a sibling
         """
-        return len(self.get_siblings().filter(pk__in=[node.pk])) > 0
+        return self.get_siblings().filter(pk=node.pk).exists()
 
     def is_child_of(self, node):
         """
@@ -318,7 +311,7 @@ class Node(models.Model):
 
             The node that will be checked as a parent
         """
-        return len(node.get_children().filter(pk__in=[self.pk])) > 0
+        return node.get_children().filter(pk=self.pk).exists()
 
     def is_descendant_of(self, node):  # pragma: no cover
         """
@@ -387,11 +380,11 @@ class Node(models.Model):
 
     def is_root(self):
         """:returns: True if the node is a root node (else, returns False)"""
-        return self.get_root() == self
+        return self.get_root().pk == self.pk
 
     def is_leaf(self):
         """:returns: True if the node is a leaf node (else, returns False)"""
-        return self.get_children_count() == 0
+        return not self.get_children().exists()
 
     def get_ancestors(self):  # pragma: no cover
         """
@@ -468,46 +461,46 @@ class Node(models.Model):
         """Removes a node and all it's descendants."""
         self.__class__.objects.filter(id=self.pk).delete()
 
-    def _fix_add_sibling_opts(self, pos):
-        """prepare the pos variable for the add_sibling method"""
+
+    def _prepare_pos_var(self, pos, method_name, valid_pos,
+                                valid_sorted_pos):
         if pos is None:
             if self.node_order_by:
                 pos = 'sorted-sibling'
             else:
                 pos = 'last-sibling'
-        if pos not in ('first-sibling', 'left', 'right', 'last-sibling',
-                       'sorted-sibling'):
+        if pos not in valid_pos:
             raise InvalidPosition('Invalid relative position: %s' % (pos, ))
-        if self.node_order_by and pos != 'sorted-sibling':
-            raise InvalidPosition('Must use %s in add_sibling when'
-                                  ' node_order_by is enabled' % (
-                                      'sorted-sibling', ))
-        if pos == 'sorted-sibling' and not self.node_order_by:
+        if self.node_order_by and pos not in valid_sorted_pos:
+            raise InvalidPosition(
+                'Must use %s in %s when node_order_by is enabled' % (
+                    ' or '.join(valid_sorted_pos), method_name))
+        if pos in valid_sorted_pos and not self.node_order_by:
             raise MissingNodeOrderBy('Missing node_order_by attribute.')
         return pos
 
-    def _fix_move_opts(self, pos):
-        """prepare the pos var for the move method"""
-        if pos is None:
-            if self.node_order_by:
-                pos = 'sorted-sibling'
-            else:
-                pos = 'last-sibling'
-        if pos not in ('first-sibling', 'left', 'right', 'last-sibling',
-                       'sorted-sibling', 'first-child', 'last-child',
-                       'sorted-child'):
-            raise InvalidPosition('Invalid relative position: %s' % (pos, ))
-        if self.node_order_by and pos not in ('sorted-child',
-                                              'sorted-sibling'):
-            raise InvalidPosition('Must use %s or %s in add_sibling when'
-                                  ' node_order_by is enabled' % (
-                                      'sorted-sibling', 'sorted-child'))
-        if (
-                pos in ('sorted-child', 'sorted-sibling') and
-                not self.node_order_by
-        ):
-            raise MissingNodeOrderBy('Missing node_order_by attribute.')
-        return pos
+    _valid_pos_for_add_sibling = ('first-sibling', 'left', 'right',
+                                  'last-sibling', 'sorted-sibling')
+    _valid_pos_for_sorted_add_sibling = ('sorted-sibling',)
+
+    def _prepare_pos_var_for_add_sibling(self, pos):
+        return self._prepare_pos_var(
+            pos,
+            'add_sibling',
+            self._valid_pos_for_add_sibling,
+            self._valid_pos_for_sorted_add_sibling)
+
+    _valid_pos_for_move = _valid_pos_for_add_sibling + (
+        'first-child', 'last-child', 'sorted-child')
+    _valid_pos_for_sorted_move = _valid_pos_for_sorted_add_sibling + (
+        'sorted-child',)
+
+    def _prepare_pos_var_for_move(self, pos):
+        return self._prepare_pos_var(
+            pos,
+            'move',
+            self._valid_pos_for_move,
+            self._valid_pos_for_sorted_move)
 
     def get_sorted_pos_queryset(self, siblings, newobj):
         """
@@ -545,27 +538,18 @@ class Node(models.Model):
 
         result, info = [], {}
         start_depth, prev_depth = (None, None)
-
         for node in cls.get_tree(parent):
             depth = node.get_depth()
-
             if start_depth is None:
                 start_depth = depth
-
             open = (depth and (prev_depth is None or depth > prev_depth))
-
             if prev_depth is not None and depth < prev_depth:
                 info['close'] = list(range(0, prev_depth - depth))
-
             info = {'open': open, 'close': [], 'level': depth - start_depth}
-
             result.append((node, info,))
-
             prev_depth = depth
-
         if start_depth and start_depth > 0:
             info['close'] = list(range(0, prev_depth - start_depth + 1))
-
         return result
 
     @classmethod

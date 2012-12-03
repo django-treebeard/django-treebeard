@@ -198,7 +198,7 @@ class NS_Node(Node):
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
 
-        pos = self._fix_add_sibling_opts(pos)
+        pos = self._prepare_pos_var_for_add_sibling(pos)
 
         # creating a new object
         newobj = self.__class__(**kwargs)
@@ -296,7 +296,7 @@ class NS_Node(Node):
         relative to another node.
         """
 
-        pos = self._fix_move_opts(pos)
+        pos = self._prepare_pos_var_for_move(pos)
         cls = self.__class__
 
         parent = None
@@ -608,7 +608,7 @@ class NS_Node(Node):
                 return self._cached_parent_obj
         except AttributeError:
             pass
-            # parent = our most direct ancestor
+        # parent = our most direct ancestor
         self._cached_parent_obj = self.get_ancestors().reverse()[0]
         return self._cached_parent_obj
 
