@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.conf import settings
 
 from treebeard.mp_tree import MP_Node
 from treebeard.al_tree import AL_Node
@@ -161,12 +160,17 @@ class MP_TestSortedNodeShortPath(MP_Node):
 
 MP_TestSortedNodeShortPath._meta.get_field('path').max_length = 4
 
-class MP_TestIssue14(MP_Node):
+
+class MP_TestManyToManyWithUser(MP_Node):
     name = models.CharField(max_length=255)
     users = models.ManyToManyField(User)
 
+
 BASE_MODELS = AL_TestNode, MP_TestNode, NS_TestNode
+PROXY_MODELS = AL_TestNode_Proxy, MP_TestNode_Proxy, NS_TestNode_Proxy
+SORTED_MODELS = AL_TestNodeSorted, MP_TestNodeSorted, NS_TestNodeSorted
 DEP_MODELS = AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep
+MP_SHORTPATH_MODELS = MP_TestNodeShortPath, MP_TestSortedNodeShortPath
 
 
 def empty_base_tables():
