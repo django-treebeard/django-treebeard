@@ -100,18 +100,19 @@ def _load_test_methods(cls, proxy=True):
 
 
 class TestTreeBase(TestCase):
-    def setUp(self):
-        self.set_MP()
-        self.unchanged = [('1', 1, 0),
-                          ('2', 1, 4),
-                          ('21', 2, 0),
-                          ('22', 2, 0),
-                          ('23', 2, 1),
-                          ('231', 3, 0),
-                          ('24', 2, 0),
-                          ('3', 1, 0),
-                          ('4', 1, 1),
-                          ('41', 2, 0)]
+
+    @classmethod
+    def setUpClass(cls):
+        cls.unchanged = [('1', 1, 0),
+                         ('2', 1, 4),
+                         ('21', 2, 0),
+                         ('22', 2, 0),
+                         ('23', 2, 1),
+                         ('231', 3, 0),
+                         ('24', 2, 0),
+                         ('3', 1, 0),
+                         ('4', 1, 1),
+                         ('41', 2, 0)]
 
     def set_MP(self, proxy=False):
         if proxy:
@@ -163,6 +164,7 @@ class TestTreeBase(TestCase):
 
 
 class TestEmptyTree(TestTreeBase):
+
     def _multi_load_bulk_empty(self):
         ids = self.model.load_bulk(BASE_DATA)
         got_descs = [obj.desc
@@ -202,20 +204,22 @@ class TestEmptyTree(TestTreeBase):
 
 
 class TestNonEmptyTree(TestTreeBase):
-    def setUp(self):
-        super(TestNonEmptyTree, self).setUp()
-        models.MP_TestNode.load_bulk(BASE_DATA)
-        models.AL_TestNode.load_bulk(BASE_DATA)
-        models.NS_TestNode.load_bulk(BASE_DATA)
+
+    @classmethod
+    def setUpClass(cls):
+        TestTreeBase.setUpClass()
+        for model in models.BASE_MODELS:
+            model.load_bulk(BASE_DATA)
+
+    @classmethod
+    def tearDownClass(cls):
+        models.empty_base_tables()
 
 
 class TestClassMethods(TestNonEmptyTree):
-    def setUp(self):
-        super(TestClassMethods, self).setUp()
 
     def _multi_load_bulk_existing(self):
         # inserting on an existing node
-
         node = self.model.objects.get(desc='231')
         ids = self.model.load_bulk(BASE_DATA, node)
         expected = [('1', 1, 0),
@@ -842,10 +846,18 @@ class TestAddSibling(TestNonEmptyTree):
 
 
 class TestDelete(TestNonEmptyTree):
-    def setUp(self):
-        super(TestDelete, self).setUp()
-        for node in self.model.objects.all():
-            self.dep_model(node=node).save()
+
+    @classmethod
+    def setUpClass(cls):
+        TestNonEmptyTree.setUpClass()
+        for model, dep_model in zip(models.BASE_MODELS, models.DEP_MODELS):
+            for node in model.objects.all():
+                dep_model(node=node).save()
+
+    @classmethod
+    def tearDownClass(cls):
+        models.empty_deps_tables()
+        TestNonEmptyTree.tearDownClass()
 
     def _multi_delete_leaf(self):
         self.model.objects.get(desc='231').delete()
@@ -939,7 +951,8 @@ class TestMoveErrors(TestNonEmptyTree):
                           'sorted-sibling')
 
 
-class TestMoveSortedErrors(TestNonEmptyTree):
+class TestMoveSortedErrors(TestTreeBase):
+
     def _multi_nonsorted_move_in_sorted(self):
         node = self.sorted_model.add_root(val1=3, val2=3, desc='zxy')
         self.assertRaises(InvalidPosition, node.move, node, 'left')
@@ -1384,6 +1397,7 @@ class TestMoveBranch(TestNonEmptyTree):
 
 
 class TestTreeSorted(TestTreeBase):
+
     def got(self):
         return [(o.val1, o.val2, o.desc, o.get_depth(), o.get_children_count())
                 for o in self.sorted_model.get_tree()]
@@ -1548,13 +1562,19 @@ class TestMP_TreeAlphabet(TestCase):
 
 
 class TestHelpers(TestTreeBase):
-    def setUp(self):
-        treemodels = models.MP_TestNode, models.AL_TestNode, models.NS_TestNode
-        for model in treemodels:
+
+    @classmethod
+    def setUpClass(cls):
+        TestTreeBase.setUpClass()
+        for model in models.BASE_MODELS:
             model.load_bulk(BASE_DATA)
             for node in model.get_root_nodes():
                 model.load_bulk(BASE_DATA, node)
             model.add_root(desc='5')
+
+    @classmethod
+    def tearDownClass(cls):
+        models.empty_base_tables()
 
     def _multi_descendants_group_count_root(self):
         expected = [(o.desc, o.get_descendant_count())
@@ -1685,9 +1705,11 @@ class TestMP_TreeFindProblems(TestTreeBase):
 
 
 class TestMP_TreeFix(TestTreeBase):
-    def setUp(self):
-        super(TestMP_TreeFix, self).setUp()
-        self.expected_no_holes = {
+
+    @classmethod
+    def setUpClass(cls):
+        TestTreeBase.setUpClass()
+        cls.expected_no_holes = {
             models.MP_TestNodeShortPath: [
                 ('1', 'b', 1, 2),
                 ('11', 'u', 2, 1),
@@ -1718,7 +1740,7 @@ class TestMP_TreeFix(TestTreeBase):
                 ('2211', 'e', 4, 0),
                 ('3', 'd', 1, 0),
                 ('4', 'g', 1, 0)]}
-        self.expected_with_holes = {
+        cls.expected_with_holes = {
             models.MP_TestNodeShortPath: [
                 ('1', 'b', 1, 2),
                 ('13', 'u', 2, 1),

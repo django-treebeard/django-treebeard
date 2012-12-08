@@ -164,3 +164,16 @@ MP_TestSortedNodeShortPath._meta.get_field('path').max_length = 4
 class MP_TestIssue14(MP_Node):
     name = models.CharField(max_length=255)
     users = models.ManyToManyField(User)
+
+BASE_MODELS = AL_TestNode, MP_TestNode, NS_TestNode
+DEP_MODELS = AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep
+
+
+def empty_base_tables():
+    for model in BASE_MODELS:
+        model.objects.all().delete()
+
+
+def empty_deps_tables():
+    for model in DEP_MODELS:
+        model.objects.all().delete()
