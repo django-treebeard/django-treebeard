@@ -1632,32 +1632,31 @@ class TestMP_TreeShortPath(TestTreeBase):
 
 class TestMP_TreeFindProblems(TestTreeBase):
     def test_find_problems(self, mpalphabet_model):
-        model = mpalphabet_model
-        model.alphabet = '01234'
-        model(path='01', depth=1, numchild=0, numval=0).save()
-        model(path='1', depth=1, numchild=0, numval=0).save()
-        model(path='111', depth=1, numchild=0, numval=0).save()
-        model(path='abcd', depth=1, numchild=0, numval=0).save()
-        model(path='qa#$%!', depth=1, numchild=0, numval=0).save()
-        model(path='0201', depth=2, numchild=0, numval=0).save()
-        model(path='020201', depth=3, numchild=0, numval=0).save()
-        model(path='03', depth=1, numchild=2, numval=0).save()
-        model(path='0301', depth=2, numchild=0, numval=0).save()
-        model(path='030102', depth=3, numchild=10, numval=0).save()
-        model(path='04', depth=10, numchild=1, numval=0).save()
-        model(path='0401', depth=20, numchild=0, numval=0).save()
+        mpalphabet_model.alphabet = '01234'
+        mpalphabet_model(path='01', depth=1, numchild=0, numval=0).save()
+        mpalphabet_model(path='1', depth=1, numchild=0, numval=0).save()
+        mpalphabet_model(path='111', depth=1, numchild=0, numval=0).save()
+        mpalphabet_model(path='abcd', depth=1, numchild=0, numval=0).save()
+        mpalphabet_model(path='qa#$%!', depth=1, numchild=0, numval=0).save()
+        mpalphabet_model(path='0201', depth=2, numchild=0, numval=0).save()
+        mpalphabet_model(path='020201', depth=3, numchild=0, numval=0).save()
+        mpalphabet_model(path='03', depth=1, numchild=2, numval=0).save()
+        mpalphabet_model(path='0301', depth=2, numchild=0, numval=0).save()
+        mpalphabet_model(path='030102', depth=3, numchild=10, numval=0).save()
+        mpalphabet_model(path='04', depth=10, numchild=1, numval=0).save()
+        mpalphabet_model(path='0401', depth=20, numchild=0, numval=0).save()
 
         (evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild) = (
-            model.find_problems())
-        got = [o.path for o in model.objects.filter(id__in=evil_chars)]
+            mpalphabet_model.find_problems())
+        got = [o.path for o in mpalphabet_model.objects.filter(id__in=evil_chars)]
         assert ['abcd', 'qa#$%!'] == got
-        got = [o.path for o in model.objects.filter(id__in=bad_steplen)]
+        got = [o.path for o in mpalphabet_model.objects.filter(id__in=bad_steplen)]
         assert ['1', '111'] == got
-        got = [o.path for o in model.objects.filter(id__in=orphans)]
+        got = [o.path for o in mpalphabet_model.objects.filter(id__in=orphans)]
         assert ['0201', '020201'] == got
-        got = [o.path for o in model.objects.filter(id__in=wrong_numchild)]
+        got = [o.path for o in mpalphabet_model.objects.filter(id__in=wrong_numchild)]
         assert ['03', '0301', '030102'] == got
-        got = [o.path for o in model.objects.filter(id__in=wrong_depth)]
+        got = [o.path for o in mpalphabet_model.objects.filter(id__in=wrong_depth)]
         assert ['04', '0401'] == got
 
 
