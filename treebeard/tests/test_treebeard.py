@@ -867,8 +867,7 @@ class TestDelete(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_delete_filter_children(self, model):
-        model.objects.filter(
-            desc__in=('2', '23', '231')).delete()
+        model.objects.filter(desc__in=('2', '23', '231')).delete()
         expected = [('1', 1, 0),
                     ('3', 1, 0),
                     ('4', 1, 1),
@@ -880,8 +879,7 @@ class TestDelete(TestNonEmptyTree):
         assert self.got(model) == UNCHANGED
 
     def test_delete_same_node_twice(self, model):
-        model.objects.filter(
-            desc__in=('2', '2')).delete()
+        model.objects.filter(desc__in=('2', '2')).delete()
         expected = [('1', 1, 0),
                     ('3', 1, 0),
                     ('4', 1, 1),
@@ -1670,70 +1668,68 @@ class TestMP_TreeFindProblems(TestTreeBase):
 
 class TestMP_TreeFix(TestTreeBase):
 
-    @classmethod
-    def setup_class(cls):
-        cls.expected_no_holes = {
-            models.MP_TestNodeShortPath: [
-                ('1', 'b', 1, 2),
-                ('11', 'u', 2, 1),
-                ('111', 'i', 3, 1),
-                ('1111', 'e', 4, 0),
-                ('12', 'o', 2, 0),
-                ('2', 'd', 1, 0),
-                ('3', 'g', 1, 0),
-                ('4', 'a', 1, 4),
-                ('41', 'a', 2, 0),
-                ('42', 'a', 2, 0),
-                ('43', 'u', 2, 1),
-                ('431', 'i', 3, 1),
-                ('4311', 'e', 4, 0),
-                ('44', 'o', 2, 0)],
-            models.MP_TestSortedNodeShortPath: [
-                ('1', 'a', 1, 4),
-                ('11', 'a', 2, 0),
-                ('12', 'a', 2, 0),
-                ('13', 'o', 2, 0),
-                ('14', 'u', 2, 1),
-                ('141', 'i', 3, 1),
-                ('1411', 'e', 4, 0),
-                ('2', 'b', 1, 2),
-                ('21', 'o', 2, 0),
-                ('22', 'u', 2, 1),
-                ('221', 'i', 3, 1),
-                ('2211', 'e', 4, 0),
-                ('3', 'd', 1, 0),
-                ('4', 'g', 1, 0)]}
-        cls.expected_with_holes = {
-            models.MP_TestNodeShortPath: [
-                ('1', 'b', 1, 2),
-                ('13', 'u', 2, 1),
-                ('134', 'i', 3, 1),
-                ('1343', 'e', 4, 0),
-                ('14', 'o', 2, 0),
-                ('2', 'd', 1, 0),
-                ('3', 'g', 1, 0),
-                ('4', 'a', 1, 4),
-                ('41', 'a', 2, 0),
-                ('42', 'a', 2, 0),
-                ('43', 'u', 2, 1),
-                ('434', 'i', 3, 1),
-                ('4343', 'e', 4, 0),
-                ('44', 'o', 2, 0)],
-            models.MP_TestSortedNodeShortPath: [
-                ('1', 'b', 1, 2),
-                ('13', 'u', 2, 1),
-                ('134', 'i', 3, 1),
-                ('1343', 'e', 4, 0),
-                ('14', 'o', 2, 0),
-                ('2', 'd', 1, 0),
-                ('3', 'g', 1, 0),
-                ('4', 'a', 1, 4),
-                ('41', 'a', 2, 0),
-                ('42', 'a', 2, 0),
-                ('43', 'u', 2, 1),
-                ('434', 'i', 3, 1),
-                ('4343', 'e', 4, 0),
-                ('44', 'o', 2, 0)]}
+    expected_no_holes = {
+        models.MP_TestNodeShortPath: [
+            ('1', 'b', 1, 2),
+            ('11', 'u', 2, 1),
+            ('111', 'i', 3, 1),
+            ('1111', 'e', 4, 0),
+            ('12', 'o', 2, 0),
+            ('2', 'd', 1, 0),
+            ('3', 'g', 1, 0),
+            ('4', 'a', 1, 4),
+            ('41', 'a', 2, 0),
+            ('42', 'a', 2, 0),
+            ('43', 'u', 2, 1),
+            ('431', 'i', 3, 1),
+            ('4311', 'e', 4, 0),
+            ('44', 'o', 2, 0)],
+        models.MP_TestSortedNodeShortPath: [
+            ('1', 'a', 1, 4),
+            ('11', 'a', 2, 0),
+            ('12', 'a', 2, 0),
+            ('13', 'o', 2, 0),
+            ('14', 'u', 2, 1),
+            ('141', 'i', 3, 1),
+            ('1411', 'e', 4, 0),
+            ('2', 'b', 1, 2),
+            ('21', 'o', 2, 0),
+            ('22', 'u', 2, 1),
+            ('221', 'i', 3, 1),
+            ('2211', 'e', 4, 0),
+            ('3', 'd', 1, 0),
+            ('4', 'g', 1, 0)]}
+    expected_with_holes = {
+        models.MP_TestNodeShortPath: [
+            ('1', 'b', 1, 2),
+            ('13', 'u', 2, 1),
+            ('134', 'i', 3, 1),
+            ('1343', 'e', 4, 0),
+            ('14', 'o', 2, 0),
+            ('2', 'd', 1, 0),
+            ('3', 'g', 1, 0),
+            ('4', 'a', 1, 4),
+            ('41', 'a', 2, 0),
+            ('42', 'a', 2, 0),
+            ('43', 'u', 2, 1),
+            ('434', 'i', 3, 1),
+            ('4343', 'e', 4, 0),
+            ('44', 'o', 2, 0)],
+        models.MP_TestSortedNodeShortPath: [
+            ('1', 'b', 1, 2),
+            ('13', 'u', 2, 1),
+            ('134', 'i', 3, 1),
+            ('1343', 'e', 4, 0),
+            ('14', 'o', 2, 0),
+            ('2', 'd', 1, 0),
+            ('3', 'g', 1, 0),
+            ('4', 'a', 1, 4),
+            ('41', 'a', 2, 0),
+            ('42', 'a', 2, 0),
+            ('43', 'u', 2, 1),
+            ('434', 'i', 3, 1),
+            ('4343', 'e', 4, 0),
+            ('44', 'o', 2, 0)]}
 
     def got(self, model):
         return [(o.path, o.desc, o.get_depth(), o.get_children_count())
@@ -1795,6 +1791,11 @@ class TestIssues(TestTreeBase):
         def qs_check(qs, expected):
             assert [o.name for o in qs] == expected
 
+        def qs_check_first_or_user(expected, root, user):
+            qs_check(
+                root.get_children().filter(Q(name="first") | Q(users=user)),
+                expected)
+
         user = User.objects.create_user('test_user', 'test@example.com',
                                         'testpasswd')
         user.save()
@@ -1806,26 +1807,16 @@ class TestIssues(TestTreeBase):
         qs_check(root.get_children(), ['first', 'second'])
         qs_check(root.get_children().filter(Q(name="first")), ['first'])
         qs_check(root.get_children().filter(Q(users=user)), [])
-        qs_check(
-            root.get_children().filter(Q(name="first") | Q(users=user)),
-            ['first'])
 
-        user = anonuserobj
-        qs_check(
-            root.get_children().filter(Q(name="first") | Q(users=user)),
-            ['first', 'second'])
+        qs_check_first_or_user(['first'], root, user)
+
+        qs_check_first_or_user(['first', 'second'], root, anonuserobj)
 
         user = User.objects.get(username="test_user")
         second.users.add(user)
+        qs_check_first_or_user(['first', 'second'], root, user)
 
-        qs_check(
-            root.get_children().filter(Q(name="first") | Q(users=user)),
-            ['first', 'second'])
-
-        user = anonuserobj
-        qs_check(
-            root.get_children().filter(Q(name="first") | Q(users=user)),
-            ['first'])
+        qs_check_first_or_user(['first'], root, anonuserobj)
 
 
 class TestModelAdmin(ModelAdmin):
@@ -1834,16 +1825,8 @@ class TestModelAdmin(ModelAdmin):
 
 class TestMoveNodeForm(TestTreeBase):
     def _get_nodes_list(self, nodes):
-        res = []
-        for pk, depth in nodes:
-            res.append((
-                pk,
-                '%sNode %d' % (
-                    '&nbsp;&nbsp;&nbsp;&nbsp;' * (depth - 1),
-                    pk
-                )
-            ))
-        return res
+        return [(pk, '%sNode %d' % ('&nbsp;' * 4 * (depth - 1), pk))
+                for pk, depth in nodes]
 
     def _assert_nodes_in_choices(self, form, nodes):
         choices = form.fields['_ref_node_id'].choices
@@ -1859,10 +1842,7 @@ class TestMoveNodeForm(TestTreeBase):
         self._assert_nodes_in_choices(form, nodes)
 
     def _get_node_ids_and_depths(self, nodes):
-        return [
-            (node.id, node.get_depth())
-            for node in nodes
-        ]
+        return [(node.id, node.get_depth()) for node in nodes]
 
     def test_form_root_node(self, model):
         model.load_bulk(BASE_DATA)
