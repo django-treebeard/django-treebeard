@@ -4,6 +4,7 @@ from __future__ import with_statement
 import os
 import sys
 
+from django import VERSION as DJANGO_VERSION
 from django.contrib.admin.options import ModelAdmin
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
@@ -55,6 +56,14 @@ def _prepare_db_test(request):
 @pytest.fixture(scope='function',
                 params=models.BASE_MODELS + models.PROXY_MODELS)
 def model(request):
+    test_model = request.param
+    if (
+        test_model in models.PROXY_MODELS and
+        DJANGO_VERSION[:2] == (1, 3) and
+        request.cls == TestDelete and
+        test_model.get_database_vendor('write') == 'mysql'
+    ):
+        pytest.xfail("https://bitbucket.org/tabo/django-treebeard/issue/44")
     return _prepare_db_test(request)
 
 
@@ -173,7 +182,7 @@ class TestNonEmptyTree(TestTreeBase):
 
     @classmethod
     def teardown_class(cls):
-        models.empty_base_tables()
+        models.empty_models_tables(models.BASE_MODELS)
 
 
 class TestClassMethods(TestNonEmptyTree):
@@ -815,8 +824,7 @@ class TestDelete(TestNonEmptyTree):
 
     @classmethod
     def teardown_class(cls):
-        models.empty_deps_tables()
-        TestNonEmptyTree.teardown_class()
+        models.empty_models_tables(models.DEP_MODELS + models.BASE_MODELS)
 
     def test_delete_leaf(self, model):
         model.objects.get(desc='231').delete()
@@ -1534,7 +1542,7 @@ class TestHelpers(TestTreeBase):
 
     @classmethod
     def teardown_class(cls):
-        models.empty_base_tables()
+        models.empty_models_tables(models.BASE_MODELS)
 
     def test_descendants_group_count_root(self, model):
         expected = [(o.desc, o.get_descendant_count())

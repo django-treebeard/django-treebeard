@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, connection
 from django.contrib.auth.models import User
 
 from treebeard.mp_tree import MP_Node
@@ -173,11 +173,6 @@ DEP_MODELS = AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep
 MP_SHORTPATH_MODELS = MP_TestNodeShortPath, MP_TestSortedNodeShortPath
 
 
-def empty_base_tables():
-    for model in BASE_MODELS:
-        model.objects.all().delete()
-
-
-def empty_deps_tables():
-    for model in DEP_MODELS:
+def empty_models_tables(models):
+    for model in models:
         model.objects.all().delete()
