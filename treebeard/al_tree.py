@@ -240,7 +240,7 @@ class AL_Node(Node):
             qset = qset.filter(parent__isnull=True)
         else:
             qset = qset.filter(parent=target_node.parent)
-        qset.update(sib_order=models.F('sib_order')+1)
+        qset.update(sib_order=models.F('sib_order') + 1)
 
     @classmethod
     def _make_hole_and_get_sibling_order(cls, pos, target_node):
