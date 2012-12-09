@@ -1,6 +1,7 @@
 """Unit/Functional tests"""
 
 from __future__ import with_statement
+import datetime
 import os
 import sys
 
@@ -213,8 +214,7 @@ class TestClassMethods(TestNonEmptyTree):
                     ('41', 2, 0)]
         expected_descs = ['1', '2', '21', '22', '23', '231', '24',
                           '3', '4', '41']
-        got_descs = [obj.desc
-                     for obj in model.objects.filter(id__in=ids)]
+        got_descs = [obj.desc for obj in model.objects.filter(id__in=ids)]
         assert sorted(got_descs) == sorted(expected_descs)
         assert self.got(model) == expected
 
@@ -927,8 +927,8 @@ class TestMoveSortedErrors(TestTreeBase):
 
 class TestMoveLeafRoot(TestNonEmptyTree):
     def test_move_leaf_last_sibling_root(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='2'), 'last-sibling')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='231').move(target, 'last-sibling')
         expected = [('1', 1, 0),
                     ('2', 1, 4),
                     ('21', 2, 0),
@@ -942,8 +942,8 @@ class TestMoveLeafRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_first_sibling_root(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='2'), 'first-sibling')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='231').move(target, 'first-sibling')
         expected = [('231', 1, 0),
                     ('1', 1, 0),
                     ('2', 1, 4),
@@ -957,8 +957,8 @@ class TestMoveLeafRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_left_sibling_root(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='2'), 'left')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='231').move(target, 'left')
         expected = [('1', 1, 0),
                     ('231', 1, 0),
                     ('2', 1, 4),
@@ -972,8 +972,8 @@ class TestMoveLeafRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_right_sibling_root(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='2'), 'right')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='231').move(target, 'right')
         expected = [('1', 1, 0),
                     ('2', 1, 4),
                     ('21', 2, 0),
@@ -987,8 +987,8 @@ class TestMoveLeafRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_last_child_root(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='2'), 'last-child')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='231').move(target, 'last-child')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('21', 2, 0),
@@ -1002,8 +1002,8 @@ class TestMoveLeafRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_first_child_root(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='2'), 'first-child')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='231').move(target, 'first-child')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('231', 2, 0),
@@ -1019,8 +1019,8 @@ class TestMoveLeafRoot(TestNonEmptyTree):
 
 class TestMoveLeaf(TestNonEmptyTree):
     def test_move_leaf_last_sibling(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='22'), 'last-sibling')
+        target = model.objects.get(desc='22')
+        model.objects.get(desc='231').move(target, 'last-sibling')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('21', 2, 0),
@@ -1034,8 +1034,8 @@ class TestMoveLeaf(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_first_sibling(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='22'), 'first-sibling')
+        target = model.objects.get(desc='22')
+        model.objects.get(desc='231').move(target, 'first-sibling')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('231', 2, 0),
@@ -1049,8 +1049,8 @@ class TestMoveLeaf(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_left_sibling(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='22'), 'left')
+        target = model.objects.get(desc='22')
+        model.objects.get(desc='231').move(target, 'left')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('21', 2, 0),
@@ -1064,8 +1064,8 @@ class TestMoveLeaf(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_right_sibling(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='22'), 'right')
+        target = model.objects.get(desc='22')
+        model.objects.get(desc='231').move(target, 'right')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('21', 2, 0),
@@ -1079,13 +1079,13 @@ class TestMoveLeaf(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_left_sibling_itself(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='231'), 'left')
+        target = model.objects.get(desc='231')
+        model.objects.get(desc='231').move(target, 'left')
         assert self.got(model) == UNCHANGED
 
     def test_move_leaf_last_child(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='22'), 'last-child')
+        target = model.objects.get(desc='22')
+        model.objects.get(desc='231').move(target, 'last-child')
         expected = [('1', 1, 0),
                     ('2', 1, 4),
                     ('21', 2, 0),
@@ -1099,8 +1099,8 @@ class TestMoveLeaf(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_leaf_first_child(self, model):
-        model.objects.get(desc='231').move(
-            model.objects.get(desc='22'), 'first-child')
+        target = model.objects.get(desc='22')
+        model.objects.get(desc='231').move(target, 'first-child')
         expected = [('1', 1, 0),
                     ('2', 1, 4),
                     ('21', 2, 0),
@@ -1116,8 +1116,8 @@ class TestMoveLeaf(TestNonEmptyTree):
 
 class TestMoveBranchRoot(TestNonEmptyTree):
     def test_move_branch_first_sibling_root(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='2'), 'first-sibling')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='4').move(target, 'first-sibling')
         expected = [('4', 1, 1),
                     ('41', 2, 0),
                     ('1', 1, 0),
@@ -1131,8 +1131,8 @@ class TestMoveBranchRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_last_sibling_root(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='2'), 'last-sibling')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='4').move(target, 'last-sibling')
         expected = [('1', 1, 0),
                     ('2', 1, 4),
                     ('21', 2, 0),
@@ -1146,8 +1146,8 @@ class TestMoveBranchRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_left_sibling_root(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='2'), 'left')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='4').move(target, 'left')
         expected = [('1', 1, 0),
                     ('4', 1, 1),
                     ('41', 2, 0),
@@ -1161,8 +1161,8 @@ class TestMoveBranchRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_right_sibling_root(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='2'), 'right')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='4').move(target, 'right')
         expected = [('1', 1, 0),
                     ('2', 1, 4),
                     ('21', 2, 0),
@@ -1176,8 +1176,8 @@ class TestMoveBranchRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_left_noleft_sibling_root(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='2').get_first_sibling(), 'left')
+        target = model.objects.get(desc='2').get_first_sibling()
+        model.objects.get(desc='4').move(target, 'left')
         expected = [('4', 1, 1),
                     ('41', 2, 0),
                     ('1', 1, 0),
@@ -1191,8 +1191,8 @@ class TestMoveBranchRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_right_noright_sibling_root(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='2').get_last_sibling(), 'right')
+        target = model.objects.get(desc='2').get_last_sibling()
+        model.objects.get(desc='4').move(target, 'right')
         expected = [('1', 1, 0),
                     ('2', 1, 4),
                     ('21', 2, 0),
@@ -1206,8 +1206,8 @@ class TestMoveBranchRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_first_child_root(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='2'), 'first-child')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='4').move(target, 'first-child')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('4', 2, 1),
@@ -1221,8 +1221,8 @@ class TestMoveBranchRoot(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_last_child_root(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='2'), 'last-child')
+        target = model.objects.get(desc='2')
+        model.objects.get(desc='4').move(target, 'last-child')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('21', 2, 0),
@@ -1238,8 +1238,8 @@ class TestMoveBranchRoot(TestNonEmptyTree):
 
 class TestMoveBranch(TestNonEmptyTree):
     def test_move_branch_first_sibling(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='23'), 'first-sibling')
+        target = model.objects.get(desc='23')
+        model.objects.get(desc='4').move(target, 'first-sibling')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('4', 2, 1),
@@ -1253,8 +1253,8 @@ class TestMoveBranch(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_last_sibling(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='23'), 'last-sibling')
+        target = model.objects.get(desc='23')
+        model.objects.get(desc='4').move(target, 'last-sibling')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('21', 2, 0),
@@ -1268,8 +1268,8 @@ class TestMoveBranch(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_left_sibling(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='23'), 'left')
+        target = model.objects.get(desc='23')
+        model.objects.get(desc='4').move(target, 'left')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('21', 2, 0),
@@ -1283,8 +1283,8 @@ class TestMoveBranch(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_right_sibling(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='23'), 'right')
+        target = model.objects.get(desc='23')
+        model.objects.get(desc='4').move(target, 'right')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('21', 2, 0),
@@ -1298,8 +1298,8 @@ class TestMoveBranch(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_left_noleft_sibling(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='23').get_first_sibling(), 'left')
+        target = model.objects.get(desc='23').get_first_sibling()
+        model.objects.get(desc='4').move(target, 'left')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('4', 2, 1),
@@ -1313,8 +1313,8 @@ class TestMoveBranch(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_right_noright_sibling(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='23').get_last_sibling(), 'right')
+        target = model.objects.get(desc='23').get_last_sibling()
+        model.objects.get(desc='4').move(target, 'right')
         expected = [('1', 1, 0),
                     ('2', 1, 5),
                     ('21', 2, 0),
@@ -1328,13 +1328,13 @@ class TestMoveBranch(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_left_itself_sibling(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='4'), 'left')
+        target = model.objects.get(desc='4')
+        model.objects.get(desc='4').move(target, 'left')
         assert self.got(model) == UNCHANGED
 
     def test_move_branch_first_child(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='23'), 'first-child')
+        target = model.objects.get(desc='23')
+        model.objects.get(desc='4').move(target, 'first-child')
         expected = [('1', 1, 0),
                     ('2', 1, 4),
                     ('21', 2, 0),
@@ -1348,8 +1348,8 @@ class TestMoveBranch(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_move_branch_last_child(self, model):
-        model.objects.get(desc='4').move(
-            model.objects.get(desc='23'), 'last-child')
+        target = model.objects.get(desc='23')
+        model.objects.get(desc='4').move(target, 'last-child')
         expected = [('1', 1, 0),
                     ('2', 1, 4),
                     ('21', 2, 0),
@@ -1444,7 +1444,6 @@ class TestTreeSorted(TestTreeBase):
             # because raw queries don't update django objects
             node = sorted_model.objects.get(pk=node.pk)
             target = sorted_model.objects.get(pk=target.pk)
-
             node.move(target, 'sorted-child')
         expected = [(1, 4, 'bcd', 1, 7),
                     (2, 2, 'qwe', 2, 0),
@@ -1472,7 +1471,6 @@ class TestTreeSorted(TestTreeBase):
             # because raw queries don't update django objects
             node = sorted_model.objects.get(pk=node.pk)
             target = sorted_model.objects.get(pk=target.pk)
-
             node.val1 -= 2
             node.save()
             node.move(target, 'sorted-sibling')
@@ -1566,13 +1564,9 @@ class TestMP_TreeSortedAutoNow(TestTreeBase):
 
     def test_sorted_by_autonow_workaround(self, mpsortedautonow_model):
         # workaround
-        import datetime
-
         for i in range(1, 5):
-            mpsortedautonow_model.add_root(
-                desc='node%d' % (i, ),
-                created=datetime.datetime.now()
-            )
+            mpsortedautonow_model.add_root(desc='node%d' % (i, ),
+                                           created=datetime.datetime.now())
 
     def test_sorted_by_autonow_FAIL(self, mpsortedautonow_model):
         """
