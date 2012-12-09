@@ -1655,18 +1655,17 @@ class TestMP_TreeFindProblems(TestTreeBase):
         mpalphabet_model(path='04', depth=10, numchild=1, numval=0).save()
         mpalphabet_model(path='0401', depth=20, numchild=0, numval=0).save()
 
+        def got(ids):
+            return [o.path for o in
+                    mpalphabet_model.objects.filter(id__in=ids)]
+
         (evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild) = (
             mpalphabet_model.find_problems())
-        got = [o.path for o in mpalphabet_model.objects.filter(id__in=evil_chars)]
-        assert ['abcd', 'qa#$%!'] == got
-        got = [o.path for o in mpalphabet_model.objects.filter(id__in=bad_steplen)]
-        assert ['1', '111'] == got
-        got = [o.path for o in mpalphabet_model.objects.filter(id__in=orphans)]
-        assert ['0201', '020201'] == got
-        got = [o.path for o in mpalphabet_model.objects.filter(id__in=wrong_numchild)]
-        assert ['03', '0301', '030102'] == got
-        got = [o.path for o in mpalphabet_model.objects.filter(id__in=wrong_depth)]
-        assert ['04', '0401'] == got
+        assert ['abcd', 'qa#$%!'] == got(evil_chars)
+        assert ['1', '111'] == got(bad_steplen)
+        assert ['0201', '020201'] == got(orphans)
+        assert ['03', '0301', '030102'] == got(wrong_numchild)
+        assert ['04', '0401'] == got(wrong_depth)
 
 
 class TestMP_TreeFix(TestTreeBase):

@@ -461,9 +461,7 @@ class Node(models.Model):
         """Removes a node and all it's descendants."""
         self.__class__.objects.filter(id=self.pk).delete()
 
-
-    def _prepare_pos_var(self, pos, method_name, valid_pos,
-                                valid_sorted_pos):
+    def _prepare_pos_var(self, pos, method_name, valid_pos, valid_sorted_pos):
         if pos is None:
             if self.node_order_by:
                 pos = 'sorted-sibling'
