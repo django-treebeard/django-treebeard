@@ -6,7 +6,6 @@ import os
 import sys
 
 from django import VERSION as DJANGO_VERSION
-from django.contrib.admin.options import ModelAdmin
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -14,6 +13,7 @@ from django.db.models import Q
 import pytest
 
 from treebeard import numconv
+from treebeard.admin import TreeAdmin
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy
 from treebeard.forms import MoveNodeForm
@@ -1813,11 +1813,11 @@ class TestIssues(TestTreeBase):
         qs_check_first_or_user(['first'], root, anonuserobj)
 
 
-class TestModelAdmin(ModelAdmin):
-    form = MoveNodeForm
+class TestModelAdmin(TreeAdmin):
+    pass
 
 
-class TestMoveNodeForm(TestTreeBase):
+class TestMoveNodeForm(TestNonEmptyTree):
     def _get_nodes_list(self, nodes):
         return [(pk, '%sNode %d' % ('&nbsp;' * 4 * (depth - 1), pk))
                 for pk, depth in nodes]
@@ -1839,14 +1839,12 @@ class TestMoveNodeForm(TestTreeBase):
         return [(node.id, node.get_depth()) for node in nodes]
 
     def test_form_root_node(self, model):
-        model.load_bulk(BASE_DATA)
         nodes = list(model.get_tree())
         node = nodes.pop(0)
         safe_parent_nodes = self._get_node_ids_and_depths(nodes)
         self._move_node_helper(node, safe_parent_nodes)
 
     def test_form_leaf_node(self, model):
-        model.load_bulk(BASE_DATA)
         nodes = list(model.get_tree())
         node = nodes.pop()
         safe_parent_nodes = self._get_node_ids_and_depths(nodes)
@@ -1854,7 +1852,6 @@ class TestMoveNodeForm(TestTreeBase):
 
     def test_form_admin(self, model):
         request = None
-        model.load_bulk(BASE_DATA)
         nodes = list(model.get_tree())
         safe_parent_nodes = self._get_node_ids_and_depths(nodes)
         for node in model.objects.all():
@@ -1867,7 +1864,7 @@ class TestMoveNodeForm(TestTreeBase):
             expected = [(None, {'fields': desc_pos_refnodeid})]
             assert got == expected
             got = ma.get_fieldsets(request, node)
-            assert [(None, {'fields': desc_pos_refnodeid})] == got
+            assert got == expected
             form = ma.get_form(request)()
             nodes = self._get_nodes_list(safe_parent_nodes)
             self._assert_nodes_in_choices(form, nodes)
