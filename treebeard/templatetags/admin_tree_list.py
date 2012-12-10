@@ -1,19 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-
-    treebeard.templatetags.admin_tree_list
-    --------------------------------------
-
-    result_tree template tag.
-
-    :copyright: 2008-2010 by Gustavo Picon
-    :license: Apache License 2.0
-
-    Original contribution by aleh.fl
-
-    Additional hack added to allow raw_id_fields
-    by Larry Chan
-"""
 
 from django.template import Library
 

@@ -1,5 +1,6 @@
+{# Used for MP and NS trees #}
 {% extends "admin/change_list.html" %}
-{% load adminmedia admin_list admin_tree i18n %}
+{% load admin_list admin_tree i18n %}
 
 {% block extrastyle %}
     {{ block.super }}
@@ -13,8 +14,10 @@
 
 {% block result_list %}
     {% if action_form and actions_on_top and cl.full_result_count %}
-        {% admin_actions %}{% endif %}
+        {% admin_actions %}
+    {% endif %}
     {% result_tree cl request %}
     {% if action_form and actions_on_bottom and cl.full_result_count %}
-        {% admin_actions %}{% endif %}
+        {% admin_actions %}
+    {% endif %}
 {% endblock %}
