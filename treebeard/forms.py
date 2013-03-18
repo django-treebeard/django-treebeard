@@ -56,73 +56,37 @@ class MoveNodeForm(forms.ModelForm):
             choices_sort_mode = self.__class__.__position_choices_unsorted
         self.declared_fields['_position'].choices = choices_sort_mode
 
-        def mk_dropdown_tree(for_node=None):
-            """ Creates a tree-like list of choices """
-
-            def is_loop_safe(possible_parent):
-                if for_node is not None:
-                    return not (
-                        possible_parent == for_node
-                    ) or (possible_parent.is_descendant_of(for_node))
-                return True
-
-            def mk_indent(level):
-                return '&nbsp;&nbsp;&nbsp;&nbsp;' * (level - 1)
-
-            def add_subtree(node, options):
-                """ Recursively build options tree. """
-                if is_loop_safe(node):
-                    options.append(
-                        (node.pk,
-                         mark_safe(mk_indent(node.get_depth()) + str(node))))
-                    for subnode in node.get_children():
-                        add_subtree(subnode, options)
-
-            options = [(0, _('-- root --'))]
-            for node in opts.model.get_root_nodes():
-                add_subtree(node, options)
-            return options
-
         if instance is None:
             # if we didn't get an instance, instantiate a new one
-            self.instance = opts.model()
+            instance = opts.model()
             object_data = {}
-            self.declared_fields['_ref_node_id'].choices = mk_dropdown_tree()
+            choices_for_node = None
         else:
-            object_data = model_to_dict(instance, opts.fields, opts.exclude)
             if self.is_sorted:
+                position = 'sorted-child'
                 node_parent = instance.get_parent()
-                if node_parent is None:
-                    object_data.update({
-                        '_ref_node_id': '',
-                        '_position': 'sorted-child',
-                    })
+                if node_parent:
+                    ref_node_id = node_parent.pk
                 else:
-                    object_data.update({
-                        '_ref_node_id': node_parent.pk,
-                        '_position': 'sorted-child',
-                    })
+                    ref_node_id = ''
             else:
                 prev_sibling = instance.get_prev_sibling()
-                if prev_sibling is None:
-                    if instance.is_root():
-                        object_data.update({
-                            '_ref_node_id': '',
-                            '_position': 'first-child',
-                        })
-                    else:
-                        object_data.update({
-                            '_ref_node_id': instance.get_parent().pk,
-                            '_position': 'first-child',
-                        })
+                if prev_sibling:
+                    position = 'right'
+                    ref_node_id = prev_sibling.pk
                 else:
-                    object_data.update({
-                        '_ref_node_id': prev_sibling.pk,
-                        '_position': 'right',
-                    })
-            self.declared_fields['_ref_node_id'].choices = mk_dropdown_tree(
-                for_node=instance)
-            self.instance = instance
+                    position = 'first-child'
+                    if instance.is_root():
+                        ref_node_id = ''
+                    else:
+                        ref_node_id = instance.get_parent().pk
+            object_data = model_to_dict(instance, opts.fields, opts.exclude)
+            object_data.update({'_ref_node_id': ref_node_id,
+                                '_position': position})
+            choices_for_node = instance
+        choices = self.mk_dropdown_tree(opts.model, for_node=choices_for_node)
+        self.declared_fields['_ref_node_id'].choices = choices
+        self.instance = instance
         # if initial was provided, it should override the values from instance
         if initial is not None:
             object_data.update(initial)
@@ -163,12 +127,43 @@ class MoveNodeForm(forms.ModelForm):
                 self.instance.move(reference_node, pos=position_type)
             else:
                 if self.is_sorted:
-                    self.instance.move(self.Meta.model.get_first_root_node(),
-                                       pos='sorted-sibling')
+                    pos = 'sorted-sibling'
                 else:
-                    self.instance.move(self.Meta.model.get_first_root_node(),
-                                       pos='first-sibling')
-                    # Reload the instance
+                    pos = 'first-sibling'
+                self.instance.move(self.Meta.model.get_first_root_node(), pos)
+        # Reload the instance
         self.instance = self.Meta.model.objects.get(pk=self.instance.pk)
         super(MoveNodeForm, self).save(commit=commit)
         return self.instance
+
+    @staticmethod
+    def is_loop_safe(for_node, possible_parent):
+        if for_node is not None:
+            return not (
+                possible_parent == for_node
+                ) or (possible_parent.is_descendant_of(for_node))
+        return True
+
+    @staticmethod
+    def mk_indent(level):
+        return '&nbsp;&nbsp;&nbsp;&nbsp;' * (level - 1)
+
+    @classmethod
+    def add_subtree(cls, for_node, node, options):
+        """ Recursively build options tree. """
+        if cls.is_loop_safe(for_node, node):
+            options.append(
+                (node.pk,
+                 mark_safe(cls.mk_indent(node.get_depth()) + str(node))))
+            for subnode in node.get_children():
+                cls.add_subtree(for_node, subnode, options)
+
+    @classmethod
+    def mk_dropdown_tree(cls, model, for_node=None):
+        """ Creates a tree-like list of choices """
+
+        options = [(0, _('-- root --'))]
+        for node in model.get_root_nodes():
+            cls.add_subtree(for_node, node, options)
+        return options
+
