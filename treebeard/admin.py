@@ -69,8 +69,7 @@ class TreeAdmin(admin.ModelAdmin):
         new_urls = patterns(
             '',
             url('^move/$', self.admin_site.admin_view(self.move_node), ),
-            url(r'^jsi18n/$',
-                'django.views.i18n.javascript_catalog',
+            url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog',
                 {'packages': ('treebeard',)}),
         )
         return new_urls + urls

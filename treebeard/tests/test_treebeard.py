@@ -1813,10 +1813,6 @@ class TestIssues(TestTreeBase):
         qs_check_first_or_user(['first'], root, anonuserobj)
 
 
-class TestModelAdmin(TreeAdmin):
-    pass
-
-
 class TestMoveNodeForm(TestNonEmptyTree):
     def _get_nodes_list(self, nodes):
         return [(pk, '%sNode %d' % ('&nbsp;' * 4 * (depth - 1), pk))
@@ -1856,7 +1852,7 @@ class TestMoveNodeForm(TestNonEmptyTree):
         safe_parent_nodes = self._get_node_ids_and_depths(nodes)
         for node in model.objects.all():
             site = AdminSite()
-            ma = TestModelAdmin(model, site)
+            ma = TreeAdmin(model, site)
             got = list(ma.get_form(request).base_fields.keys())
             desc_pos_refnodeid = ['desc', '_position', '_ref_node_id']
             assert desc_pos_refnodeid == got
@@ -1868,3 +1864,89 @@ class TestMoveNodeForm(TestNonEmptyTree):
             form = ma.get_form(request)()
             nodes = self._get_nodes_list(safe_parent_nodes)
             self._assert_nodes_in_choices(form, nodes)
+
+
+
+class TestModelAdmin(TestNonEmptyTree):
+    def test_default_fields(self, model):
+        site = AdminSite()
+        ma = TreeAdmin(model, site)
+        assert list(ma.get_form(None).base_fields.keys()) == [
+            'desc', '_position', '_ref_node_id']
+
+
+class TestSortedForm(TestTreeSorted):
+    def test_sorted_form(self, sorted_model):
+        sorted_model.add_root(val1=3, val2=3, desc='zxy')
+        sorted_model.add_root(val1=1, val2=4, desc='bcd')
+        sorted_model.add_root(val1=2, val2=5, desc='zxy')
+        sorted_model.add_root(val1=3, val2=3, desc='abc')
+        sorted_model.add_root(val1=4, val2=1, desc='fgh')
+        sorted_model.add_root(val1=3, val2=3, desc='abc')
+        sorted_model.add_root(val1=2, val2=2, desc='qwe')
+        sorted_model.add_root(val1=3, val2=2, desc='vcx')
+
+        form = MoveNodeForm()
+        assert list(form.fields.keys()) == ['_position', '_ref_node_id']
+
+        form = MoveNodeForm(instance=sorted_model.objects.all()[0])
+        assert list(form.fields.keys()) == ['_position', '_ref_node_id']
+        assert 'id__position' in str(form)
+        assert 'id__ref_node_id' in str(form)
+
+class TestForm(TestNonEmptyTree):
+    def test_form(self, model):
+        form = MoveNodeForm()
+        assert list(form.fields.keys()) == ['_position', '_ref_node_id']
+
+        form = MoveNodeForm(instance=model.objects.all()[0])
+        assert list(form.fields.keys()) == ['_position', '_ref_node_id']
+        assert 'id__position' in str(form)
+        assert 'id__ref_node_id' in str(form)
+
+    def test_get_position_ref_node(self, model):
+        instance_parent = model.objects.all()[0]
+        form = MoveNodeForm(instance=instance_parent)
+        assert form._get_position_ref_node(instance_parent) == {
+            '_position': 'first-child',
+            '_ref_node_id': ''}
+
+        instance_child = model.objects.get(id=3)
+        form = MoveNodeForm(instance=instance_child)
+        assert form._get_position_ref_node(instance_child) == {
+            '_position': 'first-child',
+            '_ref_node_id': 2}
+
+        instance_grandchild = model.objects.get(id=4)
+        form = MoveNodeForm(instance=instance_grandchild)
+        assert form._get_position_ref_node(instance_grandchild) == {
+            '_position': 'right',
+            '_ref_node_id': 3}
+
+        instance_grandchild = model.objects.get(id=6)
+        form = MoveNodeForm(instance=instance_grandchild)
+        assert form._get_position_ref_node(instance_grandchild) == {
+            '_position': 'first-child',
+            '_ref_node_id': 5}
+
+    def test_clean_cleaned_data(self, model):
+        instance_parent = model.objects.all()[0]
+        _position = 'first-child'
+        _ref_node_id = ''
+        form = MoveNodeForm(instance=instance_parent,
+                            data={'_position': _position,
+                                  '_ref_node_id': _ref_node_id})
+        form.is_valid()
+        assert form._clean_cleaned_data() == (_position, _ref_node_id)
+
+    def test_save(self, model):
+        instance_parent = model.objects.all()[0]
+        _position = 'first-child'
+        _ref_node_id = ''
+        form = MoveNodeForm(instance=instance_parent,
+                            data={'_position': _position,
+                                  '_ref_node_id': _ref_node_id})
+        form.is_valid()
+        saved_instance = form.save()
+        print(saved_instance)
+        assert False
