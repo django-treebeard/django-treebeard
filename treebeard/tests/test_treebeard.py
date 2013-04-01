@@ -1941,12 +1941,32 @@ class TestForm(TestNonEmptyTree):
 
     def test_save(self, model):
         instance_parent = model.objects.all()[0]
+        original_count = model.objects.all().count()
         _position = 'first-child'
-        _ref_node_id = ''
+        _ref_node_id = 2
         form = MoveNodeForm(instance=instance_parent,
                             data={'_position': _position,
                                   '_ref_node_id': _ref_node_id})
         form.is_valid()
         saved_instance = form.save()
-        print(saved_instance)
-        assert False
+        assert original_count == model.objects.all().count()
+        assert saved_instance.get_children_count() == 0
+        assert saved_instance.get_depth() == 2
+        assert not saved_instance.is_root()
+        assert saved_instance.is_leaf()
+
+        # Return to original state
+        _position = 'first-child'
+        _ref_node_id = ''
+        form = MoveNodeForm(instance=saved_instance,
+                            data={'_position': _position,
+                                  '_ref_node_id': _ref_node_id})
+        form.is_valid()
+        restored_instance = form.save()
+        assert original_count == model.objects.all().count()
+        assert restored_instance.get_children_count() == 0
+        assert restored_instance.get_depth() == 1
+        assert restored_instance.is_root()
+        assert restored_instance.is_leaf()
+
+
