@@ -119,16 +119,16 @@ class MoveNodeForm(forms.ModelForm):
                 if not isinstance(self.cleaned_data[field], (list, QuerySet)):
                     cl_data[field] = self.cleaned_data[field]
             if reference_node_id:
-                reference_node = self.Meta.model.objects.get(
+                reference_node = self._meta.model.objects.get(
                     pk=reference_node_id)
                 self.instance = reference_node.add_child(**cl_data)
                 self.instance.move(reference_node, pos=position_type)
             else:
-                self.instance = self.Meta.model.add_root(**cl_data)
+                self.instance = self._meta.model.add_root(**cl_data)
         else:
             self.instance.save()
             if reference_node_id:
-                reference_node = self.Meta.model.objects.get(
+                reference_node = self._meta.model.objects.get(
                     pk=reference_node_id)
                 self.instance.move(reference_node, pos=position_type)
             else:
@@ -136,9 +136,9 @@ class MoveNodeForm(forms.ModelForm):
                     pos = 'sorted-sibling'
                 else:
                     pos = 'first-sibling'
-                self.instance.move(self.Meta.model.get_first_root_node(), pos)
+                self.instance.move(self._meta.model.get_first_root_node(), pos)
         # Reload the instance
-        self.instance = self.Meta.model.objects.get(pk=self.instance.pk)
+        self.instance = self._meta.model.objects.get(pk=self.instance.pk)
         super(MoveNodeForm, self).save(commit=commit)
         return self.instance
 
