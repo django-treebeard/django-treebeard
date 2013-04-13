@@ -1939,15 +1939,15 @@ class TestForm(TestNonEmptyTree):
         form.is_valid()
         assert form._clean_cleaned_data() == (_position, _ref_node_id)
 
-    def test_save(self, model):
+    def test_save_edit(self, model):
         instance_parent = model.objects.all()[0]
-        original_count = model.objects.all().count()
+        original_count = len(model.objects.all())
         _position = 'first-child'
         _ref_node_id = 2
         form = MoveNodeForm(instance=instance_parent,
                             data={'_position': _position,
                                   '_ref_node_id': _ref_node_id})
-        form.is_valid()
+        assert form.is_valid()
         saved_instance = form.save()
         assert original_count == model.objects.all().count()
         assert saved_instance.get_children_count() == 0
@@ -1961,7 +1961,7 @@ class TestForm(TestNonEmptyTree):
         form = MoveNodeForm(instance=saved_instance,
                             data={'_position': _position,
                                   '_ref_node_id': _ref_node_id})
-        form.is_valid()
+        assert form.is_valid()
         restored_instance = form.save()
         assert original_count == model.objects.all().count()
         assert restored_instance.get_children_count() == 0
@@ -1969,4 +1969,14 @@ class TestForm(TestNonEmptyTree):
         assert restored_instance.is_root()
         assert restored_instance.is_leaf()
 
-
+    def test_save_new(self, model):
+        original_count = model.objects.all().count()
+        assert original_count == 10
+        _position = 'first-child'
+        form = MoveNodeForm(data={'_position': _position,
+                                  'desc': 'New Form Test'})
+        assert form.is_valid()
+        new_instance = form.save()
+        print(new_instance)
+        print(new_instance.pk)
+        assert original_count < model.objects.all().count()
