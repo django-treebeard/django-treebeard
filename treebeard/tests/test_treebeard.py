@@ -18,6 +18,7 @@ from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy
 from treebeard.forms import MoveNodeForm
 from treebeard.tests import models
+from treebeard.tests import forms
 
 
 BASE_DATA = [
@@ -1974,12 +1975,17 @@ class TestForm(TestNonEmptyTree):
         assert original_count == 10
         _position = 'first-child'
 
-        class TestMoveNodeForm(MoveNodeForm):
-            class Meta:
-                model = model
+        form_class = {
+            models.AL_TestNode: forms.AL_TestNodeForm,
+            models.MP_TestNode: forms.MP_TestNodeForm,
+            models.NS_TestNode: forms.NS_TestNodeForm,
+            models.AL_TestNode_Proxy: forms.AL_TestNodeProxyForm,
+            models.MP_TestNode_Proxy: forms.MP_TestNodeProxyForm,
+            models.NS_TestNode_Proxy: forms.NS_TestNodeProxyForm,
+        }[model]
 
-        form = TestMoveNodeForm(data={'_position': _position,
-                                  'desc': 'New Form Test'})
+        form = form_class(data={'_position': _position,
+                                'desc': 'New Form Test'})
         assert form.is_valid()
         new_instance = form.save()
         print(new_instance)
