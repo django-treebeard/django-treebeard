@@ -1973,7 +1973,11 @@ class TestForm(TestNonEmptyTree):
         original_count = model.objects.all().count()
         assert original_count == 10
         _position = 'first-child'
-        form = MoveNodeForm(data={'_position': _position,
+
+        class TestMoveNodeForm(MoveNodeForm):
+            model = model
+
+        form = TestMoveNodeForm(data={'_position': _position,
                                   'desc': 'New Form Test'})
         assert form.is_valid()
         new_instance = form.save()
