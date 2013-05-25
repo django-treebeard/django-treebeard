@@ -1975,7 +1975,8 @@ class TestForm(TestNonEmptyTree):
         _position = 'first-child'
 
         class TestMoveNodeForm(MoveNodeForm):
-            model = model
+            class Meta:
+                model = model
 
         form = TestMoveNodeForm(data={'_position': _position,
                                   'desc': 'New Form Test'})
