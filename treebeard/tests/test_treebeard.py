@@ -2009,7 +2009,5 @@ class TestForm(TestNonEmptyTree):
         form = form_class(
             data={'_position': _position, 'desc': 'New Form Test'})
         assert form.is_valid()
-        new_instance = form.save()
-        print(new_instance)
-        print(new_instance.pk)
+        assert form.save() is not None
         assert original_count < model.objects.all().count()
