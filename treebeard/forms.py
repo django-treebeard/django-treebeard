@@ -3,8 +3,13 @@
 from django import forms
 from django.db.models.query import QuerySet
 from django.forms.models import BaseModelForm, ErrorList, model_to_dict
+from django.forms.models import modelform_factory as django_modelform_factory
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
+
+from treebeard.al_tree import AL_Node
+from treebeard.mp_tree import MP_Node
+from treebeard.ns_tree import NS_Node
 
 
 class MoveNodeForm(forms.ModelForm):
@@ -30,16 +35,6 @@ class MoveNodeForm(forms.ModelForm):
     _ref_node_id = forms.TypedChoiceField(required=False,
                                           coerce=int,
                                           label=_("Relative to"))
-
-    class Meta:
-        exclude = ('path',
-                   'depth',
-                   'numchild',
-                   'lft',
-                   'rgt',
-                   'tree_id',
-                   'parent',
-                   'sib_order')
 
     def _get_position_ref_node(self, instance):
         if self.is_sorted:
@@ -67,7 +62,10 @@ class MoveNodeForm(forms.ModelForm):
                  initial=None, error_class=ErrorList, label_suffix=':',
                  empty_permitted=False, instance=None):
         opts = self._meta
-        if instance:
+        if instance is None:
+            if opts.model is None:
+                raise ValueError('MoveNodeForm has no model class specified.')
+        else:
             opts.model = type(instance)
         self.is_sorted = getattr(opts.model, 'node_order_by', False)
 
@@ -173,3 +171,36 @@ class MoveNodeForm(forms.ModelForm):
             cls.add_subtree(for_node, node, options)
         return options
 
+
+def modelform_factory(model, form, fields=None, exclude=None,
+                      formfield_callback=None,  widgets=None):
+    """Dynamically build a ModelForm subclass with the proper Meta.
+
+    :param model:
+    :return: A ModelForm subclass
+
+    Example of a generated class::
+
+        class AL_TestNodeForm(MoveNodeForm):
+            class Meta:
+                model = models.AL_TestNode
+                exclude = ('sib_order', 'parent')
+
+    """
+    _exclude = _get_exclude_for_model(model, exclude)
+    return django_modelform_factory(
+        model, form, fields, _exclude, formfield_callback, widgets)
+
+
+def _get_exclude_for_model(model, exclude):
+    if exclude:
+        _exclude = tuple(exclude)
+    else:
+        _exclude = ()
+    if issubclass(model, AL_Node):
+        _exclude += ('sib_order', 'parent')
+    elif issubclass(model, MP_Node):
+        _exclude += ('depth', 'numchild', 'path')
+    elif issubclass(model, NS_Node):
+        _exclude += ('depth', 'lft', 'rgt', 'tree_id')
+    return _exclude
