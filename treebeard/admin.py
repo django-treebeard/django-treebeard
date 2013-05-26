@@ -10,7 +10,6 @@ else:
     from django.conf.urls import patterns, url
 
 from django.contrib import admin, messages
-from django.contrib.admin.views.main import ChangeList
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.utils.translation import ugettext_lazy as _
 if sys.version_info >= (3, 0):
@@ -18,31 +17,14 @@ if sys.version_info >= (3, 0):
 else:
     from django.utils.encoding import force_unicode as force_str
 
-from treebeard.templatetags.admin_tree import check_empty_dict
 from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
                                   InvalidMoveToDescendant, PathOverflow)
 from treebeard.al_tree import AL_Node
 
 
-class TreeChangeList(ChangeList):
-    def get_ordering(self, *args):
-        """
-        Overriding ChangeList.get_ordering if using the Django version <= 1.3
-        default of '-id' but passing through the >= 1.4 default of '[]'.
-        """
-        ordering = super(TreeChangeList, self).get_ordering(*args)
-
-        if not isinstance(ordering, list) and check_empty_dict(self.params):
-            return None, 'asc'
-        return ordering
-
-
 class TreeAdmin(admin.ModelAdmin):
     """Django Admin class for treebeard"""
     change_list_template = 'admin/tree_change_list.html'
-
-    def get_changelist(self, request, **kwargs):
-        return TreeChangeList
 
     def queryset(self, request):
         if issubclass(self.model, AL_Node):
