@@ -172,12 +172,12 @@ class MoveNodeForm(forms.ModelForm):
         return options
 
 
-def modelform_factory(model, form, fields=None, exclude=None,
-                      formfield_callback=None,  widgets=None):
-    """Dynamically build a ModelForm subclass with the proper Meta.
+def movenodeform_factory(model, form=MoveNodeForm, fields=None, exclude=None,
+                         formfield_callback=None,  widgets=None):
+    """Dynamically build a MoveNodeForm subclass with the proper Meta.
 
     :param model:
-    :return: A ModelForm subclass
+    :return: A MoveNodeForm subclass
 
     Example of a generated class::
 
