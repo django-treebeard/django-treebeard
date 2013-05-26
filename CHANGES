@@ -3,14 +3,15 @@ Release 2.0 (XXX XX, 2012)
 ---------------------------
 
 * Added support for Django 1.5 and Python 3.X
+* Updated docs: the library supports python 2.5+ and Django 1.4+. Dropped
+  support for older versions
 * Revamped admin interface for MP and NS trees, supporting drag&drop to reorder
   nodes. Work on this patch was sponsored by the Oregon Center for
-  Applied Science (http://www.orcasinc.com/), developed by Aureal
-  (http://aureal.pe/) and inspired by FeinCMS
-  (http://www.feinheit.ch/media/labs/feincms/admin.html). Thanks ORCAS!
+  Applied Science (http://www.orcasinc.com/), inspired by
+  FeinCMS (http://www.feinheit.ch/media/labs/feincms/admin.html) developed by
+  Jesús del Carpio with tests from Fernando Gutierrez. Thanks ORCAS!
 * Updated setup.py to use distribute/setuptools instead of distutils
 * Now using pytest for testing
-* Updated docs: the library supports python 2.4+ and Django 1.3+
 * Small optimization to ns_tree.is_root
 * Moved treebeard.tests to it's own directory (instead of tests.py)
 * Added the runtests.py test runner
@@ -22,12 +23,9 @@ Release 2.0 (XXX XX, 2012)
 * Fixed url parts join issues in the admin.
 * Fixed: Now installing the static resources
 * Fixed ManyToMany form field save handling
-* Documented a Django bug in mp_tree.rst, marked some delete tests as
-  expected failures under certain conditions (issue #44)
 * In the admin, the node is now saved when moving so it can trigger handlers
   and/or signals.
 * Improved translation files, including javascript.
-* Fixed Django 1.4 support in the admin.
 * Renamed Node.get_database_engine() to Node.get_database_vendor(). As the name
   implies, it returns the database vendor instead of the engine used. Treebeard
   will get the value from Django, but you can subclass the method if needed.
