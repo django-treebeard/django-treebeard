@@ -3,7 +3,7 @@ django-treebeard
 
 `django-treebeard <https://tabo.pe/projects/django-treebeard/>`_
 is a library that implements efficient tree implementations for the
-`Django Web Framework 1.3+ <http://www.djangoproject.com/>`_, written by
+`Django Web Framework 1.4+ <http://www.djangoproject.com/>`_, written by
 `Gustavo Picón <https://tabo.pe>`_ and licensed under the Apache License 2.0.
 
 ``django-treebeard`` is:
@@ -38,7 +38,6 @@ Contents
    admin
    forms
    exceptions
-   caveats
    benchmarks
    tests
    changes
