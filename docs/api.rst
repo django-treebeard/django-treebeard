@@ -319,7 +319,7 @@ API
         .. versionadded:: 1.55
 
 
-  .. automethod:: get_database_engine
+  .. automethod:: get_database_vendor
 
         Example::
 
