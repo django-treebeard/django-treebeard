@@ -5,7 +5,6 @@ import datetime
 import os
 import sys
 
-from django import VERSION as DJANGO_VERSION
 from django.contrib.admin.sites import AdminSite
 from django.test import TestCase
 from django.contrib.auth.models import User
@@ -57,14 +56,6 @@ def _prepare_db_test(request):
 @pytest.fixture(scope='function',
                 params=models.BASE_MODELS + models.PROXY_MODELS)
 def model(request):
-    test_model = request.param
-    if (
-        test_model in models.PROXY_MODELS and
-        DJANGO_VERSION[:2] == (1, 3) and
-        request.cls == TestDelete and
-        test_model.get_database_vendor('write') == 'mysql'
-    ):
-        pytest.xfail("https://bitbucket.org/tabo/django-treebeard/issue/44")
     return _prepare_db_test(request)
 
 
