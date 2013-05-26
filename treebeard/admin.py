@@ -21,7 +21,6 @@ else:
 from treebeard.templatetags.admin_tree import check_empty_dict
 from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
                                   InvalidMoveToDescendant, PathOverflow)
-from treebeard.forms import MoveNodeForm
 from treebeard.al_tree import AL_Node
 
 
@@ -41,7 +40,6 @@ class TreeChangeList(ChangeList):
 class TreeAdmin(admin.ModelAdmin):
     """Django Admin class for treebeard"""
     change_list_template = 'admin/tree_change_list.html'
-    form = MoveNodeForm
 
     def get_changelist(self, request, **kwargs):
         return TreeChangeList
@@ -122,3 +120,15 @@ class TreeAdmin(admin.ModelAdmin):
             msg = _('Moved node "%(node)s" as sibling of "%(other)s"')
         messages.info(request, msg % {'node': node, 'other': target})
         return HttpResponse('OK')
+
+
+def admin_factory(form_class):
+    """Dynamically build a TreeAdmin subclass for the given form class.
+
+    :param form_class:
+    :return: A TreeAdmin subclass.
+    """
+    return type(
+        form_class.__name__ + 'Admin',
+        (TreeAdmin,),
+        dict(form=form_class))
