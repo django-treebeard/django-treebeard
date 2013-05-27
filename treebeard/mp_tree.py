@@ -507,6 +507,7 @@ class MP_Node(Node):
         if not self.is_leaf() and self.node_order_by:
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
+            self.numchild += 1
             return self.get_last_child().add_sibling('sorted-sibling',
                                                      **kwargs)
 
