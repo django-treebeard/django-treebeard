@@ -59,7 +59,7 @@ class Node(models.Model):
 
         :param keep_ids:
 
-            If enabled, lads the nodes with the same id that are given in the
+            If enabled, loads the nodes with the same id that are given in the
             structure. Will error if there are nodes without id info or if the
             ids are already used.
 
@@ -107,7 +107,7 @@ class Node(models.Model):
             Stores the id value (primary key) of every node. Enabled by
             default.
 
-        :returns: A python data structure, describen with detail in
+        :returns: A python data structure, described with detail in
                   :meth:`load_bulk`
         """
         raise NotImplementedError
@@ -293,7 +293,7 @@ class Node(models.Model):
 
     def is_sibling_of(self, node):
         """
-        :returns: ``True`` if the node if a sibling of another node given as an
+        :returns: ``True`` if the node is a sibling of another node given as an
             argument, else, returns ``False``
 
         :param node:
@@ -315,7 +315,7 @@ class Node(models.Model):
 
     def is_descendant_of(self, node):  # pragma: no cover
         """
-        :returns: ``True`` if the node if a descendant of another node given
+        :returns: ``True`` if the node is a descendant of another node given
             as an argument, else, returns ``False``
 
         :param node:
