@@ -472,14 +472,16 @@ class MP_Node(Node):
 
     def is_sibling_of(self, node):
         """
-        :returns: ``True`` if the node if a sibling of another node given as an
+        :returns: ``True`` if the node is a sibling of another node given as an
             argument, else, returns ``False``
         """
         aux = self.depth == node.depth
-        if self.depth > 1:
+
+        #Check non-root nodes share a parent only if they have the same depth
+        if aux and self.depth > 1:
             # making sure the non-root nodes share a parent
             parentpath = self._get_basepath(self.path, self.depth - 1)
-            return aux and node.path.startswith(parentpath)
+            return node.path.startswith(parentpath)
         return aux
 
     def is_child_of(self, node):
@@ -507,6 +509,8 @@ class MP_Node(Node):
         if not self.is_leaf() and self.node_order_by:
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
+            # we increase the numchild value of the object in memory, but can't
+            self.numchild += 1
             return self.get_last_child().add_sibling('sorted-sibling',
                                                      **kwargs)
 
@@ -682,6 +686,14 @@ class MP_Node(Node):
         for sql, vals in stmts:
             cursor.execute(sql, vals)
         transaction.commit_unless_managed()
+
+        #change various fields of self in memory after it is moved
+        table_name = self._meta.db_table
+        sql = "Select path, depth from %s where id=%%s" % (table_name,)
+        cursor.execute(sql, [self.id])
+        row = cursor.fetchone()
+        self.path = row[0]
+        self.depth = row[1]
 
     @classmethod
     def _get_basepath(cls, path, depth):
