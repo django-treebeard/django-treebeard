@@ -472,11 +472,12 @@ class MP_Node(Node):
 
     def is_sibling_of(self, node):
         """
-        :returns: ``True`` if the node if a sibling of another node given as an
+        :returns: ``True`` if the node is a sibling of another node given as an
             argument, else, returns ``False``
         """
         aux = self.depth == node.depth
-        if self.depth > 1:
+        # Check non-root nodes share a parent only if they have the same depth
+        if aux and self.depth > 1:
             # making sure the non-root nodes share a parent
             parentpath = self._get_basepath(self.path, self.depth - 1)
             return aux and node.path.startswith(parentpath)
@@ -492,7 +493,7 @@ class MP_Node(Node):
 
     def is_descendant_of(self, node):
         """
-        :returns: ``True`` if the node if a descendant of another node given
+        :returns: ``True`` if the node is a descendant of another node given
             as an argument, else, returns ``False``
         """
         return self.path.startswith(node.path) and self.depth > node.depth
