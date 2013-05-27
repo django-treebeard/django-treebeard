@@ -8,7 +8,7 @@ if sys.version_info >= (3, 0):
 
 from django.core import serializers
 from django.db import models, transaction, connection
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils.translation import ugettext_noop as _
 
 from treebeard.numconv import NumConv
@@ -530,20 +530,12 @@ class MP_Node(Node):
         newobj.save()
         newobj._cached_parent_obj = self
 
-        # we increase the numchild value of the object in memory, but can't
-        # save because that makes this django 1.0 compatible code explode
+        self.__class__.objects.filter(path=self.path).update(numchild=F(
+            'numchild')+1)
+
+        # we increase the numchild value of the object in memory
         self.numchild += 1
-
-        # we need to use a raw query
-        sql = "UPDATE %(table)s "\
-              "SET numchild=numchild+1 "\
-              "WHERE path=%%s" % {
-                  'table': connection.ops.quote_name(
-                      self.__class__._meta.db_table)}
-        cursor = self._get_database_cursor('write')
-        cursor.execute(sql, [self.path])
         transaction.commit_unless_managed()
-
         return newobj
 
     def add_sibling(self, pos=None, **kwargs):
