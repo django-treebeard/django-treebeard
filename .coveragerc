@@ -13,4 +13,5 @@ source =
 [report]
 omit =
     */tests/*
+    */numconv.py
 precision = 2
