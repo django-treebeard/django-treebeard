@@ -2,7 +2,6 @@ API
 ===
 
 .. module:: treebeard.models
-.. moduleauthor:: Gustavo Picon <tabo@tabo.pe>
 
 .. inheritance-diagram:: Node
 .. autoclass:: Node

@@ -2,7 +2,6 @@ Adjacency List trees
 ====================
 
 .. module:: treebeard.al_tree
-.. moduleauthor:: Gustavo Picon <tabo@tabo.pe>
 
 This is a simple implementation of the traditional Adjacency List Model for
 storing trees in relational databases.

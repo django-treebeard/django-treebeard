@@ -2,7 +2,6 @@ Materialized Path trees
 =======================
 
 .. module:: treebeard.mp_tree
-.. moduleauthor:: Gustavo Picon <tabo@tabo.pe>
 
 This is an efficient implementation of Materialized Path
 trees for Django 1.4+, as described by `Vadim Tropashko`_ in `SQL Design
