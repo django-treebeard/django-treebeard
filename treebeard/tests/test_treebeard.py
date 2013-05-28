@@ -69,6 +69,11 @@ def sorted_model(request):
     return _prepare_db_test(request)
 
 
+@pytest.fixture(scope='function', params=models.RELATED_MODELS)
+def related_model(request):
+    return _prepare_db_test(request)
+
+
 @pytest.fixture(scope='function', params=models.MP_SHORTPATH_MODELS)
 def mpshort_model(request):
     return _prepare_db_test(request)
@@ -289,6 +294,30 @@ class TestClassMethods(TestNonEmptyTree):
         got = [(o.desc, o.get_depth(), o.get_children_count())
                for o in model.get_tree()]
         assert got == UNCHANGED
+
+    def test_load_and_dump_bulk_with_fk(self, related_model):
+        # https://bitbucket.org/tabo/django-treebeard/issue/48/
+        related_model.objects.all().delete()
+        related, created = models.RelatedModel.objects.get_or_create(
+            desc="Test %s" % related_model.__name__)
+
+        related_data = [
+            {'data': {'desc': '1', 'related': related.pk}},
+            {'data': {'desc': '2', 'related': related.pk}, 'children': [
+                {'data': {'desc': '21', 'related': related.pk}},
+                {'data': {'desc': '22', 'related': related.pk}},
+                {'data': {'desc': '23', 'related': related.pk}, 'children': [
+                    {'data': {'desc': '231', 'related': related.pk}},
+                ]},
+                {'data': {'desc': '24', 'related': related.pk}},
+            ]},
+            {'data': {'desc': '3', 'related': related.pk}},
+            {'data': {'desc': '4', 'related': related.pk}, 'children': [
+                {'data': {'desc': '41', 'related': related.pk}},
+            ]}]
+        related_model.load_bulk(related_data)
+        got = related_model.dump_bulk(keep_ids=False)
+        assert got == related_data
 
     def test_get_root_nodes(self, model):
         got = model.get_root_nodes()
