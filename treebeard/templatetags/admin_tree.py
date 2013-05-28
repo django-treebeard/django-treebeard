@@ -30,6 +30,8 @@ else:
     from django.utils.encoding import smart_unicode as smart_str
     from urlparse import urljoin
 
+from treebeard.templatetags import needs_checkboxes
+
 
 def items_for_result(cl, result, form):
     """
@@ -169,8 +171,9 @@ def check_empty_dict(GET_dict):
     return empty
 
 
-@register.inclusion_tag('admin/tree_change_list_results.html')
-def result_tree(cl, request):
+@register.inclusion_tag(
+    'admin/tree_change_list_results.html', takes_context=True)
+def result_tree(context, cl, request):
     """
     Added 'filtered' param, so the template's js knows whether the results have
     been affected by a GET param or not. Only when the results are not filtered
@@ -179,7 +182,7 @@ def result_tree(cl, request):
 
     # Here I'm adding an extra col on pos 2 for the drag handlers
     headers = list(result_headers(cl))
-    headers.insert(1, {
+    headers.insert(1 if needs_checkboxes(context) else 0, {
         'text': '+',
         'sortable': True,
         'url': request.path,
