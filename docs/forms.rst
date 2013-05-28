@@ -2,8 +2,6 @@ Forms
 =====
 
 .. module:: treebeard.forms
-.. moduleauthor:: aleh.fl
-.. moduleauthor:: Gustavo Picon <tabo@tabo.pe>
 
 .. autoclass:: MoveNodeForm
    :show-inheritance:

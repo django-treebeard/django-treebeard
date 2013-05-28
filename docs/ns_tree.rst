@@ -2,7 +2,6 @@ Nested Sets trees
 =================
 
 .. module:: treebeard.ns_tree
-.. moduleauthor:: Gustavo Picon <tabo@tabo.pe>
 
 An implementation of Nested Sets trees for Django 1.4+, as described by
 `Joe Celko`_ in `Trees and Hierarchies in SQL for Smarties`_.
