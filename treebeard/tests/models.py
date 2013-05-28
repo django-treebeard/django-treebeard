@@ -6,6 +6,12 @@ from treebeard.al_tree import AL_Node
 from treebeard.ns_tree import NS_Node
 
 
+class RelatedModel(models.Model):
+    desc = models.CharField(max_length=10)
+
+    def __str__(self):
+        return self.desc
+
 class MP_TestNode(MP_Node):
     steplen = 3
 
@@ -17,6 +23,16 @@ class MP_TestNode(MP_Node):
 
 class MP_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(MP_TestNode)
+
+    def __str__(self):  # pragma: no cover
+        return 'Node %d' % self.pk
+
+
+class MP_TestNodeRelated(MP_Node):
+    steplen = 3
+
+    desc = models.CharField(max_length=255)
+    related = models.ForeignKey(RelatedModel)
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
@@ -36,6 +52,14 @@ class NS_TestNodeSomeDep(models.Model):
         return 'Node %d' % self.pk
 
 
+class NS_TestNodeRelated(NS_Node):
+    desc = models.CharField(max_length=255)
+    related = models.ForeignKey(RelatedModel)
+
+    def __str__(self):  # pragma: no cover
+        return 'Node %d' % self.pk
+
+
 class AL_TestNode(AL_Node):
     parent = models.ForeignKey('self',
                                related_name='children_set',
@@ -50,6 +74,19 @@ class AL_TestNode(AL_Node):
 
 class AL_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(AL_TestNode)
+
+    def __str__(self):  # pragma: no cover
+        return 'Node %d' % self.pk
+
+
+class AL_TestNodeRelated(AL_Node):
+    parent = models.ForeignKey('self',
+                               related_name='children_set',
+                               null=True,
+                               db_index=True)
+    sib_order = models.PositiveIntegerField()
+    desc = models.CharField(max_length=255)
+    related = models.ForeignKey(RelatedModel)
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
@@ -171,6 +208,7 @@ PROXY_MODELS = AL_TestNode_Proxy, MP_TestNode_Proxy, NS_TestNode_Proxy
 SORTED_MODELS = AL_TestNodeSorted, MP_TestNodeSorted, NS_TestNodeSorted
 DEP_MODELS = AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep
 MP_SHORTPATH_MODELS = MP_TestNodeShortPath, MP_TestSortedNodeShortPath
+RELATED_MODELS = AL_TestNodeRelated, MP_TestNodeRelated, NS_TestNodeRelated
 
 
 def empty_models_tables(models):
