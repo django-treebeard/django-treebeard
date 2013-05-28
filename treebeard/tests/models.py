@@ -7,7 +7,7 @@ from treebeard.ns_tree import NS_Node
 
 
 class RelatedModel(models.Model):
-    desc = models.CharField(max_length=10)
+    desc = models.CharField(max_length=255)
 
     def __str__(self):
         return self.desc
