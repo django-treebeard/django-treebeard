@@ -103,15 +103,15 @@ extra steps, materialized path is more efficient than other approaches.
 
           $ TREEBEARD_TEST_ALPHABET=1 python manage.py test treebeard.TestTreeAlphabet
 
-        On my Ubuntu 8.04.1 system, these are the optimal values for the
+        On my Mountain Lion system, these are the optimal values for the
         three supported databases in their *default* configuration:
 
          ================ ================
          Database         Optimal Alphabet
          ================ ================
-         MySQL 5.0.51     0-9A-Z
-         PostgreSQL 8.2.7 0-9A-Z
-         Sqlite3          0-9A-Za-z
+         MySQL 5.6.10     0-9A-Z
+         PostgreSQL 9.2.4 0-9A-Z
+         Sqlite3          0-9A-Z
          ================ ================
 
   .. attribute:: node_order_by
