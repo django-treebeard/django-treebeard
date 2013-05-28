@@ -33,6 +33,17 @@ class Node(models.Model):
         raise NotImplementedError
 
     @classmethod
+    def get_foreign_keys(cls):
+        """ Get foreign keys and models they refer to, so we can pre-process the
+        data for load_bulk """
+        foreign_keys = {}
+        for field in cls._meta.fields:
+            if field.get_internal_type() == 'ForeignKey' and \
+                            field.name != 'parent':
+                foreign_keys[field.name] = field.rel.to
+        return foreign_keys
+
+    @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """
         Loads a list/dictionary structure to the tree.
@@ -71,10 +82,17 @@ class Node(models.Model):
         added = []
         # stack of nodes to analize
         stack = [(parent, node) for node in bulk_data[::-1]]
+        foreign_keys = cls.get_foreign_keys()
+
         while stack:
             parent, node_struct = stack.pop()
             # shallow copy of the data strucure so it doesn't persist...
             node_data = node_struct['data'].copy()
+            # Process Foreign Keys
+            for key in foreign_keys.keys():
+                if key in node_data:
+                    node_data[key] = foreign_keys[key].objects.get(
+                        pk=node_data[key])
             if keep_ids:
                 node_data['id'] = node_struct['id']
             if parent:
