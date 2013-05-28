@@ -44,6 +44,16 @@ class Node(models.Model):
         return foreign_keys
 
     @classmethod
+    def _process_foreign_keys(cls, foreign_keys, node_data):
+        """ For each foreign key try to load the actual object so load_bulk
+        doesn't fail trying to load an int where django expects a model instance
+        """
+        for key in foreign_keys.keys():
+            if key in node_data:
+                node_data[key] = foreign_keys[key].objects.get(
+                    pk=node_data[key])
+
+    @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """
         Loads a list/dictionary structure to the tree.
@@ -88,11 +98,7 @@ class Node(models.Model):
             parent, node_struct = stack.pop()
             # shallow copy of the data strucure so it doesn't persist...
             node_data = node_struct['data'].copy()
-            # Process Foreign Keys
-            for key in foreign_keys.keys():
-                if key in node_data:
-                    node_data[key] = foreign_keys[key].objects.get(
-                        pk=node_data[key])
+            cls._process_foreign_keys(foreign_keys, node_data)
             if keep_ids:
                 node_data['id'] = node_struct['id']
             if parent:
