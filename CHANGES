@@ -1,15 +1,16 @@
 
-Release 2.0 (XXX XX, 2012)
----------------------------
+Release 2.0b1 (May 29, 2013)
+----------------------------
+
+This is a beta release.
 
 * Added support for Django 1.5 and Python 3.X
 * Updated docs: the library supports python 2.5+ and Django 1.4+. Dropped
   support for older versions
 * Revamped admin interface for MP and NS trees, supporting drag&drop to reorder
-  nodes. Work on this patch was sponsored by the Oregon Center for
-  Applied Science (http://www.orcasinc.com/), inspired by
-  FeinCMS (http://www.feinheit.ch/media/labs/feincms/admin.html) developed by
-  Jesús del Carpio with tests from Fernando Gutierrez. Thanks ORCAS!
+  nodes. Work on this patch was sponsored by the
+  `Oregon Center for Applied Science`_, inspired by `FeinCMS`_ developed by
+  `Jesús del Carpio`_ with tests from `Fernando Gutierrez`_. Thanks ORCAS!
 * Updated setup.py to use distribute/setuptools instead of distutils
 * Now using pytest for testing
 * Small optimization to ns_tree.is_root
@@ -135,3 +136,9 @@ Release 1.0 (Nov 19, 2008)
 --------------------------
 
 * First public release.
+
+
+.. _Oregon Center for Applied Science: http://www.orcasinc.com/
+.. _FeinCMS: http://www.feinheit.ch/media/labs/feincms/admin.html
+.. _Jesús del Carpio: http://www.isgeek.net
+.. _Fernando Gutierrez: http://xbito.pe
