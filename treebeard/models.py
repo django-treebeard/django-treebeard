@@ -595,7 +595,6 @@ class Node(models.Model):
                 'read': connections[router.db_for_read(cls)],
                 'write': connections[router.db_for_write(cls)]
             }
-        cls._db_connection[action].allow_thread_sharing = True
         return cls._db_connection[action]
 
     @classmethod
