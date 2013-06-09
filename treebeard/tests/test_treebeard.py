@@ -6,16 +6,17 @@ import os
 import sys
 
 from django.contrib.admin.sites import AdminSite
-from django.test import TestCase
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.template import Template, Context
+from django.test import TestCase
 import pytest
 
 from treebeard import numconv
+from treebeard.admin import admin_factory
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy
 from treebeard.forms import movenodeform_factory
-from treebeard.admin import admin_factory
 from treebeard.tests import models
 
 
@@ -2031,3 +2032,18 @@ class TestForm(TestNonEmptyTree):
         assert form.is_valid()
         assert form.save() is not None
         assert original_count < model.objects.all().count()
+
+
+class TestAdminTreeTemplateTags(TestNonEmptyTree):
+    def test_treebeard_css(self):
+        template = Template("{% load admin_tree %}{% treebeard_css %}")
+        context = Context()
+        rendered = template.render(context)
+        assert '<link rel="stylesheet" type="text/css" href="/treebeard/treebeard-admin.css"/>' == rendered
+
+    def test_treebeard_js(self):
+        template = Template("{% load admin_tree %}{% treebeard_js %}")
+        context = Context()
+        rendered = template.render(context)
+        print(rendered)
+        assert '<script type="text/javascript" src="jsi18n"></script><script type="text/javascript" src="/treebeard/treebeard-admin.js"></script><script>(function($){jQuery = $.noConflict(true);})(django.jQuery);</script><script type="text/javascript" src="/treebeard/jquery-ui-1.8.5.custom.min.js"></script>' == rendered
