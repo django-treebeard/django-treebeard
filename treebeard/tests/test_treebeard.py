@@ -6,11 +6,12 @@ import os
 import sys
 
 from django.contrib.admin.sites import AdminSite
+from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.template import Template, Context
 from django.test import TestCase
-from django.test.utils import override_settings
+from django.test.client import RequestFactory
 import pytest
 
 from treebeard import numconv
@@ -2068,3 +2069,119 @@ class TestAdminTreeTemplateTags(TestCase):
             assert get_static_url() == '/media/'
         with self.settings(STATIC_URL='/static/', MEDIA_URL='/media/'):
             assert get_static_url() == '/static/'
+
+
+class TestAdminTree(TestNonEmptyTree):
+    def test_result_tree(self, model_without_proxy):
+        """
+        Verifies that inclusion tag result_list generates a table when with
+        default ModelAdmin settings.
+        """
+        model = model_without_proxy
+        request = RequestFactory().get('/admin/tree/')
+        site = AdminSite()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        m = admin_class(model, site)
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m)
+        cl.formset = None
+        template = Template('{% load admin_tree %}{% spaceless %}{% result_tree cl request %}{% endspaceless %}')
+        context = Context({'cl': cl,
+                           'request': request})
+        table_output = template.render(context)
+        assert table_output.startswith('<table cellspacing="0" id="result_list"><thead><tr><th class="oder-grabber"><a href="/admin/tree/"')
+
+        context = Context({'cl': cl,
+                           'request': request,
+                           'action_form': True})
+        table_output = template.render(context)
+        print(table_output)
+        assert table_output.startswith('<table cellspacing="0" id="result_list"><thead><tr><th>')
+
+
+class TestAdminTreeList(TestNonEmptyTree):
+    template = Template('{% load admin_tree_list %}{% spaceless %}'
+                        '{% result_tree cl request %}{% endspaceless %}')
+
+    def test_result_tree_list(self, model_without_proxy):
+        """
+        Verifies that inclusion tag result_list generates a table when with
+        default ModelAdmin settings.
+        """
+        model = model_without_proxy
+        request = RequestFactory().get('/admin/tree/')
+        site = AdminSite()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        m = admin_class(model, site)
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m)
+        cl.formset = None
+        context = Context({'cl': cl,
+                           'request': request})
+        table_output = self.template.render(context)
+
+        output_template = '<li><a href="%i/" >Node %i</a>'
+        for object in model.objects.all():
+            expected_output = output_template % (object.pk, object.pk)
+            assert expected_output in table_output
+
+    def test_result_tree_list_with_action(self, model_without_proxy):
+        model = model_without_proxy
+        request = RequestFactory().get('/admin/tree/')
+        site = AdminSite()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        m = admin_class(model, site)
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m)
+        cl.formset = None
+        context = Context({'cl': cl,
+                           'request': request,
+                           'action_form': True})
+        table_output = self.template.render(context)
+        output_template = ('<input type="checkbox" class="action-select" '
+                           'value="%i" name="_selected_action" />'
+                           '<a href="%i/" >Node %i</a>')
+        print(table_output)
+        for object in model.objects.all():
+            expected_output = output_template % (object.pk, object.pk,
+                                                 object.pk)
+            assert expected_output in table_output
+
+    def test_result_tree_list_with_get(self, model_without_proxy):
+        model = model_without_proxy
+        # Test t GET parameter with value id
+        request = RequestFactory().get('/admin/tree/?t=id')
+        site = AdminSite()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        m = admin_class(model, site)
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m)
+        cl.formset = None
+        context = Context({'cl': cl,
+                           'request': request})
+        table_output = self.template.render(context)
+        output_template = "opener.dismissRelatedLookupPopup(window, '%i');"
+        for object in model.objects.all():
+            expected_output = output_template % object.pk
+            assert expected_output in table_output
+
