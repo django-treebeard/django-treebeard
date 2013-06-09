@@ -208,8 +208,6 @@ def get_static_url():
         path = getattr(settings, 'MEDIA_URL', None)
     if not path:
         path = '/'
-    if not path.endswith('/'):
-        path += '/'
     return path
 
 
