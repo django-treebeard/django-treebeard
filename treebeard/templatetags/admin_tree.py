@@ -35,6 +35,72 @@ else:
 from treebeard.templatetags import needs_checkboxes
 
 
+def get_result_and_row_class(cl, field_name, result):
+    row_class = ''
+    try:
+        f, attr, value = lookup_field(field_name, result, cl.model_admin)
+    except ObjectDoesNotExist:
+        result_repr = EMPTY_CHANGELIST_VALUE
+    else:
+        if f is None:
+            if field_name == 'action_checkbox':
+                row_class = mark_safe(' class="action-checkbox"')
+            allow_tags = getattr(attr, 'allow_tags', False)
+            boolean = getattr(attr, 'boolean', False)
+            if boolean:
+                allow_tags = True
+            result_repr = display_for_value(value, boolean)
+            # Strip HTML tags in the resulting text, except if the
+            # function has an "allow_tags" attribute set to True.
+            if allow_tags:
+                result_repr = mark_safe(result_repr)
+            if isinstance(value, (datetime.date, datetime.time)):
+                row_class = mark_safe(' class="nowrap"')
+        else:
+            if isinstance(f.rel, models.ManyToOneRel):
+                field_val = getattr(result, f.name)
+                if field_val is None:
+                    result_repr = EMPTY_CHANGELIST_VALUE
+                else:
+                    result_repr = field_val
+            else:
+                result_repr = display_for_field(value, f)
+            if isinstance(f, (models.DateField, models.TimeField,
+                              models.ForeignKey)):
+                row_class = mark_safe(' class="nowrap"')
+        if force_str(result_repr) == '':
+            result_repr = mark_safe('&nbsp;')
+    return result_repr, row_class
+
+
+def get_spacer(first, result):
+    if first:
+        spacer = '<span class="spacer">&nbsp;</span>' * (
+            result.get_depth() - 1)
+    else:
+        spacer = ''
+
+    return spacer
+
+
+def get_collapse(result):
+    if result.get_children_count():
+        collapse = ('<a href="#" title="" class="collapse expanded">'
+                    '-</a>')
+    else:
+        collapse = '<span class="collapse">&nbsp;</span>'
+
+    return collapse
+
+
+def get_drag_handler(first):
+    drag_handler = ''
+    if first:
+        drag_handler = ('<td class="drag-handler">'
+                        '<span>&nbsp;</span></td>')
+    return drag_handler
+
+
 def items_for_result(cl, result, form):
     """
     Generates the actual list of data.
@@ -47,66 +113,19 @@ def items_for_result(cl, result, form):
     first = True
     pk = cl.lookup_opts.pk.attname
     for field_name in cl.list_display:
-        row_class = ''
-        try:
-            f, attr, value = lookup_field(field_name, result, cl.model_admin)
-        except ObjectDoesNotExist:
-            result_repr = EMPTY_CHANGELIST_VALUE
-        else:
-            if f is None:
-                if field_name == 'action_checkbox':
-                    row_class = mark_safe(' class="action-checkbox"')
-                allow_tags = getattr(attr, 'allow_tags', False)
-                boolean = getattr(attr, 'boolean', False)
-                if boolean:
-                    allow_tags = True
-                result_repr = display_for_value(value, boolean)
-                # Strip HTML tags in the resulting text, except if the
-                # function has an "allow_tags" attribute set to True.
-                if allow_tags:
-                    result_repr = mark_safe(result_repr)
-                if isinstance(value, (datetime.date, datetime.time)):
-                    row_class = mark_safe(' class="nowrap"')
-            else:
-                if isinstance(f.rel, models.ManyToOneRel):
-                    field_val = getattr(result, f.name)
-                    if field_val is None:
-                        result_repr = EMPTY_CHANGELIST_VALUE
-                    else:
-                        result_repr = field_val
-                else:
-                    result_repr = display_for_field(value, f)
-                if isinstance(f, (models.DateField, models.TimeField,
-                                  models.ForeignKey)):
-                    row_class = mark_safe(' class="nowrap"')
-        if force_str(result_repr) == '':
-            result_repr = mark_safe('&nbsp;')
+        result_repr, row_class = get_result_and_row_class(cl, field_name,
+                                                          result)
         # If list_display_links not defined, add the link tag to the
         # first field
         if (first and not cl.list_display_links) or \
-                        field_name in cl.list_display_links:
-            table_tag = {True:'th', False:'td'}[first]
+           field_name in cl.list_display_links:
+            table_tag = {True: 'th', False: 'td'}[first]
             # This spacer indents the nodes based on their depth
-            if first:
-                spacer = '<span class="spacer">&nbsp;</span>' * (
-                    result.get_depth() - 1)
-            else:
-                spacer = ''
-
+            spacer = get_spacer(first, result)
             # This shows a collapse or expand link for nodes with childs
-            if result.get_children_count():
-                collapse = ('<a href="#" title="" class="collapse expanded">'
-                            '-</a>')
-            else:
-                collapse = '<span class="collapse">&nbsp;</span>'
-
+            collapse = get_collapse(result)
             # Add a <td/> before the first col to show the drag handler
-            drag_handler = ''
-
-            if first:
-                drag_handler = ('<td class="drag-handler">'
-                                '<span>&nbsp;</span></td>')
-
+            drag_handler = get_drag_handler(first)
             first = False
             url = cl.url_for_result(result)
             # Convert the pk to something that can be used in Javascript.
