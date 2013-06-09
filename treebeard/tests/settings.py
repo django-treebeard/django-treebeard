@@ -56,3 +56,5 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'treebeard',
     'treebeard.tests']
+
+ROOT_URLCONF = 'treebeard.tests.urls'
