@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.template import Template, Context
 from django.test import TestCase
+from django.test.utils import override_settings
 import pytest
 
 from treebeard import numconv
@@ -17,6 +18,7 @@ from treebeard.admin import admin_factory
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy
 from treebeard.forms import movenodeform_factory
+from treebeard.templatetags.admin_tree import get_static_url
 from treebeard.tests import models
 
 
@@ -2034,7 +2036,7 @@ class TestForm(TestNonEmptyTree):
         assert original_count < model.objects.all().count()
 
 
-class TestAdminTreeTemplateTags(TestNonEmptyTree):
+class TestAdminTreeTemplateTags(TestCase):
     def test_treebeard_css(self):
         template = Template("{% load admin_tree %}{% treebeard_css %}")
         context = Context()
@@ -2056,3 +2058,13 @@ class TestAdminTreeTemplateTags(TestNonEmptyTree):
                     '<script type="text/javascript" '
                     'src="/treebeard/jquery-ui-1.8.5.custom.min.js"></script>')
         assert expected == rendered
+
+    def test_get_static_url(self):
+        with self.settings(STATIC_URL=None, MEDIA_URL=None):
+            assert get_static_url() == '/'
+        with self.settings(STATIC_URL='/static/', MEDIA_URL=None):
+            assert get_static_url() == '/static/'
+        with self.settings(STATIC_URL=None, MEDIA_URL='/media/'):
+            assert get_static_url() == '/media/'
+        with self.settings(STATIC_URL='/static/', MEDIA_URL='/media/'):
+            assert get_static_url() == '/static/'
