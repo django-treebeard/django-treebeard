@@ -76,7 +76,8 @@ def items_for_result(cl, result, form):
                         result_repr = field_val
                 else:
                     result_repr = display_for_field(value, f)
-                if isinstance(f, (models.DateField, models.TimeField, models.ForeignKey)):
+                if isinstance(f, (models.DateField, models.TimeField,
+                                  models.ForeignKey)):
                     row_class = mark_safe(' class="nowrap"')
         if force_str(result_repr) == '':
             result_repr = mark_safe('&nbsp;')
@@ -125,9 +126,9 @@ def items_for_result(cl, result, form):
                     (cl.is_popup and onclickstr % result_id or ''),
                     conditional_escape(result_repr), table_tag))
         else:
-            # By default the fields come from ModelAdmin.list_editable, but if we pull
-            # the fields out of the form instead of list_editable custom admins
-            # can provide fields on a per request basis
+            # By default the fields come from ModelAdmin.list_editable, but if
+            # we pull the fields out of the form instead of list_editable
+            # custom admins can provide fields on a per request basis
             if (form and field_name in form.fields and not (
                     field_name == cl.model._meta.pk.name and
                         form[cl.model._meta.pk.name].is_hidden)):
@@ -135,7 +136,8 @@ def items_for_result(cl, result, form):
                 result_repr = mark_safe(force_str(bf.errors) + force_str(bf))
             yield format_html('<td{0}>{1}</td>', row_class, result_repr)
     if form and not form[cl.model._meta.pk.name].is_hidden:
-        yield format_html('<td>{0}</td>', force_str(form[cl.model._meta.pk.name]))
+        yield format_html('<td>{0}</td>',
+                          force_str(form[cl.model._meta.pk.name]))
 
 
 def get_parent_id(node):
