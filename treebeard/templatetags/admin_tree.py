@@ -5,17 +5,19 @@ nodes change list - @jjdelc
 
 """
 
+import datetime
 import sys
 
 from django.db import models
 from django.conf import settings
 from django.contrib.admin.templatetags.admin_list import (
-    _boolean_icon, result_headers, result_hidden_fields)
-from django.contrib.admin.util import display_for_field, lookup_field
+    result_headers, result_hidden_fields)
+from django.contrib.admin.util import (lookup_field, display_for_field,
+    display_for_value)
 from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
 from django.core.exceptions import ObjectDoesNotExist
 from django.template import Library
-from django.utils.html import conditional_escape, escape
+from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
@@ -48,38 +50,41 @@ def items_for_result(cl, result, form):
         row_class = ''
         try:
             f, attr, value = lookup_field(field_name, result, cl.model_admin)
-        except (AttributeError, ObjectDoesNotExist):
+        except ObjectDoesNotExist:
             result_repr = EMPTY_CHANGELIST_VALUE
         else:
             if f is None:
-                if getattr(attr, 'boolean', False):
+                if field_name == 'action_checkbox':
+                    row_class = mark_safe(' class="action-checkbox"')
+                allow_tags = getattr(attr, 'allow_tags', False)
+                boolean = getattr(attr, 'boolean', False)
+                if boolean:
                     allow_tags = True
-                    result_repr = _boolean_icon(value)
-                else:
-                    allow_tags = getattr(attr, 'allow_tags', False)
-                    result_repr = smart_str(value)
+                result_repr = display_for_value(value, boolean)
+                # Strip HTML tags in the resulting text, except if the
+                # function has an "allow_tags" attribute set to True.
                 if allow_tags:
                     result_repr = mark_safe(result_repr)
-                else:
-                    # strip HTML tags
-                    result_repr = escape(result_repr)
+                if isinstance(value, (datetime.date, datetime.time)):
+                    row_class = mark_safe(' class="nowrap"')
             else:
                 if isinstance(f.rel, models.ManyToOneRel):
-                    result_repr = escape(getattr(result, f.name))
+                    field_val = getattr(result, f.name)
+                    if field_val is None:
+                        result_repr = EMPTY_CHANGELIST_VALUE
+                    else:
+                        result_repr = field_val
                 else:
                     result_repr = display_for_field(value, f)
-                if isinstance(f, (models.DateField, models.TimeField)):
-                    row_class = ' class="nowrap"'
+                if isinstance(f, (models.DateField, models.TimeField, models.ForeignKey)):
+                    row_class = mark_safe(' class="nowrap"')
         if force_str(result_repr) == '':
             result_repr = mark_safe('&nbsp;')
         # If list_display_links not defined, add the link tag to the
         # first field
-        if (
-            (first and not cl.list_display_links) or
-            field_name in cl.list_display_links
-        ):
-            table_tag = {True: 'th', False: 'td'}[first]
-
+        if (first and not cl.list_display_links) or \
+                        field_name in cl.list_display_links:
+            table_tag = {True:'th', False:'td'}[first]
             # This spacer indents the nodes based on their depth
             if first:
                 spacer = '<span class="spacer">&nbsp;</span>' * (
@@ -120,20 +125,17 @@ def items_for_result(cl, result, form):
                     (cl.is_popup and onclickstr % result_id or ''),
                     conditional_escape(result_repr), table_tag))
         else:
-            # By default the fields come from ModelAdmin.list_editable, but
-            # if we pull the fields out of the form instead of
-            # list_editable custom admins can provide fields on a per
-            # request basis
-            if form and field_name in form.fields:
+            # By default the fields come from ModelAdmin.list_editable, but if we pull
+            # the fields out of the form instead of list_editable custom admins
+            # can provide fields on a per request basis
+            if (form and field_name in form.fields and not (
+                    field_name == cl.model._meta.pk.name and
+                        form[cl.model._meta.pk.name].is_hidden)):
                 bf = form[field_name]
-                result_repr = mark_safe(
-                    force_str(bf.errors) + force_str(bf))
-            else:
-                result_repr = conditional_escape(result_repr)
-            yield mark_safe('<td%s>%s</td>' % (row_class, result_repr))
+                result_repr = mark_safe(force_str(bf.errors) + force_str(bf))
+            yield format_html('<td{0}>{1}</td>', row_class, result_repr)
     if form and not form[cl.model._meta.pk.name].is_hidden:
-        yield mark_safe(
-            '<td>%s</td>' % force_str(form[cl.model._meta.pk.name]))
+        yield format_html('<td>{0}</td>', force_str(form[cl.model._meta.pk.name]))
 
 
 def get_parent_id(node):
@@ -231,12 +233,10 @@ def treebeard_js():
     # Jquery UI is needed to call disableSelection() on drag and drop so
     # text selections arent marked while dragging a table row
     # http://www.lokkju.com/blog/archives/143
-    JQUERY_UI = """
-    <script>
-      (function($){jQuery = $.noConflict(true);})(django.jQuery);
-    </script>
-    <script type="text/javascript" src="%s"></script>
-    """
+    JQUERY_UI = ("<script>"
+                 "(function($){jQuery = $.noConflict(true);})(django.jQuery);"
+                 "</script>"
+                 "<script type=\"text/javascript\" src=\"%s\"></script>")
     jquery_ui = urljoin(path, 'treebeard/jquery-ui-1.8.5.custom.min.js')
 
     scripts = [SCRIPT_HTML % 'jsi18n',
