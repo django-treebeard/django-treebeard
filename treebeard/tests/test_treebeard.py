@@ -2072,6 +2072,9 @@ class TestAdminTreeTemplateTags(TestCase):
 
 
 class TestAdminTree(TestNonEmptyTree):
+    template = Template('{% load admin_tree %}{% spaceless %}'
+                        '{% result_tree cl request %}{% endspaceless %}')
+
     def test_result_tree(self, model_without_proxy):
         """
         Verifies that inclusion tag result_list generates a table when with
@@ -2090,19 +2093,76 @@ class TestAdminTree(TestNonEmptyTree):
                         m.list_select_related, m.list_per_page,
                         m.list_max_show_all, m.list_editable, m)
         cl.formset = None
-        template = Template('{% load admin_tree %}{% spaceless %}{% result_tree cl request %}{% endspaceless %}')
         context = Context({'cl': cl,
                            'request': request})
-        table_output = template.render(context)
-        assert table_output.startswith('<table cellspacing="0" id="result_list"><thead><tr><th class="oder-grabber"><a href="/admin/tree/"')
+        table_output = self.template.render(context)
+        # We have the same amount of drag handlers as objects
+        drag_handler = '<td class="drag-handler"><span>&nbsp;</span></td>'
+        assert table_output.count(drag_handler) == model.objects.count()
+        # All nodes are in the result tree
+        for object in model.objects.all():
+            url = cl.url_for_result(object)
+            node = '<a href="%s">Node %i</a>' % (url, object.pk)
+            assert node in table_output
+        # Unfiltered
+        assert '<input type="hidden" id="has-filters" value="0"/>' in \
+               table_output
 
+    def test_result_filtered(self, model_without_proxy):
+        """ Test template changes with filters or pagination.
+        """
+        model = model_without_proxy
+        # Filtered GET
+        request = RequestFactory().get('/admin/tree/?desc=1')
+        site = AdminSite()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        m = admin_class(model, site)
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m)
+        cl.formset = None
         context = Context({'cl': cl,
-                           'request': request,
-                           'action_form': True})
-        table_output = template.render(context)
-        print(table_output)
-        assert table_output.startswith('<table cellspacing="0" id="result_list"><thead><tr><th>')
+                           'request': request})
+        table_output = self.template.render(context)
+        # Filtered
+        assert '<input type="hidden" id="has-filters" value="1"/>' in \
+               table_output
 
+        # Not Filtered GET, it should ignore pagination
+        request = RequestFactory().get('/admin/tree/?p=1')
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m)
+        cl.formset = None
+        context = Context({'cl': cl,
+                           'request': request})
+        table_output = self.template.render(context)
+        # Not Filtered
+        assert '<input type="hidden" id="has-filters" value="0"/>' in \
+               table_output
+
+        # Not Filtered GET, it should ignore all
+        request = RequestFactory().get('/admin/tree/?all=1')
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m)
+        cl.formset = None
+        context = Context({'cl': cl,
+                           'request': request})
+        table_output = self.template.render(context)
+        # Not Filtered
+        assert '<input type="hidden" id="has-filters" value="0"/>' in \
+               table_output
 
 class TestAdminTreeList(TestNonEmptyTree):
     template = Template('{% load admin_tree_list %}{% spaceless %}'
