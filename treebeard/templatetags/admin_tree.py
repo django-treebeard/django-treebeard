@@ -12,12 +12,11 @@ from django.db import models
 from django.conf import settings
 from django.contrib.admin.templatetags.admin_list import (
     result_headers, result_hidden_fields)
-from django.contrib.admin.util import (lookup_field, display_for_field,
-    display_for_value)
+from django.contrib.admin.util import lookup_field, display_for_field
 from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
 from django.core.exceptions import ObjectDoesNotExist
 from django.template import Library
-from django.utils.html import conditional_escape, format_html
+from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
@@ -31,6 +30,13 @@ else:
     from django.utils.encoding import force_unicode as force_str
     from django.utils.encoding import smart_unicode as smart_str
     from urlparse import urljoin
+
+
+try:
+    from django.contrib.admin.util import display_for_value
+    from django.utils.html import format_html
+except ImportError:
+    from treebeard.templatetags import display_for_value, format_html
 
 from treebeard.templatetags import needs_checkboxes
 
