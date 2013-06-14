@@ -17,7 +17,7 @@ def needs_checkboxes(context):
         return False
 
 
-def display_for_value(value, boolean=False):
+def display_for_value(value, boolean=False):  # pragma: no cover
     """ Added for compatibility with django 1.4, copied from django trunk.
     """
     from django.contrib.admin.templatetags.admin_list import _boolean_icon
@@ -37,7 +37,7 @@ def display_for_value(value, boolean=False):
         return smart_text(value)
 
 
-def format_html(format_string, *args, **kwargs):
+def format_html(format_string, *args, **kwargs):  # pragma: no cover
     """
     Added for compatibility with django 1.4, copied from django trunk.
 
