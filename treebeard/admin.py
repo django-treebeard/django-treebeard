@@ -52,6 +52,30 @@ class TreeAdmin(admin.ModelAdmin):
     def get_node(self, node_id):
         return self.model.objects.get(pk=node_id)
 
+    def try_to_move_node(self, as_child, node, pos, request, target):
+        try:
+            node.move(target, pos=pos)
+            # Call the save method on the (reloaded) node in order to trigger
+            # possible signal handlers etc.
+            node = self.get_node(node.pk)
+            node.save()
+        except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,
+                InvalidPosition):
+            e = sys.exc_info()[1]
+            # An error was raised while trying to move the node, then set an
+            # error message and return 400, this will cause a reload on the
+            # client to show the message
+            messages.error(request,
+                           _('Exception raised while moving node: %s') % _(
+                               force_str(e)))
+            return HttpResponseBadRequest('Exception raised during move')
+        if as_child:
+            msg = _('Moved node "%(node)s" as child of "%(other)s"')
+        else:
+            msg = _('Moved node "%(node)s" as sibling of "%(other)s"')
+        messages.info(request, msg % {'node': node, 'other': target})
+        return HttpResponse('OK')
+
     def move_node(self, request):
         try:
             node_id = request.POST['node_id']
@@ -72,31 +96,7 @@ class TreeAdmin(admin.ModelAdmin):
             (False, False): 'left',
         }[as_child, is_sorted]
 
-        try:
-            node.move(target, pos=pos)
-            # Call the save method on the (reloaded) node in order to trigger
-            # possible signal handlers etc.
-            node = self.get_node(node.pk)
-            node.save()
-        except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant,
-                InvalidPosition):
-            e = sys.exc_info()[1]
-            # An error was raised while trying to move the node, then set an
-            # error message and return 400, this will cause a reload on the
-            # client to show the message
-            # error message and return 400, this will cause a reload on
-            # the client to show the message
-            messages.error(request,
-                           _('Exception raised while moving node: %s') % _(
-                               force_str(e)))
-            return HttpResponseBadRequest('Exception raised during move')
-
-        if as_child:
-            msg = _('Moved node "%(node)s" as child of "%(other)s"')
-        else:
-            msg = _('Moved node "%(node)s" as sibling of "%(other)s"')
-        messages.info(request, msg % {'node': node, 'other': target})
-        return HttpResponse('OK')
+        return self.try_to_move_node(as_child, node, pos, request, target)
 
 
 def admin_factory(form_class):
