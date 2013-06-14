@@ -2164,6 +2164,7 @@ class TestAdminTree(TestNonEmptyTree):
         assert '<input type="hidden" id="has-filters" value="0"/>' in \
                table_output
 
+
 class TestAdminTreeList(TestNonEmptyTree):
     template = Template('{% load admin_tree_list %}{% spaceless %}'
                         '{% result_tree cl request %}{% endspaceless %}')
@@ -2245,3 +2246,37 @@ class TestAdminTreeList(TestNonEmptyTree):
             expected_output = output_template % object.pk
             assert expected_output in table_output
 
+
+class TestTreeAdmin(TestNonEmptyTree):
+
+    def _create_superuser(self, username):
+        return User.objects.create(username=username, is_superuser=True)
+
+    def _mocked_authenticated_request(self, url, user):
+        request_factory = RequestFactory()
+        request = request_factory.get(url)
+        request.user = user
+        return request
+
+    def test_changelist_view(self):
+        tmp_user = self._create_superuser('changelist_tmp')
+        request = self._mocked_authenticated_request('/', tmp_user)
+        site = AdminSite()
+        form_class = movenodeform_factory(models.AL_TestNode)
+        admin_class = admin_factory(form_class)
+        admin_obj = admin_class(models.AL_TestNode, site)
+        admin_obj.changelist_view(request)
+        assert admin_obj.change_list_template == 'admin/tree_list.html'
+
+        form_class = movenodeform_factory(models.MP_TestNode)
+        admin_class = admin_factory(form_class)
+        admin_obj = admin_class(models.MP_TestNode, site)
+        admin_obj.changelist_view(request)
+        assert admin_obj.change_list_template != 'admin/tree_list.html'
+
+    def test_get_node(self, model):
+        site = AdminSite()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        admin_obj = admin_class(model, site)
+        assert admin_obj.get_node(1) == model.objects.get(pk=1)
