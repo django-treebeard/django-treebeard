@@ -2260,32 +2260,30 @@ class TestTreeAdmin(TestNonEmptyTree):
         request.user = user
         return request
 
+    def _get_admin_obj(self, model_class):
+        form_class = movenodeform_factory(model_class)
+        admin_class = admin_factory(form_class)
+        return admin_class(model_class, self.site)
+
+
     def test_changelist_view(self):
         tmp_user = self._create_superuser('changelist_tmp')
         request = self._mocked_authenticated_request('/', tmp_user)
-        form_class = movenodeform_factory(models.AL_TestNode)
-        admin_class = admin_factory(form_class)
-        admin_obj = admin_class(models.AL_TestNode, self.site)
+        admin_obj = self._get_admin_obj(models.AL_TestNode)
         admin_obj.changelist_view(request)
         assert admin_obj.change_list_template == 'admin/tree_list.html'
 
-        form_class = movenodeform_factory(models.MP_TestNode)
-        admin_class = admin_factory(form_class)
-        admin_obj = admin_class(models.MP_TestNode, self.site)
+        admin_obj = self._get_admin_obj(models.MP_TestNode)
         admin_obj.changelist_view(request)
         assert admin_obj.change_list_template != 'admin/tree_list.html'
 
     def test_get_node(self, model):
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        admin_obj = admin_class(model, self.site)
+        admin_obj = self._get_admin_obj(model)
         assert admin_obj.get_node(1) == model.objects.get(pk=1)
 
     def test_move_node_validate_keyerror(self, model):
         request_factory = RequestFactory()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        admin_obj = admin_class(model, self.site)
+        admin_obj = self._get_admin_obj(model)
         request = request_factory.post('/', data={})
         response = admin_obj.move_node(request)
         assert response.status_code == 400
@@ -2295,9 +2293,7 @@ class TestTreeAdmin(TestNonEmptyTree):
 
     def test_move_node_validate_valueerror(self, model):
         request_factory = RequestFactory()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        admin_obj = admin_class(model, self.site)
+        admin_obj = self._get_admin_obj(model)
         request = request_factory.post('/', data={'node_id': 1,
                                                   'sibling_id': 2,
                                                   'as_child': 'invalid'})
@@ -2307,9 +2303,7 @@ class TestTreeAdmin(TestNonEmptyTree):
     def test_move_validate_missing_nodeorderby(self, model):
         node = model.objects.get(desc='231')
         request_factory = RequestFactory()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        admin_obj = admin_class(model, self.site)
+        admin_obj = self._get_admin_obj(model)
         request = request_factory.post('/', data={})
         setattr(request, 'session', 'session')
         messages = FallbackStorage(request)
@@ -2325,9 +2319,7 @@ class TestTreeAdmin(TestNonEmptyTree):
     def test_move_validate_invalid_pos(self, model):
         node = model.objects.get(desc='231')
         request_factory = RequestFactory()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        admin_obj = admin_class(model, self.site)
+        admin_obj = self._get_admin_obj(model)
         request = request_factory.post('/', data={})
         setattr(request, 'session', 'session')
         messages = FallbackStorage(request)
@@ -2340,9 +2332,7 @@ class TestTreeAdmin(TestNonEmptyTree):
         node = model.objects.get(desc='2')
         target = model.objects.get(desc='231')
         request_factory = RequestFactory()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        admin_obj = admin_class(model, self.site)
+        admin_obj = self._get_admin_obj(model)
         request = request_factory.post('/', data={})
         setattr(request, 'session', 'session')
         messages = FallbackStorage(request)
@@ -2355,9 +2345,7 @@ class TestTreeAdmin(TestNonEmptyTree):
     #     node = model.objects.get(desc='41')
     #     target = model.objects.get(desc='2')
     #     request_factory = RequestFactory()
-    #     form_class = movenodeform_factory(model)
-    #     admin_class = admin_factory(form_class)
-    #     admin_obj = admin_class(model, self.site)
+    #     admin_obj = self._get_admin_obj(model)
     #     request = request_factory.post('/', data={'node_id': node.pk,
     #                                               'sibling_id': target.pk,
     #                                               'as_child': 1})
