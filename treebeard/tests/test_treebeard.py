@@ -9,6 +9,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.http import HttpResponseBadRequest
 from django.template import Template, Context
 from django.test import TestCase
 from django.test.client import RequestFactory
@@ -2248,7 +2249,7 @@ class TestAdminTreeList(TestNonEmptyTree):
 
 
 class TestTreeAdmin(TestNonEmptyTree):
-
+    site = AdminSite()
     def _create_superuser(self, username):
         return User.objects.create(username=username, is_superuser=True)
 
@@ -2261,22 +2262,45 @@ class TestTreeAdmin(TestNonEmptyTree):
     def test_changelist_view(self):
         tmp_user = self._create_superuser('changelist_tmp')
         request = self._mocked_authenticated_request('/', tmp_user)
-        site = AdminSite()
         form_class = movenodeform_factory(models.AL_TestNode)
         admin_class = admin_factory(form_class)
-        admin_obj = admin_class(models.AL_TestNode, site)
+        admin_obj = admin_class(models.AL_TestNode, self.site)
         admin_obj.changelist_view(request)
         assert admin_obj.change_list_template == 'admin/tree_list.html'
 
         form_class = movenodeform_factory(models.MP_TestNode)
         admin_class = admin_factory(form_class)
-        admin_obj = admin_class(models.MP_TestNode, site)
+        admin_obj = admin_class(models.MP_TestNode, self.site)
         admin_obj.changelist_view(request)
         assert admin_obj.change_list_template != 'admin/tree_list.html'
 
     def test_get_node(self, model):
-        site = AdminSite()
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
-        admin_obj = admin_class(model, site)
+        admin_obj = admin_class(model, self.site)
         assert admin_obj.get_node(1) == model.objects.get(pk=1)
+
+    def test_move_node_validate_keyerror(self, model):
+        request_factory = RequestFactory()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        admin_obj = admin_class(model, self.site)
+        request = request_factory.post('/', data={})
+        response = admin_obj.move_node(request)
+        assert response.status_code == 400
+        request = request_factory.post('/', data={'node_id': 1})
+        response = admin_obj.move_node(request)
+        assert response.status_code == 400
+
+    def test_move_node_validate_valueerror(self, model):
+        request_factory = RequestFactory()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        admin_obj = admin_class(model, self.site)
+        request = request_factory.post('/', data={'node_id': 1,
+                                                  'sibling_id': 2,
+                                                  'as_child': 'invalid'})
+        response = admin_obj.move_node(request)
+        assert response.status_code == 400
+
+
