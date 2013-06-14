@@ -8,8 +8,8 @@ import sys
 from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import User
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.db.models import Q
-from django.http import HttpResponseBadRequest
 from django.template import Template, Context
 from django.test import TestCase
 from django.test.client import RequestFactory
@@ -2250,6 +2250,7 @@ class TestAdminTreeList(TestNonEmptyTree):
 
 class TestTreeAdmin(TestNonEmptyTree):
     site = AdminSite()
+
     def _create_superuser(self, username):
         return User.objects.create(username=username, is_superuser=True)
 
@@ -2302,5 +2303,80 @@ class TestTreeAdmin(TestNonEmptyTree):
                                                   'as_child': 'invalid'})
         response = admin_obj.move_node(request)
         assert response.status_code == 400
+
+    def test_move_validate_missing_nodeorderby(self, model):
+        node = model.objects.get(desc='231')
+        request_factory = RequestFactory()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        admin_obj = admin_class(model, self.site)
+        request = request_factory.post('/', data={})
+        setattr(request, 'session', 'session')
+        messages = FallbackStorage(request)
+        setattr(request, '_messages', messages)
+        response = admin_obj.try_to_move_node(True, node, 'sorted-child',
+                                              request, target=node)
+        assert response.status_code == 400
+
+        response = admin_obj.try_to_move_node(True, node, 'sorted-sibling',
+                                              request, target=node)
+        assert response.status_code == 400
+
+    def test_move_validate_invalid_pos(self, model):
+        node = model.objects.get(desc='231')
+        request_factory = RequestFactory()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        admin_obj = admin_class(model, self.site)
+        request = request_factory.post('/', data={})
+        setattr(request, 'session', 'session')
+        messages = FallbackStorage(request)
+        setattr(request, '_messages', messages)
+        response = admin_obj.try_to_move_node(True, node, 'invalid_pos',
+                                              request, target=node)
+        assert response.status_code == 400
+
+    def test_move_validate_to_descendant(self, model):
+        node = model.objects.get(desc='2')
+        target = model.objects.get(desc='231')
+        request_factory = RequestFactory()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        admin_obj = admin_class(model, self.site)
+        request = request_factory.post('/', data={})
+        setattr(request, 'session', 'session')
+        messages = FallbackStorage(request)
+        setattr(request, '_messages', messages)
+        response = admin_obj.try_to_move_node(True, node, 'first-sibling',
+                                              request, target)
+        assert response.status_code == 400
+
+    # def test_move(self, model):
+    #     node = model.objects.get(desc='41')
+    #     target = model.objects.get(desc='2')
+    #     request_factory = RequestFactory()
+    #     form_class = movenodeform_factory(model)
+    #     admin_class = admin_factory(form_class)
+    #     admin_obj = admin_class(model, self.site)
+    #     request = request_factory.post('/', data={'node_id': node.pk,
+    #                                               'sibling_id': target.pk,
+    #                                               'as_child': 1})
+    #     setattr(request, 'session', 'session')
+    #     messages = FallbackStorage(request)
+    #     setattr(request, '_messages', messages)
+    #     response = admin_obj.move_node(request)
+    #     assert response.status_code == 200
+    #     expected = [('1', 1, 0),
+    #                 ('41', 1, 0),
+    #                 ('2', 1, 4),
+    #                 ('21', 2, 0),
+    #                 ('22', 2, 0),
+    #                 ('23', 2, 1),
+    #                 ('231', 3, 0),
+    #                 ('24', 2, 0),
+    #                 ('3', 1, 0),
+    #                 ('4', 1, 0)]
+    #     assert self.got(model) == expected
+
 
 
