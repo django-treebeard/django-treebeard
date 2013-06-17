@@ -2286,7 +2286,8 @@ class TestTreeAdmin(TestNonEmptyTree):
 
     def test_get_node(self, model):
         admin_obj = self._get_admin_obj(model)
-        assert admin_obj.get_node(1) == model.objects.get(pk=1)
+        target = model.objects.get(desc='2')
+        assert admin_obj.get_node(target.pk) == target
 
     def test_move_node_validate_keyerror(self, model):
         admin_obj = self._get_admin_obj(model)
