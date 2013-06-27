@@ -72,7 +72,7 @@
 
         // begin csrf token code
         // Taken from http://docs.djangoproject.com/en/dev/ref/contrib/csrf/#ajax
-        $('html').ajaxSend(function (event, xhr, settings) {
+        $(document).ajaxSend(function (event, xhr, settings) {
             function getCookie(name) {
                 var cookieValue = null;
                 if (document.cookie && document.cookie != '') {
@@ -301,7 +301,7 @@
     function c(g, e) {
         var f;
         do {
-            f = d.curCSS(g, e);
+            f = d.css(g, e);
             if (f != "" && f != "transparent" || d.nodeName(g, "body")) {
                 break
             }
