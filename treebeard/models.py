@@ -590,12 +590,10 @@ class Node(models.Model):
 
     @classmethod
     def _get_database_connection(cls, action):
-        if cls._db_connection is None:
-            cls._db_connection = {
-                'read': connections[router.db_for_read(cls)],
-                'write': connections[router.db_for_write(cls)]
-            }
-        return cls._db_connection[action]
+        return {
+            'read': connections[router.db_for_read(cls)],
+            'write': connections[router.db_for_write(cls)]
+            }[action]
 
     @classmethod
     def get_database_vendor(cls, action):
