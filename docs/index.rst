@@ -38,6 +38,7 @@ Contents
    admin
    forms
    exceptions
+   caveats
    benchmarks
    tests
    changes
