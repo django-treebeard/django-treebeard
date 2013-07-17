@@ -30,7 +30,7 @@ setup_args = dict(
     author='Gustavo Picon',
     author_email='tabo@tabo.pe',
     license='Apache License 2.0',
-    packages=['treebeard', 'treebeard.templatetags'],
+    packages=['treebeard', 'treebeard.templatetags','treebeard.tests'],
     package_dir={'treebeard': 'treebeard'},
     package_data={
         'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
