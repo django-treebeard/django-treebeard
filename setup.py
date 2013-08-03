@@ -25,7 +25,7 @@ class pytest_test(test):
 
 setup_args = dict(
     name='django-treebeard',
-    version='2.0b1',
+    version='2.0b2',
     url='https://tabo.pe/projects/django-treebeard/',
     author='Gustavo Picon',
     author_email='tabo@tabo.pe',
