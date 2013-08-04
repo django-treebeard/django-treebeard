@@ -567,7 +567,7 @@ class MP_Node(Node):
             newpos, siblings = None, []
 
         stmts = []
-        _, newpath = self._move_add_sibling_aux(
+        _, newpath = self._reorder_nodes_before_add_or_move(
             pos, newpos, self.depth, self, siblings, stmts, None, False)
 
         parentpath = self._get_basepath(newpath, self.depth - 1)
@@ -640,7 +640,7 @@ class MP_Node(Node):
         # child" to become a "move to sibling" if possible (if it can't
         # be done, it means that we are  adding the first child)
         (pos, target, newdepth, siblings, newpos) = (
-            self._fix_move_to_child(pos, target)
+            self._update_move_to_child_vars(pos, target)
         )
 
         if target.is_descendant_of(self):
@@ -676,10 +676,10 @@ class MP_Node(Node):
 
         stmts = []
         # generate the sql that will do the actual moving of nodes
-        oldpath, newpath = self._move_add_sibling_aux(
+        oldpath, newpath = self._reorder_nodes_before_add_or_move(
             pos, newpos, newdepth, target, siblings, stmts, oldpath, True)
         # updates needed for mysql and children count in parents
-        self._updates_after_move(oldpath, newpath, stmts)
+        self._sanity_updates_after_move(oldpath, newpath, stmts)
 
         cursor = self._get_database_cursor('write')
         for sql, vals in stmts:
@@ -736,8 +736,9 @@ class MP_Node(Node):
                 path + cls.alphabet[-1] * cls.steplen)
 
     @classmethod
-    def _move_add_sibling_aux(cls, pos, newpos, newdepth, target, siblings,
-                              stmts, oldpath=None, movebranch=False):
+    def _reorder_nodes_before_add_or_move(cls, pos, newpos, newdepth, target,
+                                          siblings, stmts, oldpath=None,
+                                          movebranch=False):
         """
         Handles the reordering of nodes and branches when adding/moving
         nodes.
@@ -833,7 +834,7 @@ class MP_Node(Node):
                         cls._get_sql_newpath_in_branches(oldpath, newpath))
         return oldpath, newpath
 
-    def _fix_move_to_child(self, pos, target):
+    def _update_move_to_child_vars(self, pos, target):
         """Update preliminar vars in :meth:`move` when moving to a child"""
         newdepth = target.depth
         newpos = None
@@ -861,7 +862,7 @@ class MP_Node(Node):
         return pos, target, newdepth, siblings, newpos
 
     @classmethod
-    def _updates_after_move(cls, oldpath, newpath, stmts):
+    def _sanity_updates_after_move(cls, oldpath, newpath, stmts):
         """
         Updates the list of sql statements needed after moving nodes.
 
