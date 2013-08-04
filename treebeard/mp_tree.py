@@ -61,10 +61,10 @@ class MP_NodeQuerySet(models.query.QuerySet):
                 if parent and parent.numchild > 0:
                     parent.numchild -= 1
                     parent.save()
-            if not node.is_leaf():
-                toremove.append(Q(path__startswith=node.path))
-            else:
+            if node.is_leaf():
                 toremove.append(Q(path=node.path))
+            else:
+                toremove.append(Q(path__startswith=node.path))
 
         # Django will handle this as a SELECT and then a DELETE of
         # ids, and will deal with removing related objects
@@ -91,6 +91,7 @@ class MP_Node(Node):
     path = models.CharField(max_length=255, unique=True)
     depth = models.PositiveIntegerField()
     numchild = models.PositiveIntegerField(default=0)
+    gap = 1
 
     objects = MP_NodeManager()
 
@@ -337,10 +338,10 @@ class MP_Node(Node):
         if parent is None:
             # return the entire tree
             return cls.objects.all()
-        if not parent.is_leaf():
-            return cls.objects.filter(path__startswith=parent.path,
-                                      depth__gte=parent.depth)
-        return cls.objects.filter(pk=parent.pk)
+        if parent.is_leaf():
+            return cls.objects.filter(pk=parent.pk)
+        return cls.objects.filter(path__startswith=parent.path,
+                                  depth__gte=parent.depth)
 
     @classmethod
     def get_root_nodes(cls):
@@ -505,7 +506,7 @@ class MP_Node(Node):
         :raise PathOverflow: when no more child nodes can be added
         """
 
-        if not self.is_leaf() and self.node_order_by:
+        if self.node_order_by and not self.is_leaf():
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
             self.numchild += 1
@@ -515,10 +516,7 @@ class MP_Node(Node):
         # creating a new object
         newobj = self.__class__(**kwargs)
         newobj.depth = self.depth + 1
-        if not self.is_leaf():
-            # adding the new child as the last one
-            newobj.path = self._inc_path(self.get_last_child().path)
-        else:
+        if self.is_leaf():
             # the node had no children, adding the first child
             newobj.path = self._get_path(self.path, newobj.depth, 1)
             max_length = newobj.__class__._meta.get_field('path').max_length
@@ -527,7 +525,10 @@ class MP_Node(Node):
                     _('The new node is too deep in the tree, try'
                       ' increasing the path.max_length property'
                       ' and UPDATE your database'))
-            # saving the instance before returning it
+        else:
+            # adding the new child as the last one
+            newobj.path = self._inc_path(self.get_last_child().path)
+        # saving the instance before returning it
         newobj.save()
         newobj._cached_parent_obj = self
 
