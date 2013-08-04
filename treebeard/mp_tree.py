@@ -558,7 +558,7 @@ class MP_Node(Node):
             siblings = self.get_sorted_pos_queryset(
                 self.get_siblings(), newobj)
             try:
-                newpos = self._get_lastpos_in_path(siblings.all()[0].path)
+                newpos = siblings.all()[0]._get_lastpos_in_path()
             except IndexError:
                 newpos = None
             if newpos is None:
@@ -659,7 +659,7 @@ class MP_Node(Node):
             siblings = self.get_sorted_pos_queryset(
                 target.get_siblings(), self)
             try:
-                newpos = self._get_lastpos_in_path(siblings.all()[0].path)
+                newpos = siblings.all()[0]._get_lastpos_in_path()
             except IndexError:
                 newpos = None
             if newpos is None:
@@ -710,10 +710,9 @@ class MP_Node(Node):
                            '0' * (self.steplen - len(key)),
                            key)
 
-    @classmethod
-    def _get_lastpos_in_path(cls, path):
+    def _get_lastpos_in_path(self):
         """:returns: The integer value of the last step in a path."""
-        return cls._str2int(path[-cls.steplen:])
+        return self._str2int(self.path[-self.steplen:])
 
     @classmethod
     def _get_parent_path_from_path(cls, path):
@@ -755,7 +754,7 @@ class MP_Node(Node):
                 siblings = {'left': siblings.filter(path__gte=target.path),
                             'right': siblings.filter(path__gt=target.path),
                             'first-sibling': siblings}[pos]
-                basenum = cls._get_lastpos_in_path(target.path)
+                basenum = target._get_lastpos_in_path()
                 newpos = {'first-sibling': 1,
                           'left': basenum,
                           'right': basenum + 1}[pos]
@@ -778,7 +777,7 @@ class MP_Node(Node):
                     newpath < oldpath
                 ):
                     last = target.get_last_sibling()
-                    basenum = cls._get_lastpos_in_path(last.path)
+                    basenum = last._get_lastpos_in_path()
                     tempnewpath = cls._get_path(newpath, newdepth, basenum + 2)
                     stmts.append(cls._get_sql_newpath_in_branches(oldpath,
                                                                   tempnewpath))

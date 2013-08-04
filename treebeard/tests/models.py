@@ -12,8 +12,10 @@ class RelatedModel(models.Model):
     def __str__(self):
         return self.desc
 
+
 class MP_TestNode(MP_Node):
     steplen = 3
+    gap = 3
 
     desc = models.CharField(max_length=255)
 
