@@ -96,8 +96,8 @@ class MP_AddMoveHandler(object):
         return sql, vals
 
     def reorder_nodes_before_add_or_move(self, pos, newpos, newdepth, target,
-                                          siblings, stmts, oldpath=None,
-                                          movebranch=False):
+                                         siblings, stmts, oldpath=None,
+                                         movebranch=False):
         """
         Handles the reordering of nodes and branches when adding/moving
         nodes.
@@ -113,7 +113,7 @@ class MP_AddMoveHandler(object):
             newpath = last._inc_path()
             if movebranch:
                 stmts.append(
-                    self._get_sql_newpath_in_branches(
+                    self.get_sql_newpath_in_branches(
                         oldpath, newpath))
         else:
             # do the UPDATE dance
@@ -151,7 +151,7 @@ class MP_AddMoveHandler(object):
                     tempnewpath = self.node_cls._get_path(
                         newpath, newdepth, basenum + 2)
                     stmts.append(
-                        self._get_sql_newpath_in_branches(
+                        self.get_sql_newpath_in_branches(
                             oldpath, tempnewpath))
 
             # Optimisation to only move siblings which need moving
@@ -173,7 +173,7 @@ class MP_AddMoveHandler(object):
             for node in movesiblings:
                 # moving the siblings (and their branches) at the right of the
                 # related position one step to the right
-                sql, vals = self._get_sql_newpath_in_branches(
+                sql, vals = self.get_sql_newpath_in_branches(
                     node.path, node._inc_path())
                 stmts.append((sql, vals))
 
@@ -191,15 +191,15 @@ class MP_AddMoveHandler(object):
                 # node to move
                 if tempnewpath:
                     stmts.append(
-                        self._get_sql_newpath_in_branches(
+                        self.get_sql_newpath_in_branches(
                             tempnewpath, newpath))
                 else:
                     stmts.append(
-                        self._get_sql_newpath_in_branches(
+                        self.get_sql_newpath_in_branches(
                             oldpath, newpath))
         return oldpath, newpath
 
-    def _get_sql_newpath_in_branches(self, oldpath, newpath):
+    def get_sql_newpath_in_branches(self, oldpath, newpath):
         """
         :returns" The sql needed to move a branch to another position.
 
@@ -501,8 +501,6 @@ class MP_MoveHandler(MP_AddMoveHandler):
             connection.ops.quote_name(self.node_cls._meta.db_table), )
         vals = [self.node_cls.steplen, path + '%']
         return sql, vals
-
-
 
 
 class MP_Node(Node):
