@@ -86,6 +86,11 @@ class MP_AddMoveHandler(object):
     def __init__(self):
         self.stmts = []
 
+    def run_sql_stmts(self):
+        cursor = self.node_cls._get_database_cursor('write')
+        for sql, vals in self.stmts:
+            cursor.execute(sql, vals)
+
     def get_sql_update_numchild(self, path, incdec='inc'):
         """:returns: The sql needed the numchild value of a node"""
         sql = "UPDATE %s SET numchild=numchild%s1"\
@@ -96,7 +101,7 @@ class MP_AddMoveHandler(object):
         return sql, vals
 
     def reorder_nodes_before_add_or_move(self, pos, newpos, newdepth, target,
-                                         siblings, stmts, oldpath=None,
+                                         siblings, oldpath=None,
                                          movebranch=False):
         """
         Handles the reordering of nodes and branches when adding/moving
@@ -112,7 +117,7 @@ class MP_AddMoveHandler(object):
             last = target.get_last_sibling()
             newpath = last._inc_path()
             if movebranch:
-                stmts.append(
+                self.stmts.append(
                     self.get_sql_newpath_in_branches(
                         oldpath, newpath))
         else:
@@ -150,7 +155,7 @@ class MP_AddMoveHandler(object):
                     basenum = last._get_lastpos_in_path()
                     tempnewpath = self.node_cls._get_path(
                         newpath, newdepth, basenum + 2)
-                    stmts.append(
+                    self.stmts.append(
                         self.get_sql_newpath_in_branches(
                             oldpath, tempnewpath))
 
@@ -175,7 +180,7 @@ class MP_AddMoveHandler(object):
                 # related position one step to the right
                 sql, vals = self.get_sql_newpath_in_branches(
                     node.path, node._inc_path())
-                stmts.append((sql, vals))
+                self.stmts.append((sql, vals))
 
                 if movebranch:
                     if oldpath.startswith(node.path):
@@ -190,11 +195,11 @@ class MP_AddMoveHandler(object):
             if movebranch:
                 # node to move
                 if tempnewpath:
-                    stmts.append(
+                    self.stmts.append(
                         self.get_sql_newpath_in_branches(
                             tempnewpath, newpath))
                 else:
-                    stmts.append(
+                    self.stmts.append(
                         self.get_sql_newpath_in_branches(
                             oldpath, newpath))
         return oldpath, newpath
@@ -348,19 +353,16 @@ class MP_AddSiblingHandler(MP_AddMoveHandler):
         else:
             newpos, siblings = None, []
 
-        stmts = []
         _, newpath = self.reorder_nodes_before_add_or_move(
-            pos, newpos, self.node.depth, self.node, siblings, stmts, None,
+            pos, newpos, self.node.depth, self.node, siblings, None,
             False)
 
         parentpath = self.node._get_basepath(newpath, self.node.depth - 1)
         if parentpath:
-            stmts.append(
+            self.stmts.append(
                 self.get_sql_update_numchild(parentpath, 'inc'))
 
-        cursor = self.node._get_database_cursor('write')
-        for sql, vals in stmts:
-            cursor.execute(sql, vals)
+        self.run_sql_stmts()
 
         # saving the instance before returning it
         newobj.path = newpath
@@ -422,19 +424,16 @@ class MP_MoveHandler(MP_AddMoveHandler):
             if newpos is None:
                 pos = 'last-sibling'
 
-        stmts = []
         # generate the sql that will do the actual moving of nodes
         oldpath, newpath = self.reorder_nodes_before_add_or_move(
-            pos, newpos, newdepth, target, siblings, stmts, oldpath, True)
+            pos, newpos, newdepth, target, siblings, oldpath, True)
         # updates needed for mysql and children count in parents
-        self.sanity_updates_after_move(oldpath, newpath, stmts)
+        self.sanity_updates_after_move(oldpath, newpath)
 
-        cursor = self.node_cls._get_database_cursor('write')
-        for sql, vals in stmts:
-            cursor.execute(sql, vals)
+        self.run_sql_stmts()
         transaction.commit_unless_managed()
 
-    def sanity_updates_after_move(self, oldpath, newpath, stmts):
+    def sanity_updates_after_move(self, oldpath, newpath):
         """
         Updates the list of sql statements needed after moving nodes.
 
@@ -447,7 +446,7 @@ class MP_MoveHandler(MP_AddMoveHandler):
         ):
             # no words can describe how dumb mysql is
             # we must update the depth of the branch in a different query
-            stmts.append(
+            self.stmts.append(
                 self.get_mysql_update_depth_in_branch(newpath))
 
         oldparentpath = self.node_cls._get_parent_path_from_path(oldpath)
@@ -459,10 +458,10 @@ class MP_MoveHandler(MP_AddMoveHandler):
         ):
             # node changed parent, updating count
             if oldparentpath:
-                stmts.append(
+                self.stmts.append(
                     self.get_sql_update_numchild(oldparentpath, 'dec'))
             if newparentpath:
-                stmts.append(
+                self.stmts.append(
                     self.get_sql_update_numchild(newparentpath, 'inc'))
 
     def update_move_to_child_vars(self, pos, target):
