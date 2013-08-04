@@ -335,13 +335,13 @@ class MP_AddSiblingHandler(MP_AddMoveHandler):
         self.kwargs = kwargs
 
     def process(self):
-        pos = self.node._prepare_pos_var_for_add_sibling(self.pos)
+        self.pos = self.node._prepare_pos_var_for_add_sibling(self.pos)
 
         # creating a new object
         newobj = self.node_cls(**self.kwargs)
         newobj.depth = self.node.depth
 
-        if pos == 'sorted-sibling':
+        if self.pos == 'sorted-sibling':
             siblings = self.node.get_sorted_pos_queryset(
                 self.node.get_siblings(), newobj)
             try:
@@ -349,12 +349,12 @@ class MP_AddSiblingHandler(MP_AddMoveHandler):
             except IndexError:
                 newpos = None
             if newpos is None:
-                pos = 'last-sibling'
+                self.pos = 'last-sibling'
         else:
             newpos, siblings = None, []
 
         _, newpath = self.reorder_nodes_before_add_or_move(
-            pos, newpos, self.node.depth, self.node, siblings, None,
+            self.pos, newpos, self.node.depth, self.node, siblings, None,
             False)
 
         parentpath = self.node._get_basepath(newpath, self.node.depth - 1)
@@ -382,51 +382,49 @@ class MP_MoveHandler(MP_AddMoveHandler):
 
     def process(self):
 
-        pos = self.node._prepare_pos_var_for_move(self.pos)
+        self.pos = self.node._prepare_pos_var_for_move(self.pos)
 
         oldpath = self.node.path
 
         # initialize variables and if moving to a child, updates "move to
         # child" to become a "move to sibling" if possible (if it can't
         # be done, it means that we are  adding the first child)
-        (pos, target, newdepth, siblings, newpos) = (
-            self.update_move_to_child_vars(pos, self.target)
-        )
+        newdepth, siblings, newpos = self.update_move_to_child_vars()
 
-        if target.is_descendant_of(self.node):
+        if self.target.is_descendant_of(self.node):
             raise InvalidMoveToDescendant(
                 _("Can't move node to a descendant."))
 
         if (
-            oldpath == target.path and
+            oldpath == self.target.path and
             (
-                (pos == 'left') or
+                (self.pos == 'left') or
                 (
-                    pos in ('right', 'last-sibling') and
-                    target.path == target.get_last_sibling().path
+                    self.pos in ('right', 'last-sibling') and
+                    self.target.path == self.target.get_last_sibling().path
                 ) or
                 (
-                    pos == 'first-sibling' and
-                    target.path == target.get_first_sibling().path
+                    self.pos == 'first-sibling' and
+                    self.target.path == self.target.get_first_sibling().path
                 )
             )
         ):
             # special cases, not actually moving the node so no need to UPDATE
             return
 
-        if pos == 'sorted-sibling':
+        if self.pos == 'sorted-sibling':
             siblings = self.node.get_sorted_pos_queryset(
-                target.get_siblings(), self.node)
+                self.target.get_siblings(), self.node)
             try:
                 newpos = siblings.all()[0]._get_lastpos_in_path()
             except IndexError:
                 newpos = None
             if newpos is None:
-                pos = 'last-sibling'
+                self.pos = 'last-sibling'
 
         # generate the sql that will do the actual moving of nodes
         oldpath, newpath = self.reorder_nodes_before_add_or_move(
-            pos, newpos, newdepth, target, siblings, oldpath, True)
+            self.pos, newpos, newdepth, self.target, siblings, oldpath, True)
         # updates needed for mysql and children count in parents
         self.sanity_updates_after_move(oldpath, newpath)
 
@@ -464,32 +462,33 @@ class MP_MoveHandler(MP_AddMoveHandler):
                 self.stmts.append(
                     self.get_sql_update_numchild(newparentpath, 'inc'))
 
-    def update_move_to_child_vars(self, pos, target):
+    def update_move_to_child_vars(self):
         """Update preliminar vars in :meth:`move` when moving to a child"""
-        newdepth = target.depth
+        newdepth = self.target.depth
         newpos = None
         siblings = []
-        if pos in ('first-child', 'last-child', 'sorted-child'):
+        if self.pos in ('first-child', 'last-child', 'sorted-child'):
             # moving to a child
-            parent = target
+            parent = self.target
             newdepth += 1
-            if target.is_leaf():
+            if self.target.is_leaf():
                 # moving as a target's first child
                 newpos = 1
-                pos = 'first-sibling'
+                self.pos = 'first-sibling'
                 siblings = self.node_cls.objects.none()
             else:
-                target = target.get_last_child()
-                pos = {'first-child': 'first-sibling',
-                       'last-child': 'last-sibling',
-                       'sorted-child': 'sorted-sibling'}[pos]
+                self.target = self.target.get_last_child()
+                self.pos = {
+                    'first-child': 'first-sibling',
+                    'last-child': 'last-sibling',
+                    'sorted-child': 'sorted-sibling'}[self.pos]
 
             # this is not for save(), since if needed, will be handled with a
             # custom UPDATE, this is only here to update django's object,
             # should be useful in loops
             parent.numchild += 1
 
-        return pos, target, newdepth, siblings, newpos
+        return newdepth, siblings, newpos
 
     def get_mysql_update_depth_in_branch(self, path):
         """
