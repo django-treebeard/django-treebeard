@@ -866,7 +866,7 @@ class MP_Node(Node):
         ):
             # no words can describe how dumb mysql is
             # we must update the depth of the branch in a different query
-            stmts.append(cls._get_sql_update_depth_in_branch(newpath))
+            stmts.append(cls._get_mysql_update_depth_in_branch(newpath))
 
         oldparentpath = cls._get_parent_path_from_path(oldpath)
         newparentpath = cls._get_parent_path_from_path(newpath)
@@ -928,16 +928,13 @@ class MP_Node(Node):
         return sql, vals
 
     @classmethod
-    def _get_sql_update_depth_in_branch(cls, path):
+    def _get_mysql_update_depth_in_branch(cls, path):
         """
         :returns: The sql needed to update the depth of all the nodes in a
                   branch.
         """
-
-        # Right now this is only used by *sigh* mysql.
-        sql = "UPDATE %s SET depth=LENGTH(path)/%%s"\
-              " WHERE path LIKE %%s" % (
-                  connection.ops.quote_name(cls._meta.db_table), )
+        sql = "UPDATE %s SET depth=LENGTH(path)/%%s WHERE path LIKE %%s" % (
+            connection.ops.quote_name(cls._meta.db_table), )
         vals = [cls.steplen, path + '%']
         return sql, vals
 
