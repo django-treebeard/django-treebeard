@@ -870,16 +870,18 @@ class MP_Node(Node):
 
         oldparentpath = cls._get_parent_path_from_path(oldpath)
         newparentpath = cls._get_parent_path_from_path(newpath)
-        if (not oldparentpath and newparentpath) or\
-           (oldparentpath and not newparentpath) or\
-           (oldparentpath != newparentpath):
+        if (
+                (not oldparentpath and newparentpath) or
+                (oldparentpath and not newparentpath) or
+                (oldparentpath != newparentpath)
+        ):
             # node changed parent, updating count
             if oldparentpath:
-                stmts.append(cls._get_sql_update_numchild(oldparentpath,
-                                                          'dec'))
+                stmts.append(
+                    cls._get_sql_update_numchild(oldparentpath, 'dec'))
             if newparentpath:
-                stmts.append(cls._get_sql_update_numchild(newparentpath,
-                                                          'inc'))
+                stmts.append(
+                    cls._get_sql_update_numchild(newparentpath, 'inc'))
 
     @classmethod
     def _get_sql_newpath_in_branches(cls, oldpath, newpath):
