@@ -753,8 +753,8 @@ class MP_Node(Node):
             last = target.get_last_sibling()
             newpath = last._inc_path()
             if movebranch:
-                stmts.append(cls._get_sql_newpath_in_branches(oldpath,
-                                                              newpath))
+                stmts.append(
+                    cls._get_sql_newpath_in_branches(oldpath, newpath))
         else:
             # do the UPDATE dance
 
