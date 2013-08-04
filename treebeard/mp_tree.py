@@ -567,9 +567,8 @@ class MP_Node(Node):
             newpos, siblings = None, []
 
         stmts = []
-        _, newpath = self._move_add_sibling_aux(pos, newpos,
-                                                self.depth, self, siblings,
-                                                stmts, None, False)
+        _, newpath = self._move_add_sibling_aux(
+            pos, newpos, self.depth, self, siblings, stmts, None, False)
 
         parentpath = self._get_basepath(newpath, self.depth - 1)
         if parentpath:
@@ -599,8 +598,10 @@ class MP_Node(Node):
         :returns: A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
         """
-        paths = [self.path[0:pos]
-                 for pos in range(0, len(self.path), self.steplen)[1:]]
+        paths = [
+            self.path[0:pos]
+            for pos in range(0, len(self.path), self.steplen)[1:]
+        ]
         return self.__class__.objects.filter(path__in=paths).order_by('depth')
 
     def get_parent(self, update=False):
@@ -646,12 +647,20 @@ class MP_Node(Node):
             raise InvalidMoveToDescendant(
                 _("Can't move node to a descendant."))
 
-        if oldpath == target.path and (
-            (pos == 'left') or
-            (pos in ('right', 'last-sibling') and
-             target.path == target.get_last_sibling().path) or
-            (pos == 'first-sibling' and
-             target.path == target.get_first_sibling().path)):
+        if (
+            oldpath == target.path and
+            (
+                (pos == 'left') or
+                (
+                    pos in ('right', 'last-sibling') and
+                    target.path == target.get_last_sibling().path
+                ) or
+                (
+                    pos == 'first-sibling' and
+                    target.path == target.get_first_sibling().path
+                )
+            )
+        ):
             # special cases, not actually moving the node so no need to UPDATE
             return
 
@@ -667,9 +676,8 @@ class MP_Node(Node):
 
         stmts = []
         # generate the sql that will do the actual moving of nodes
-        oldpath, newpath = self._move_add_sibling_aux(pos, newpos, newdepth,
-                                                      target, siblings, stmts,
-                                                      oldpath, True)
+        oldpath, newpath = self._move_add_sibling_aux(
+            pos, newpos, newdepth, target, siblings, stmts, oldpath, True)
         # updates needed for mysql and children count in parents
         self._updates_after_move(oldpath, newpath, stmts)
 
@@ -779,8 +787,8 @@ class MP_Node(Node):
                     last = target.get_last_sibling()
                     basenum = last._get_lastpos_in_path()
                     tempnewpath = cls._get_path(newpath, newdepth, basenum + 2)
-                    stmts.append(cls._get_sql_newpath_in_branches(oldpath,
-                                                                  tempnewpath))
+                    stmts.append(
+                        cls._get_sql_newpath_in_branches(oldpath, tempnewpath))
 
             # Optimisation to only move siblings which need moving
             # (i.e. if we've got holes, allow them to compress)
@@ -791,7 +799,7 @@ class MP_Node(Node):
                 # of the previous node it doesn't need shifting
                 if node.path > priorpath:
                     break
-                    # It does need shifting, so add to the list
+                # It does need shifting, so add to the list
                 movesiblings.append(node)
                 # Calculate the path that it would be moved to, as that's
                 # the next "priorpath"
@@ -801,8 +809,8 @@ class MP_Node(Node):
             for node in movesiblings:
                 # moving the siblings (and their branches) at the right of the
                 # related position one step to the right
-                sql, vals = cls._get_sql_newpath_in_branches(node.path,
-                                                             node._inc_path())
+                sql, vals = cls._get_sql_newpath_in_branches(
+                    node.path, node._inc_path())
                 stmts.append((sql, vals))
 
                 if movebranch:
@@ -818,11 +826,11 @@ class MP_Node(Node):
             if movebranch:
                 # node to move
                 if tempnewpath:
-                    stmts.append(cls._get_sql_newpath_in_branches(tempnewpath,
-                                                                  newpath))
+                    stmts.append(
+                        cls._get_sql_newpath_in_branches(tempnewpath, newpath))
                 else:
-                    stmts.append(cls._get_sql_newpath_in_branches(oldpath,
-                                                                  newpath))
+                    stmts.append(
+                        cls._get_sql_newpath_in_branches(oldpath, newpath))
         return oldpath, newpath
 
     def _fix_move_to_child(self, pos, target):
