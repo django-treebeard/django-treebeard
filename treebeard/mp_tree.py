@@ -129,7 +129,7 @@ class MP_Node(Node):
 
         if last_root:
             # adding the new root node as the last one
-            newpath = cls._inc_path(last_root.path)
+            newpath = last_root._inc_path()
         else:
             # adding the first root node
             newpath = cls._get_path(None, 1, 1)
@@ -527,7 +527,7 @@ class MP_Node(Node):
                       ' and UPDATE your database'))
         else:
             # adding the new child as the last one
-            newobj.path = self._inc_path(self.get_last_child().path)
+            newobj.path = self.get_last_child()._inc_path()
         # saving the instance before returning it
         newobj.save()
         newobj._cached_parent_obj = self
@@ -700,15 +700,14 @@ class MP_Node(Node):
                            '0' * (cls.steplen - len(key)),
                            key)
 
-    @classmethod
-    def _inc_path(cls, path):
+    def _inc_path(self):
         """:returns: The path of the next sibling of a given node path."""
-        newpos = cls._str2int(path[-cls.steplen:]) + 1
-        key = cls._int2str(newpos)
-        if len(key) > cls.steplen:
-            raise PathOverflow(_("Path Overflow from: '%s'" % (path, )))
-        return '%s%s%s' % (path[:-cls.steplen],
-                           '0' * (cls.steplen - len(key)),
+        newpos = self._str2int(self.path[-self.steplen:]) + 1
+        key = self._int2str(newpos)
+        if len(key) > self.steplen:
+            raise PathOverflow(_("Path Overflow from: '%s'" % (self.path, )))
+        return '%s%s%s' % (self.path[:-self.steplen],
+                           '0' * (self.steplen - len(key)),
                            key)
 
     @classmethod
@@ -744,7 +743,7 @@ class MP_Node(Node):
         ):
             # easy, the last node
             last = target.get_last_sibling()
-            newpath = cls._inc_path(last.path)
+            newpath = last._inc_path()
             if movebranch:
                 stmts.append(cls._get_sql_newpath_in_branches(oldpath,
                                                               newpath))
@@ -797,15 +796,14 @@ class MP_Node(Node):
                 movesiblings.append(node)
                 # Calculate the path that it would be moved to, as that's
                 # the next "priorpath"
-                priorpath = cls._inc_path(node.path)
+                priorpath = node._inc_path()
             movesiblings.reverse()
 
             for node in movesiblings:
                 # moving the siblings (and their branches) at the right of the
                 # related position one step to the right
                 sql, vals = cls._get_sql_newpath_in_branches(node.path,
-                                                             cls._inc_path(
-                                                                 node.path))
+                                                             node._inc_path())
                 stmts.append((sql, vals))
 
                 if movebranch:
