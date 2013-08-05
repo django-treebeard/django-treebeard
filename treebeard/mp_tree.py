@@ -87,7 +87,7 @@ class MP_AddHandler(object):
         self.stmts = []
 
 
-class MP_ComplexAddMoveHandler(object):
+class MP_ComplexAddMoveHandler(MP_AddHandler):
 
     def run_sql_stmts(self):
         cursor = self.node_cls._get_database_cursor('write')
