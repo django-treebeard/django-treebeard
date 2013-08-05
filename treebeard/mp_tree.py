@@ -82,9 +82,12 @@ class MP_NodeManager(models.Manager):
         return MP_NodeQuerySet(self.model).order_by('path')
 
 
-class MP_AddMoveHandler(object):
+class MP_AddHandler(object):
     def __init__(self):
         self.stmts = []
+
+
+class MP_ComplexAddMoveHandler(object):
 
     def run_sql_stmts(self):
         cursor = self.node_cls._get_database_cursor('write')
@@ -118,8 +121,7 @@ class MP_AddMoveHandler(object):
             newpath = last._inc_path()
             if movebranch:
                 self.stmts.append(
-                    self.get_sql_newpath_in_branches(
-                        oldpath, newpath))
+                    self.get_sql_newpath_in_branches(oldpath, newpath))
         else:
             # do the UPDATE dance
 
@@ -250,7 +252,7 @@ class MP_AddMoveHandler(object):
         return sql, vals
 
 
-class MP_AddRootHandler(MP_AddMoveHandler):
+class MP_AddRootHandler(MP_AddHandler):
     def __init__(self, cls, **kwargs):
         super(MP_AddRootHandler, self).__init__()
         self.cls = cls
@@ -282,7 +284,7 @@ class MP_AddRootHandler(MP_AddMoveHandler):
         return newobj
 
 
-class MP_AddChildHandler(MP_AddMoveHandler):
+class MP_AddChildHandler(MP_AddHandler):
     def __init__(self, node, **kwargs):
         super(MP_AddChildHandler, self).__init__()
         self.node = node
@@ -326,7 +328,7 @@ class MP_AddChildHandler(MP_AddMoveHandler):
         return newobj
 
 
-class MP_AddSiblingHandler(MP_AddMoveHandler):
+class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
     def __init__(self, node, pos, **kwargs):
         super(MP_AddSiblingHandler, self).__init__()
         self.node = node
@@ -372,7 +374,7 @@ class MP_AddSiblingHandler(MP_AddMoveHandler):
         return newobj
 
 
-class MP_MoveHandler(MP_AddMoveHandler):
+class MP_MoveHandler(MP_ComplexAddMoveHandler):
     def __init__(self, node, target, pos=None):
         super(MP_MoveHandler, self).__init__()
         self.node = node
