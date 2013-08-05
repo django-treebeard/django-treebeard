@@ -12,6 +12,7 @@ class RelatedModel(models.Model):
     def __str__(self):
         return self.desc
 
+
 class MP_TestNode(MP_Node):
     steplen = 3
 

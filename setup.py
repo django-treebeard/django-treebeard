@@ -25,12 +25,12 @@ class pytest_test(test):
 
 setup_args = dict(
     name='django-treebeard',
-    version='2.0b1',
+    version='2.0b2',
     url='https://tabo.pe/projects/django-treebeard/',
     author='Gustavo Picon',
     author_email='tabo@tabo.pe',
     license='Apache License 2.0',
-    packages=['treebeard', 'treebeard.templatetags','treebeard.tests'],
+    packages=['treebeard', 'treebeard.templatetags', 'treebeard.tests'],
     package_dir={'treebeard': 'treebeard'},
     package_data={
         'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
