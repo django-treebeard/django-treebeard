@@ -21,6 +21,15 @@ class MP_TestNode(MP_Node):
         return 'Node %d' % self.pk
 
 
+class MP_UnicodeNode(MP_Node):
+    steplen = 3
+
+    desc = models.CharField(max_length=255)
+
+    def __str__(self):  # pragma: no cover
+        return self.desc
+
+
 class MP_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(MP_TestNode)
 
@@ -43,6 +52,13 @@ class NS_TestNode(NS_Node):
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
+
+
+class NS_UnicodetNode(NS_Node):
+    desc = models.CharField(max_length=255)
+
+    def __str__(self):  # pragma: no cover
+        return self.desc
 
 
 class NS_TestNodeSomeDep(models.Model):
@@ -70,6 +86,18 @@ class AL_TestNode(AL_Node):
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
+
+
+class AL_UnicodeNode(AL_Node):
+    parent = models.ForeignKey('self',
+                               related_name='children_set',
+                               null=True,
+                               db_index=True)
+    sib_order = models.PositiveIntegerField()
+    desc = models.CharField(max_length=255)
+
+    def __str__(self):  # pragma: no cover
+        return self.desc
 
 
 class AL_TestNodeSomeDep(models.Model):
@@ -209,6 +237,7 @@ SORTED_MODELS = AL_TestNodeSorted, MP_TestNodeSorted, NS_TestNodeSorted
 DEP_MODELS = AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep
 MP_SHORTPATH_MODELS = MP_TestNodeShortPath, MP_TestSortedNodeShortPath
 RELATED_MODELS = AL_TestNodeRelated, MP_TestNodeRelated, NS_TestNodeRelated
+UNICODE_MODELS = AL_UnicodeNode, MP_UnicodeNode, NS_UnicodetNode
 
 
 def empty_models_tables(models):
