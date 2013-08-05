@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Unit/Functional tests"""
 
 from __future__ import with_statement
@@ -66,6 +67,11 @@ def model(request):
 
 @pytest.fixture(scope='function', params=models.BASE_MODELS)
 def model_without_proxy(request):
+    return _prepare_db_test(request)
+
+
+@pytest.fixture(scope='function', params=models.UNICODE_MODELS)
+def model_with_unicode(request):
     return _prepare_db_test(request)
 
 
@@ -2109,6 +2115,41 @@ class TestAdminTree(TestNonEmptyTree):
         assert '<input type="hidden" id="has-filters" value="0"/>' in \
                table_output
 
+    def test_unicode_result_tree(self, model_with_unicode):
+        """
+        Verifies that inclusion tag result_list generates a table when with
+        default ModelAdmin settings.
+        """
+        model = model_with_unicode
+        # Add a unicode description
+        model.add_root(desc=u'áéîøü')
+        request = RequestFactory().get('/admin/tree/')
+        site = AdminSite()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        m = admin_class(model, site)
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m)
+        cl.formset = None
+        context = Context({'cl': cl,
+                           'request': request})
+        table_output = self.template.render(context)
+        # We have the same amount of drag handlers as objects
+        drag_handler = '<td class="drag-handler"><span>&nbsp;</span></td>'
+        assert table_output.count(drag_handler) == model.objects.count()
+        # All nodes are in the result tree
+        for object in model.objects.all():
+            url = cl.url_for_result(object)
+            node = '<a href="%s">%s</a>' % (url, object.desc)
+            assert node in table_output
+        # Unfiltered
+        assert '<input type="hidden" id="has-filters" value="0"/>' in \
+               table_output
+
     def test_result_filtered(self, model_without_proxy):
         """ Test template changes with filters or pagination.
         """
@@ -2218,11 +2259,12 @@ class TestAdminTreeList(TestNonEmptyTree):
         output_template = ('<input type="checkbox" class="action-select" '
                            'value="%i" name="_selected_action" />'
                            '<a href="%i/" >Node %i</a>')
-        print(table_output)
+
         for object in model.objects.all():
             expected_output = output_template % (object.pk, object.pk,
                                                  object.pk)
             assert expected_output in table_output
+
 
     def test_result_tree_list_with_get(self, model_without_proxy):
         model = model_without_proxy
