@@ -159,9 +159,9 @@ def items_for_result(cl, result, form):
                         form[cl.model._meta.pk.name].is_hidden)):
                 bf = form[field_name]
                 result_repr = mark_safe(force_str(bf.errors) + force_str(bf))
-            yield format_html('<td{0}>{1}</td>', row_class, result_repr)
+            yield format_html(u'<td{0}>{1}</td>', row_class, result_repr)
     if form and not form[cl.model._meta.pk.name].is_hidden:
-        yield format_html('<td>{0}</td>',
+        yield format_html(u'<td>{0}</td>',
                           force_str(form[cl.model._meta.pk.name]))
 
 
