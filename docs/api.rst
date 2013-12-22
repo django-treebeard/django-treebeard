@@ -298,7 +298,9 @@ API
                 (ac,    {'open':False, 'close':[0],   'level': 1})
             ]
 
-        This can be used with a template like::
+        This can be used with a template like:
+
+        .. code-block:: django
 
             {% for item, info in annotated_list %}
                 {% if info.open %}
@@ -316,7 +318,7 @@ API
 
         .. note:: This method was contributed originally by
                   `Alexey Kinyov <rudi@05bit.com>`_, using an idea borrowed
-                  from `django-mptt`.
+                  from `django-mptt`_.
 
         .. versionadded:: 1.55
 
@@ -331,3 +333,6 @@ API
                return "mysql"
 
         .. versionadded:: 1.61
+
+
+.. _django-mptt: https://github.com/django-mptt/django-mptt/
