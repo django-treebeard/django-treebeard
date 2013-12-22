@@ -38,8 +38,10 @@ class Node(models.Model):
         data for load_bulk """
         foreign_keys = {}
         for field in cls._meta.fields:
-            if field.get_internal_type() == 'ForeignKey' and \
-                            field.name != 'parent':
+            if (
+                field.get_internal_type() == 'ForeignKey' and
+                field.name != 'parent'
+            ):
                 foreign_keys[field.name] = field.rel.to
         return foreign_keys
 
@@ -593,7 +595,7 @@ class Node(models.Model):
         return {
             'read': connections[router.db_for_read(cls)],
             'write': connections[router.db_for_write(cls)]
-            }[action]
+        }[action]
 
     @classmethod
     def get_database_vendor(cls, action):
