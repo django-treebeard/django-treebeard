@@ -15,10 +15,6 @@ write/delete operations.
    :doc:`caveats`.
 
 
-.. _`Joe Celko`: http://en.wikipedia.org/wiki/Joe_Celko
-.. _`Trees and Hierarchies in SQL for Smarties`:
-  http://www.elsevier.com/wps/product/cws_home/702605
-
 .. inheritance-diagram:: NS_Node
 .. autoclass:: NS_Node
   :show-inheritance:
@@ -59,3 +55,8 @@ write/delete operations.
         .. note::
 
             This metod returns a queryset.
+
+
+.. _`Joe Celko`: http://en.wikipedia.org/wiki/Joe_Celko
+.. _`Trees and Hierarchies in SQL for Smarties`:
+  http://www.elsevier.com/wps/product/cws_home/702605
