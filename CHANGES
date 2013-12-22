@@ -1,11 +1,17 @@
 
+Release 2.0b2 (December, 2013)
+------------------------------
+
+* Dropped support for Python 2.5
+
+
 Release 2.0b1 (May 29, 2013)
 ----------------------------
 
 This is a beta release.
 
 * Added support for Django 1.5 and Python 3.X
-* Updated docs: the library supports python 2.6+ and Django 1.4+. Dropped
+* Updated docs: the library supports python 2.5+ and Django 1.4+. Dropped
   support for older versions
 * Revamped admin interface for MP and NS trees, supporting drag&drop to reorder
   nodes. Work on this patch was sponsored by the
