@@ -36,10 +36,6 @@ extra steps, materialized path is more efficient than other approaches.
    ``LIKE`` clauses that don't **start** with a ``%`` character will use
    the index. This is what makes the materialized path approach so fast.
 
-.. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/
-.. _`Sql Design Patterns`:
-   http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm
-
 .. inheritance-diagram:: MP_Node
 .. autoclass:: MP_Node
   :show-inheritance:
@@ -178,8 +174,8 @@ extra steps, materialized path is more efficient than other approaches.
 
      .. note::
 
-        treebeard uses **numconv** for path encoding:
-        https://tabo.pe/projects/numconv/
+        ``django-treebeard`` uses `numconv`_ for path encoding.
+
 
   .. attribute:: depth
 
@@ -239,3 +235,9 @@ extra steps, materialized path is more efficient than other approaches.
      .. code-block:: python
 
         MyNodeModel.fix_tree()
+
+
+.. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/
+.. _`Sql Design Patterns`:
+   http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm
+.. _numconv: https://tabo.pe/projects/numconv/
