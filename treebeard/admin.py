@@ -18,7 +18,8 @@ from treebeard.al_tree import AL_Node
 
 
 class TreeAdmin(admin.ModelAdmin):
-    """Django Admin class for treebeard"""
+    """Django Admin class for treebeard."""
+
     change_list_template = 'admin/tree_change_list.html'
 
     def queryset(self, request):
