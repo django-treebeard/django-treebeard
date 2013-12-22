@@ -17,6 +17,28 @@ class MoveNodeForm(forms.ModelForm):
     Form to handle moving a node in a tree.
 
     Handles sorted/unsorted trees.
+
+    It adds two fields to the form:
+
+    - Relative to: The target node where the current node will
+                   be moved to.
+    - Position: The position relative to the target node that
+                will be used to move the node. These can be:
+
+                - For sorted trees: ``Child of`` and ``Sibling of``
+                - For unsorted trees: ``First child of``, ``Before`` and
+                  ``After``
+
+    .. warning::
+
+        Subclassing :py:class:`MoveNodeForm` directly is
+        discouraged, since special care is needed to handle
+        excluded fields, and these change depending on the
+        tree type.
+
+        It is recommended that the :py:func:`movenodeform_factory`
+        function is used instead.
+
     """
 
     __position_choices_sorted = (
@@ -176,18 +198,17 @@ def movenodeform_factory(model, form=MoveNodeForm, fields=None, exclude=None,
                          formfield_callback=None,  widgets=None):
     """Dynamically build a MoveNodeForm subclass with the proper Meta.
 
-    :param model:
-    :return: A MoveNodeForm subclass
+    :param Node model:
 
-    Example of a generated class:
+        The subclass of :py:class:`Node` that will be handled
+        by the form.
 
-    .. code-block:: python
+    :param form:
 
-        class AL_TestNodeForm(MoveNodeForm):
-            class Meta:
-                model = models.AL_TestNode
-                exclude = ('sib_order', 'parent')
+        The form class that will be used as a base. By
+        default, :py:class:`MoveNodeForm` will be used.
 
+    :return: A :py:class:`MoveNodeForm` subclass
     """
     _exclude = _get_exclude_for_model(model, exclude)
     return django_modelform_factory(
