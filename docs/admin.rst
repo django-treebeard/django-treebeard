@@ -1,6 +1,9 @@
 Admin
 =====
 
+API
+---
+
 .. module:: treebeard.admin
 
 .. autoclass:: TreeAdmin
@@ -25,12 +28,12 @@ Admin
 
 
 Interface
-=========
+---------
 
 The features of the admin interface will depend on the tree type.
 
 Advanced Interface
-------------------
+~~~~~~~~~~~~~~~~~~
 
 :doc:`Materialized Path <mp_tree>` and :doc:`Nested Sets <ns_tree>` trees have
 an AJAX interface based on `FeinCMS`_, that includes features like
@@ -39,7 +42,7 @@ drag&drop and an attractive interface.
 .. image:: _static/treebeard-admin-advanced.png
 
 Basic Interface
----------------
+~~~~~~~~~~~~~~~
 
 :doc:`Adjacency List <al_tree>` trees have a basic admin interface.
 
