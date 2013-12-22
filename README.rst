@@ -14,7 +14,7 @@ django-treebeard is:
   2. Materialized Path
   3. Nested Sets
 
-- **Fast**: Optimized non-naive tree operations (see Benchmarks).
+- **Fast**: Optimized non-naive tree operations
 - **Easy**: Uses Django Model Inheritance with abstract classes to define your own
   models.
 - **Clean**: Testable and well tested code base. Code/branch test coverage is above
