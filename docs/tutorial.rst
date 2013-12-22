@@ -1,13 +1,6 @@
 Tutorial
 ========
 
-Everything you need to get working quickly.
-
-
-
-Basic Usage
------------
-
 Create a basic model for your tree. In this example we'll use a Materialized
 Path tree:
 
