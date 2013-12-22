@@ -6,7 +6,9 @@ Admin
 .. autoclass:: TreeAdmin
    :show-inheritance:
 
-   Example::
+   Example:
+
+   .. code-block:: python
 
         from django.contrib import admin
         from treebeard.admin import TreeAdmin
