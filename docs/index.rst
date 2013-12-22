@@ -30,7 +30,7 @@ Overview
 .. toctree::
 
    install
-   intro
+   tutorial
    caveats
 
 .. toctree::
