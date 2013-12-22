@@ -14,7 +14,7 @@ is a library that implements efficient tree implementations for the
   2. :doc:`Materialized Path <mp_tree>`
   3. :doc:`Nested Sets <ns_tree>`
 
-- **Fast**: Optimized non-naive tree operations (see :doc:`benchmarks`).
+- **Fast**: Optimized non-naive tree operations
 - **Easy**: Uses `Django Model Inheritance with abstract classes`_ 
   to define your own models.
 - **Clean**: Testable and well tested code base. Code/branch test coverage
