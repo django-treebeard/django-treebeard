@@ -24,24 +24,46 @@ is a library that implements efficient tree implementations for the
   - `Code Quality`_
 
 
-Contents
+Overview
 --------
 
 .. toctree::
-   :maxdepth: 2
 
+   install
    intro
+   caveats
+
+.. toctree::
+   :titlesonly:
+
+   changes
+
+Reference
+---------
+
+.. toctree::
+
    api
    mp_tree
    ns_tree
    al_tree
+
+Additional features
+-------------------
+
+.. toctree::
+
    admin
    forms
    exceptions
-   caveats
-   benchmarks
+
+Development
+-----------
+
+.. toctree::
+
    tests
-   changes
+
 
 
 .. _`Django Model Inheritance with abstract classes`:
