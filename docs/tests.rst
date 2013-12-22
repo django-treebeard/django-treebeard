@@ -35,38 +35,31 @@ tox
 ``django-treebeard`` uses `tox`_ to run the test suite in all the supported
 environments:
 
-    - py24-dj12-sqlite
-    - py24-dj12-mysql
-    - py24-dj12-postgres
-    - py24-dj13-sqlite
-    - py24-dj13-mysql
-    - py24-dj13-postgres
-    - py25-dj12-sqlite
-    - py25-dj12-mysql
-    - py25-dj12-postgres
-    - py25-dj13-sqlite
-    - py25-dj13-mysql
-    - py25-dj13-postgres
-    - py26-dj12-sqlite
-    - py26-dj12-mysql
-    - py26-dj12-postgres
-    - py26-dj13-sqlite
-    - py26-dj13-mysql
-    - py26-dj13-postgres
-    - py27-dj12-sqlite
-    - py27-dj12-mysql
-    - py27-dj12-postgres
-    - py27-dj13-sqlite
-    - py27-dj13-mysql
-    - py27-dj13-postgres
+    - py26-dj14-sqlite
+    - py26-dj14-mysql
+    - py26-dj14-pgsql
+    - py26-dj15-sqlite
+    - py26-dj15-mysql
+    - py26-dj15-pgsql
+    - py27-dj14-sqlite
+    - py27-dj14-mysql
+    - py27-dj14-pgsql
+    - py27-dj15-sqlite
+    - py27-dj15-mysql
+    - py27-dj15-pgsql
+    - py27-dj15-sqlite
+    - py32-dj15-sqlite
+    - py32-dj15-pgsql
+    - py33-dj15-sqlite
+    - py33-dj15-pgsql
 
 
-This means that the test suite will run 24 times to test every
+This means that the test suite will run 17 times to test every
 environment supported by ``django-treebeard``. This takes a long time.
 If you want to test only one or a few environments, please use the `-e`
 option in `tox`_, like::
 
-    $ tox -e py27-dj13-postgres
+    $ tox -e py33-dj16-postgres
 
 
 .. _verbosity level:
