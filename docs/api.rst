@@ -337,7 +337,7 @@ API
 
      .. code-block:: python
 
-        annotated_list = get_annotated_list()
+        annotated_list = MyModel.get_annotated_list()
 
      With data:
 
