@@ -22,36 +22,46 @@ pip (or easy_install)
 ~~~~~~~~~~~~~~~~~~~~~
 
 You can install the release versions from
-`django-treebeard's PyPI page`_ using ``pip``::
+`django-treebeard's PyPI page`_ using ``pip``:
 
-  pip install django-treebeard
+.. code-block:: console
+
+  $ pip install django-treebeard
 
 or if for some reason you can't use ``pip``, you can try ``easy_install``,
-(at your own risk)::
+(at your own risk):
 
-  easy_install --always-unzip django-treebeard
+.. code-block:: console
+
+  $ easy_install --always-unzip django-treebeard
 
 
 setup.py
 ~~~~~~~~
 
 Download a release from the `treebeard download page`_ and unpack it, then
-run::
+run:
 
-   python setup.py install
+.. code-block:: console
+
+   $ python setup.py install
 
 
 .deb packages
 ~~~~~~~~~~~~~
 
 Both Debian and Ubuntu include ``django-treebeard`` as a package, so you can
-just use::
+just use:
 
-   apt-get install python-django-treebeard
+.. code-block:: console
 
-or::
+   $ apt-get install python-django-treebeard
 
-   aptitude install python-django-treebeard
+or:
+
+.. code-block:: console
+
+   $ aptitude install python-django-treebeard
 
 Remember that the packages included in linux distributions are usually not the
 most recent versions.
@@ -76,7 +86,9 @@ Basic Usage
 -----------
 
 Create a basic model for your tree. In this example we'll use a Materialized
-Path tree::
+Path tree:
+
+.. code-block:: python
 
     from django.db import models
     from treebeard.mp_tree import MP_Node
@@ -91,12 +103,16 @@ Path tree::
 
 
 
-Run syncdb::
+Run syncdb:
 
-    python manage.py syncdb
+.. code-block:: console
+
+    $ python manage.py syncdb
 
 
-Let's create some nodes::
+Let's create some nodes:
+
+.. code-block:: python
 
     >>> get = lambda node_id: Category.objects.get(pk=node_id)
     >>> root = Category.add_root(name='Computer Hardware')
@@ -133,7 +149,10 @@ We just created this tree:
   "Computer Hardware" -> "SSD";
 
 
-You can see the tree structure with code::
+You can see the tree structure with code:
+
+.. code-block:: python
+
     >>> Category.dump_bulk()
     [{'id': 1, 'data': {'name': u'Computer Hardware'},
       'children': [

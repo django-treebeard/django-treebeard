@@ -20,21 +20,27 @@ API
 
   .. automethod:: Node.add_root
 
-     Example::
+     Example:
+
+     .. code-block:: python
 
         MyNode.add_root(numval=1, strval='abcd')
 
   .. automethod:: add_child
 
-        Example::
+     Example:
 
-           node.add_child(numval=1, strval='abcd')
+     .. code-block:: python
+
+        node.add_child(numval=1, strval='abcd')
 
   .. automethod:: add_sibling
 
-        Examples::
+     Examples:
 
-           node.add_sibling('sorted-sibling', numval=1, strval='abc')
+     .. code-block:: python
+
+        node.add_sibling('sorted-sibling', numval=1, strval='abc')
 
   .. automethod:: delete
 
@@ -47,162 +53,210 @@ API
 
   .. automethod:: get_depth
 
-        Example::
+     Example:
 
-           node.get_depth()
+     .. code-block:: python
+
+        node.get_depth()
 
   .. automethod:: get_ancestors
 
-        Example::
+     Example:
 
-           node.get_ancestors()
+     .. code-block:: python
+
+        node.get_ancestors()
 
   .. automethod:: get_children
 
-        Example::
+     Example:
 
-           node.get_children()
+     .. code-block:: python
+
+        node.get_children()
 
   .. automethod:: get_children_count
 
-        Example::
+     Example:
 
-            node.get_children_count()
+     .. code-block:: python
+
+        node.get_children_count()
 
   .. automethod:: get_descendants
 
-        Example::
+     Example:
 
-           node.get_descendants()
+     .. code-block:: python
+
+        node.get_descendants()
 
   .. automethod:: get_descendant_count
 
-        Example::
+     Example:
 
-           node.get_descendant_count()
+     .. code-block:: python
+
+        node.get_descendant_count()
 
   .. automethod:: get_first_child
 
-        Example::
+     Example:
 
-           node.get_first_child()
+     .. code-block:: python
+
+        node.get_first_child()
 
   .. automethod:: get_last_child
 
-        Example::
+     Example:
 
-           node.get_last_child()
+     .. code-block:: python
+
+        node.get_last_child()
 
   .. automethod:: get_first_sibling
 
-        Example::
+     Example:
 
-           node.get_first_sibling()
+     .. code-block:: python
+
+        node.get_first_sibling()
 
   .. automethod:: get_last_sibling
 
-        Example::
+     Example:
 
-            node.get_last_sibling()
+     .. code-block:: python
+
+        node.get_last_sibling()
 
   .. automethod:: get_prev_sibling
 
-        Example::
+     Example:
 
-           node.get_prev_sibling()
+     .. code-block:: python
+
+        node.get_prev_sibling()
 
   .. automethod:: get_next_sibling
 
-        Example::
+     Example:
 
-           node.get_next_sibling()
+     .. code-block:: python
+
+        node.get_next_sibling()
 
   .. automethod:: get_parent
 
-        Example::
+     Example:
 
-           node.get_parent()
+     .. code-block:: python
+
+        node.get_parent()
 
   .. automethod:: get_root
 
-        Example::
+     Example:
 
-          node.get_root()
+     .. code-block:: python
+
+        node.get_root()
 
   .. automethod:: get_siblings
 
-        Example::
+     Example:
 
-           node.get_siblings()
+     .. code-block:: python
+
+        node.get_siblings()
 
   .. automethod:: is_child_of
 
-        Example::
+     Example:
 
-           node.is_child_of(node2)
+     .. code-block:: python
+
+        node.is_child_of(node2)
 
   .. automethod:: is_descendant_of
 
-        Example::
+     Example:
 
-           node.is_descendant_of(node2)
+     .. code-block:: python
+
+        node.is_descendant_of(node2)
 
   .. automethod:: is_sibling_of
 
-        Example::
+     Example:
 
-           node.is_sibling_of(node2)
+     .. code-block:: python
+
+        node.is_sibling_of(node2)
 
   .. automethod:: is_root
 
-        Example::
+     Example:
 
-           node.is_root()
+     .. code-block:: python
+
+        node.is_root()
 
   .. automethod:: is_leaf
 
-        Example::
+     Example:
 
-           node.is_leaf()
+     .. code-block:: python
+
+        node.is_leaf()
 
   .. automethod:: move
 
-        .. note:: The node can be moved under another root node.
+     .. note:: The node can be moved under another root node.
 
-        Examples::
+     Examples:
 
-           node.move(node2, 'sorted-child')
+     .. code-block:: python
 
-           node.move(node2, 'prev-sibling')
+        node.move(node2, 'sorted-child')
+        node.move(node2, 'prev-sibling')
 
   .. automethod:: save
+
   .. automethod:: get_first_root_node
 
-        Example::
+     Example:
 
-           MyNodeModel.get_first_root_node()
+     .. code-block:: python
+
+        MyNodeModel.get_first_root_node()
 
   .. automethod:: get_last_root_node
 
-        Example::
+     Example:
 
-           MyNodeModel.get_last_root_node()
+     .. code-block:: python
+
+        MyNodeModel.get_last_root_node()
 
   .. automethod:: get_root_nodes
 
-        Example::
+     Example:
 
-           MyNodeModel.get_root_nodes()
+     .. code-block:: python
+
+        MyNodeModel.get_root_nodes()
 
   .. automethod:: load_bulk
 
-        .. note::
+     .. note::
 
             Any internal data that you may have stored in your
             nodes' data (:attr:`path`, :attr:`depth`) will be
             ignored.
 
-        .. note::
+     .. note::
 
             If your node model has a ForeignKey this method will try to load
             the related object before loading the data. If the related object
@@ -210,12 +264,14 @@ API
             exception. This is done because the dump_data method uses integers
             to dump related objects.
 
-        .. note::
+     .. note::
 
             If your node model has :attr:`node_order_by` enabled, it will
             take precedence over the order in the structure.
 
-        Example::
+     Example:
+
+     .. code-block:: python
 
             data = [{'data':{'desc':'1'}},
                     {'data':{'desc':'2'}, 'children':[
@@ -234,9 +290,9 @@ API
             # parent = None
             MyNodeModel.load_data(data, None)
 
-        Will create:
+     Will create:
 
-        .. digraph:: load_bulk_digraph
+     .. digraph:: load_bulk_digraph
 
            "1";
            "2";
@@ -250,17 +306,22 @@ API
 
   .. automethod:: dump_bulk
 
-        Example::
+     Example:
 
-           tree = MyNodeModel.dump_bulk()
+     .. code-block:: python
 
-           branch = MyNodeModel.dump_bulk(node_obj)
+        tree = MyNodeModel.dump_bulk()
+        branch = MyNodeModel.dump_bulk(node_obj)
 
   .. automethod:: find_problems
+
   .. automethod:: fix_tree
+
   .. automethod:: get_descendants_group_count
 
-        Example::
+     Example:
+
+     .. code-block:: python
 
             # get a list of the root nodes
             root_nodes = MyModel.get_descendants_group_count()
@@ -272,13 +333,15 @@ API
   .. automethod:: get_annotated_list
 
 
-        Example::
+     Example:
 
-            annotated_list = get_annotated_list()
+     .. code-block:: python
 
-        With data:
+        annotated_list = get_annotated_list()
 
-           .. digraph:: get_annotated_list_digraph
+     With data:
+
+     .. digraph:: get_annotated_list_digraph
 
               "a";
               "a" -> "ab";
@@ -287,7 +350,9 @@ API
               "ab" -> "abc";
               "a" -> "ac";
 
-        Will return::
+     Will return:
+
+     .. code-block:: python
 
             [
                 (a,     {'open':True,  'close':[],    'level': 0})
@@ -298,9 +363,9 @@ API
                 (ac,    {'open':False, 'close':[0],   'level': 1})
             ]
 
-        This can be used with a template like:
+     This can be used with a template like:
 
-        .. code-block:: django
+     .. code-block:: django
 
             {% for item, info in annotated_list %}
                 {% if info.open %}
@@ -316,23 +381,25 @@ API
                 {% endfor %}
             {% endfor %}
 
-        .. note:: This method was contributed originally by
-                  `Alexey Kinyov <rudi@05bit.com>`_, using an idea borrowed
-                  from `django-mptt`_.
+     .. note::
 
-        .. versionadded:: 1.55
+        This method was contributed originally by
+        `Alexey Kinyov <rudi@05bit.com>`_, using an idea borrowed from
+        `django-mptt`_.
+
+     .. versionadded:: 1.55
 
 
   .. automethod:: get_database_vendor
 
-        Example:
+     Example:
 
-        .. code-block:: python
+     .. code-block:: python
 
-            MyNodeModel.get_database_vendor("write")
+        MyNodeModel.get_database_vendor("write")
 
 
-        .. versionadded:: 1.61
+     .. versionadded:: 1.61
 
 
 .. _django-mptt: https://github.com/django-mptt/django-mptt/

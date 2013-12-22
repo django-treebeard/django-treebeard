@@ -24,7 +24,9 @@ write/delete operations.
      Attribute: a list of model fields that will be used for node
      ordering. When enabled, all tree operations will assume this ordering.
 
-     Example::
+     Example:
+
+     .. code-block:: python
 
         node_order_by = ['field1', 'field2', 'field3']
 

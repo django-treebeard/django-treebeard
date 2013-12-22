@@ -9,7 +9,9 @@ py.test
 
 You will need `pytest`_ to run the test suite.
 
-To run the test suite::
+To run the test suite:
+
+.. code-block:: console
 
     $ py.test
 
@@ -66,7 +68,9 @@ environments:
 This means that the test suite will run 26 times to test every
 environment supported by ``django-treebeard``. This takes a long time.
 If you want to test only one or a few environments, please use the `-e`
-option in `tox`_, like::
+option in `tox`_, like:
+
+.. code-block:: console
 
     $ tox -e py33-dj16-pgsql
 
