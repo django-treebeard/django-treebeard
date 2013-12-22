@@ -325,12 +325,12 @@ API
 
   .. automethod:: get_database_vendor
 
-        Example::
+        Example:
 
+        .. code-block:: python
 
-           @classmethod
-           def get_database_engine(cls):
-               return "mysql"
+            MyNodeModel.get_database_vendor("write")
+
 
         .. versionadded:: 1.61
 
