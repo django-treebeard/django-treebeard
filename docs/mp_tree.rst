@@ -174,7 +174,7 @@ extra steps, materialized path is more efficient than other approaches.
        limit of 765 bytes per index, so that would be the limit if your path
        is ASCII encoded. If your path column in InnoDB is using unicode,
        the index limit will be 255 characters since in MySQL's indexes,
-       unicode means 3 bytes.
+       unicode means 3 bytes per character.
 
      .. note::
 
