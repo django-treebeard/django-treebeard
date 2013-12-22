@@ -15,7 +15,8 @@ is a library that implements efficient tree implementations for the
   3. :doc:`Nested Sets <ns_tree>`
 
 - **Fast**: Optimized non-naive tree operations
-- **Easy**: Uses `Django Model Inheritance with abstract classes`_ 
+- **Easy**: Uses Django's
+  :ref:`model-inheritance` with :ref:`abstract-base-classes`.
   to define your own models.
 - **Clean**: Testable and well tested code base. Code/branch test coverage
   is above 96%. Tests are available in Jenkins:
@@ -66,8 +67,6 @@ Development
 
 
 
-.. _`Django Model Inheritance with abstract classes`:
-   https://docs.djangoproject.com/en/1.4/topics/db/models/#abstract-base-classes
 .. _`Tests running on different versions of Python, Django and DB engines`:
    https://tabo.pe/jenkins/job/django-treebeard/
 .. _`Code Quality`: https://tabo.pe/jenkins/job/django-treebeard-quality/

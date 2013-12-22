@@ -75,8 +75,6 @@ option in `tox`_, like:
     $ tox -e py33-dj16-pgsql
 
 
-.. _verbosity level:
 .. _pytest: http://pytest.org/
-   http://docs.djangoproject.com/en/dev/ref/django-admin/#django-admin-option---verbosity
 .. _coverage: http://nedbatchelder.com/code/coverage/
 .. _tox: http://codespeak.net/tox/
