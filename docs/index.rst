@@ -47,6 +47,7 @@ Reference
    mp_tree
    ns_tree
    al_tree
+   exceptions
 
 Additional features
 -------------------
@@ -55,7 +56,6 @@ Additional features
 
    admin
    forms
-   exceptions
 
 Development
 -----------
