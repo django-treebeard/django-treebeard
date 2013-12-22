@@ -68,7 +68,7 @@ environment supported by ``django-treebeard``. This takes a long time.
 If you want to test only one or a few environments, please use the `-e`
 option in `tox`_, like::
 
-    $ tox -e py33-dj16-postgres
+    $ tox -e py33-dj16-pgsql
 
 
 .. _verbosity level:
