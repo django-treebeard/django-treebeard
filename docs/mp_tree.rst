@@ -27,6 +27,11 @@ This makes the read operations faster, at the cost of a little more
 maintenance on tree updates/inserts/deletes. Don't worry, even with these
 extra steps, materialized path is more efficient than other approaches.
 
+.. warning::
+
+   As with all tree implementations, please be aware of the
+   :doc:`caveats`.
+
 .. note::
 
    The materialized path approach makes heavy use of ``LIKE`` in your

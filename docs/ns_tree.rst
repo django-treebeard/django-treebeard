@@ -9,6 +9,11 @@ An implementation of Nested Sets trees for Django 1.4+, as described by
 Nested sets have very efficient reads at the cost of high maintenance on
 write/delete operations.
 
+.. warning::
+
+   As with all tree implementations, please be aware of the
+   :doc:`caveats`.
+
 
 .. _`Joe Celko`: http://en.wikipedia.org/wiki/Joe_Celko
 .. _`Trees and Hierarchies in SQL for Smarties`:
