@@ -30,18 +30,19 @@ Let's create some nodes:
 
 .. code-block:: python
 
+    >>> from treebeard_tutorial.models import Category
     >>> get = lambda node_id: Category.objects.get(pk=node_id)
     >>> root = Category.add_root(name='Computer Hardware')
-    >>> node = get(root.id).add_child(name='Memory')
-    >>> get(node.id).add_sibling(name='Hard Drives')
+    >>> node = get(root.pk).add_child(name='Memory')
+    >>> get(node.pk).add_sibling(name='Hard Drives')
     <Category: Category: Hard Drives>
-    >>> get(node.id).add_sibling(name='SSD')
+    >>> get(node.pk).add_sibling(name='SSD')
     <Category: Category: SSD>
-    >>> get(node.id).add_child(name='Desktop Memory')
+    >>> get(node.pk).add_child(name='Desktop Memory')
     <Category: Category: Desktop Memory>
-    >>> get(node.id).add_child(name='Laptop Memory')
+    >>> get(node.pk).add_child(name='Laptop Memory')
     <Category: Category: Laptop Memory>
-    >>> get(node.id).add_child(name='Server Memory')
+    >>> get(node.pk).add_child(name='Server Memory')
     <Category: Category: Server Memory>
 
 .. note::
@@ -49,7 +50,7 @@ Let's create some nodes:
     Why retrieving every node again after the first operation? Because
     ``django-treebeard`` uses raw queries for most write operations,
     and raw queries don't update the django objects of the db entries they
-    modify.
+    modify. See: :doc:`caveats`.
 
 We just created this tree:
 
