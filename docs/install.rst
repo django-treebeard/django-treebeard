@@ -79,3 +79,16 @@ file.
    in the `TEMPLATE_CONTEXT_PROCESSORS`_ setting in your django settings file.
 
 
+.. _`django-treebeard's PyPI page`:
+   http://pypi.python.org/pypi/django-treebeard
+.. _`treebeard download page`:
+   https://tabo.pe/projects/django-treebeard/download/
+.. _`django.core.context_processors.request`:
+   http://docs.djangoproject.com/en/dev/ref/templates/api/#django-core-context-processors-request
+.. _`INSTALLED_APPS`:
+   http://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
+.. _`TEMPLATE_DIRS`:
+   http://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
+.. _`TEMPLATE_CONTEXT_PROCESSORS`:
+   http://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
+

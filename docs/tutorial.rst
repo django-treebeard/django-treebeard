@@ -106,20 +106,7 @@ You can see the tree structure with code:
 
 Read the :class:`treebeard.models.Node` API reference for detailed info.
 
-.. _`django-treebeard's PyPI page`:
-   http://pypi.python.org/pypi/django-treebeard
-.. _`treebeard download page`:
-   https://tabo.pe/projects/django-treebeard/download/
 .. _`treebeard mercurial repository`:
    http://code.tabo.pe/django-treebeard
 .. _`latest treebeard version from PyPi`:
    http://pypi.python.org/pypi/django-treebeard/
-.. _`django.core.context_processors.request`:
-   http://docs.djangoproject.com/en/dev/ref/templates/api/#django-core-context-processors-request
-.. _`INSTALLED_APPS`:
-   http://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
-.. _`TEMPLATE_DIRS`:
-   http://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
-.. _`TEMPLATE_CONTEXT_PROCESSORS`:
-   http://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
-
