@@ -9,7 +9,7 @@ Forms
 .. autofunction:: movenodeform_factory
 
     For a full reference of this function, please read
-    the `documentation for modelform_factory`_.
+    :py:func:`~django.forms.models.modelform_factory`
 
 
     Example, ``MyNode`` is a subclass of :py:class:`treebeard.al_tree.AL_Node`:
@@ -26,9 +26,4 @@ Forms
             class Meta:
                 model = models.MyNode
                 exclude = ('sib_order', 'parent')
-
-
-
-.. _`documentation for modelform_factory`:
-   https://docs.djangoproject.com/en/dev/ref/forms/models/#django.forms.models.modelform_factory
 

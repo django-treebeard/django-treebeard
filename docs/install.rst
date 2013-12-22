@@ -67,28 +67,23 @@ most recent versions.
 Configuration
 -------------
 
-Add ``'treebeard'`` to the `INSTALLED_APPS`_ section in your django settings
-file.
+Add ``'treebeard'`` to the
+:django:setting:`INSTALLED_APPS` section in your django
+settings file.
 
 .. note::
 
-   If you are going to use the :class:`Treeadmin <treebeard.admin.TreeAdmin>`
+   If you are going to use the :class:`~treebeard.admin.TreeAdmin`
    class, you need to add the path to treebeard's templates in
-   `TEMPLATE_DIRS`_.
-   Also you need to enable `django.core.context_processors.request`_
-   in the `TEMPLATE_CONTEXT_PROCESSORS`_ setting in your django settings file.
+   :django:setting:`TEMPLATE_DIRS`.
+   Also you need to enable
+   ``django.core.context_processors.request``
+   in the :django:setting:`TEMPLATE_CONTEXT_PROCESSORS`
+   setting in your django settings file.
 
 
 .. _`django-treebeard's PyPI page`:
    http://pypi.python.org/pypi/django-treebeard
 .. _`treebeard download page`:
    https://tabo.pe/projects/django-treebeard/download/
-.. _`django.core.context_processors.request`:
-   http://docs.djangoproject.com/en/dev/ref/templates/api/#django-core-context-processors-request
-.. _`INSTALLED_APPS`:
-   http://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
-.. _`TEMPLATE_DIRS`:
-   http://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
-.. _`TEMPLATE_CONTEXT_PROCESSORS`:
-   http://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
 
