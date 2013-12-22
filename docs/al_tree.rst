@@ -27,7 +27,9 @@ slow reads. If you read more than you write, use
       Attribute: a list of model fields that will be used for node
       ordering. When enabled, all tree operations will assume this ordering.
 
-      Example::
+      Example:
+
+      .. code-block:: python
 
          node_order_by = ['field1', 'field2', 'field3']
 
@@ -35,7 +37,9 @@ slow reads. If you read more than you write, use
 
       ``ForeignKey`` to itself. This attribute **MUST** be defined in the
       subclass (sadly, this isn't inherited correctly from the ABC in
-      `Django 1.0`). Just copy&paste these lines to your model::
+      `Django 1.0`). Just copy&paste these lines to your model:
+
+      .. code-block:: python
 
                parent = models.ForeignKey('self',
                                           related_name='children_set',
@@ -47,11 +51,15 @@ slow reads. If you read more than you write, use
       ``PositiveIntegerField`` used to store the relative position of a node
       between it's siblings. This attribute is mandatory *ONLY* if you don't
       set a :attr:`node_order_by` field. You can define it copy&pasting this
-      line in your model::
+      line in your model:
+
+      .. code-block:: python
 
               sib_order = models.PositiveIntegerField()
 
-   Examples::
+   Examples:
+
+   .. code-block:: python
 
            class AL_TestNode(AL_Node):
                parent = models.ForeignKey('self',

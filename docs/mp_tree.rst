@@ -63,7 +63,9 @@ extra steps, materialized path is more efficient than other approaches.
        4. Restore your backup using :meth:`load_bulk` with
           ``keep_ids=True`` to keep the same primary keys you had.
 
-  Example::
+  Example:
+
+  .. code-block:: python
 
      class SortedNode(MP_Node):
         node_order_by = ['numval', 'strval']
@@ -99,7 +101,9 @@ extra steps, materialized path is more efficient than other approaches.
         In case you know what you are doing, there is a test that is
         disabled by default that can tell you the optimal default alphabet
         in your enviroment. To run the test you must enable the
-        :envvar:`TREEBEARD_TEST_ALPHABET` enviroment variable::
+        :envvar:`TREEBEARD_TEST_ALPHABET` enviroment variable:
+
+        .. code-block:: console
 
           $ TREEBEARD_TEST_ALPHABET=1 python manage.py test treebeard.TestTreeAlphabet
 
@@ -119,7 +123,9 @@ extra steps, materialized path is more efficient than other approaches.
      Attribute: a list of model fields that will be used for node
      ordering. When enabled, all tree operations will assume this ordering.
 
-     Example::
+     Example:
+
+     .. code-block:: python
 
        node_order_by = ['field1', 'field2', 'field3']
 
@@ -136,7 +142,9 @@ extra steps, materialized path is more efficient than other approaches.
 
        1. To change the max_length value of the path in your model, you
           can't just define it since you'd get a django exception, you have
-          to modify the already defined attribute::
+          to modify the already defined attribute:
+
+          .. code-block:: python
 
             class MyNodeModel(MP_Node):
                 pass
@@ -145,7 +153,9 @@ extra steps, materialized path is more efficient than other approaches.
 
        2. You can't rely on Django's `auto_now` properties in date fields
           for sorting, you'll have to manually set the value before creating
-          a node::
+          a node:
+
+          .. code-block:: python
 
             class TestNodeSortedAutoNow(MP_Node):
                 desc = models.CharField(max_length=255)
@@ -216,12 +226,16 @@ extra steps, materialized path is more efficient than other approaches.
 
         Problems 1, 2 and 3 can't be solved automatically.
 
-     Example::
+     Example:
+
+     .. code-block:: python
 
         MyNodeModel.find_problems()
 
   .. automethod:: fix_tree
 
-     Example::
+     Example:
+
+     .. code-block:: python
 
         MyNodeModel.fix_tree()

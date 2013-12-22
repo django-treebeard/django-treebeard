@@ -179,7 +179,9 @@ def movenodeform_factory(model, form=MoveNodeForm, fields=None, exclude=None,
     :param model:
     :return: A MoveNodeForm subclass
 
-    Example of a generated class::
+    Example of a generated class:
+
+    .. code-block:: python
 
         class AL_TestNodeForm(MoveNodeForm):
             class Meta:
