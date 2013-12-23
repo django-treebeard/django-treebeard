@@ -57,6 +57,18 @@ extra steps, materialized path is more efficient than other approaches.
      :attr:`node_order_by` after saving your first object. Doing so will
      corrupt the tree.
 
+  .. warning::
+
+     If you need to define your own
+     :py:class:`~django.db.models.Manager` class,
+     you'll need to subclass
+     :py:class:`~MP_NodeManager`.
+
+     Also, if in your manager you need to change the default
+     queryset handler, you'll need to subclass
+     :py:class:`~MP_NodeQuerySet`.
+
+
   Example:
 
   .. code-block:: python
@@ -233,6 +245,15 @@ extra steps, materialized path is more efficient than other approaches.
      .. code-block:: python
 
         MyNodeModel.fix_tree()
+
+
+
+.. autoclass:: MP_NodeManager
+  :show-inheritance:
+
+.. autoclass:: MP_NodeQuerySet
+  :show-inheritance:
+
 
 
 .. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/

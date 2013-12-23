@@ -20,7 +20,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
     """
     Custom queryset for the tree node manager.
 
-    Needed only for the customized delete method.
+    Needed only for the custom delete method.
     """
 
     def delete(self):
@@ -75,7 +75,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
 
 
 class MP_NodeManager(models.Manager):
-    """Custom manager for nodes."""
+    """Custom manager for nodes in a Materialized Path tree."""
 
     def get_query_set(self):
         """Sets the custom queryset as the default."""

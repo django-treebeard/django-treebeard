@@ -28,6 +28,14 @@ slow reads. If you read more than you write, use
 .. autoclass:: AL_Node
    :show-inheritance:
 
+   .. warning::
+
+     If you need to define your own
+     :py:class:`~django.db.models.Manager` class,
+     you'll need to subclass
+     :py:class:`~AL_NodeManager`.
+
+
    .. attribute:: node_order_by
 
       Attribute: a list of model fields that will be used for node
@@ -94,3 +102,5 @@ slow reads. If you read more than you write, use
 
         See: :meth:`treebeard.Node.get_depth`
 
+.. autoclass:: AL_NodeManager
+  :show-inheritance:

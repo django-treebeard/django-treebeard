@@ -19,6 +19,17 @@ write/delete operations.
 .. autoclass:: NS_Node
   :show-inheritance:
 
+  .. warning::
+
+     If you need to define your own
+     :py:class:`~django.db.models.Manager` class,
+     you'll need to subclass
+     :py:class:`~NS_NodeManager`.
+
+     Also, if in your manager you need to change the default
+     queryset handler, you'll need to subclass
+     :py:class:`~NS_NodeQuerySet`.
+
 
   .. attribute:: node_order_by
 
@@ -55,6 +66,14 @@ write/delete operations.
         .. note::
 
             This metod returns a queryset.
+
+
+.. autoclass:: NS_NodeManager
+  :show-inheritance:
+
+.. autoclass:: NS_NodeQuerySet
+  :show-inheritance:
+
 
 
 .. _`Joe Celko`: http://en.wikipedia.org/wiki/Joe_Celko
