@@ -52,7 +52,10 @@ def pytest_unconfigure(config):
         connection.settings_dict['NAME'] = dbtestname.split('_')[1]
         cursor = connection.cursor()
         connection.autocommit = True
-        connection._set_isolation_level(0)
+        if django.VERSION < (1, 6):
+            connection._set_isolation_level(0)
+        else:
+            connection._set_autocommit(True)
         time.sleep(1)
         sys.stdout.write(
             "Destroying test database for alias '%s' (%s)...\n" % (
