@@ -2122,7 +2122,7 @@ class TestAdminTree(TestNonEmptyTree):
         """
         model = model_with_unicode
         # Add a unicode description
-        model.add_root(desc=u'áéîøü')
+        model.add_root(desc=u'\xe1\xe9\xee\xf8\xfc')
         request = RequestFactory().get('/admin/tree/')
         site = AdminSite()
         form_class = movenodeform_factory(model)
