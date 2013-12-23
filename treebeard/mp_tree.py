@@ -208,7 +208,7 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
 
     def get_sql_newpath_in_branches(self, oldpath, newpath):
         """
-        :returns" The sql needed to move a branch to another position.
+        :returns: The sql needed to move a branch to another position.
 
         .. note::
 
