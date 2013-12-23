@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Unit/Functional tests"""
 
-from __future__ import with_statement
+from __future__ import with_statement, unicode_literals
 import datetime
 import os
 import sys
@@ -2122,7 +2122,7 @@ class TestAdminTree(TestNonEmptyTree):
         """
         model = model_with_unicode
         # Add a unicode description
-        model.add_root(desc=u'\xe1\xe9\xee\xf8\xfc')
+        model.add_root(desc='áéîøü')
         request = RequestFactory().get('/admin/tree/')
         site = AdminSite()
         form_class = movenodeform_factory(model)
