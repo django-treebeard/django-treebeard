@@ -9,7 +9,7 @@ from treebeard.models import Node
 
 
 class AL_NodeManager(models.Manager):
-    """Custom manager for nodes."""
+    """Custom manager for nodes in an Adjacency List tree."""
 
     def get_query_set(self):
         """Sets the custom queryset as the default."""
