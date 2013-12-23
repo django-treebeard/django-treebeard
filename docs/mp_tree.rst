@@ -55,14 +55,7 @@ extra steps, materialized path is more efficient than other approaches.
 
      Do not change the values of the :attr:`steplen`, :attr:`alphabet` or
      :attr:`node_order_by` after saving your first object. Doing so will
-     corrupt the tree. If you *must* do it:
-
-       1. Backup the tree with :meth:`dump_bulk`
-       2. Empty your model's table
-       3. Change :attr:`depth`, :attr:`alphabet` and/or
-          :attr:`node_order_by` in your model
-       4. Restore your backup using :meth:`load_bulk` with
-          ``keep_ids=True`` to keep the same primary keys you had.
+     corrupt the tree.
 
   Example:
 
