@@ -919,6 +919,10 @@ class MP_Node(Node):
         """:returns: the root node for the current node object."""
         return self.__class__.objects.get(path=self.path[0:self.steplen])
 
+    def is_root(self):
+        """:returns: True if the node is a root node (else, returns False)"""
+        return self.depth == 1
+
     def is_leaf(self):
         """:returns: True if the node is a leaf node (else, returns False)"""
         return self.numchild == 0
