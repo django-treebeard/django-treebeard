@@ -1,6 +1,6 @@
 
 Release 2.0rc1 (February, 2014)
-------------------------------
+-------------------------------
 
 * Fixed unicode related issue in the template tags.
 * Major documentation cleanup.
