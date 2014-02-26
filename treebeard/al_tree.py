@@ -80,7 +80,16 @@ class AL_Node(Node):
 
     def get_parent(self, update=False):
         """:returns: the parent node of the current node object."""
-        return self.parent
+        if self._meta.proxy_for_model:
+            # the current node is a proxy model; the returned parent should be the
+            # same proxy model, so we need to explicitly fetch it as an instance of
+            # that model rather than simply following the 'parent' relation
+            if self.parent_id is None:
+                return None
+            else:
+                return self.__class__.objects.get(pk=self.parent_id)
+        else:
+            return self.parent
 
     def get_ancestors(self):
         """
@@ -88,10 +97,20 @@ class AL_Node(Node):
             starting by the root node and descending to the parent.
         """
         ancestors = []
-        node = self.parent
-        while node:
-            ancestors.insert(0, node)
-            node = node.parent
+        if self._meta.proxy_for_model:
+            # the current node is a proxy model; our result set should use the same
+            # proxy model, so we need to explicitly fetch instances of that model
+            # when following the 'parent' relation
+            cls = self.__class__
+            node = self
+            while node.parent_id:
+                node = cls.objects.get(pk=node.parent_id)
+                ancestors.insert(0, node)
+        else:
+            node = self.parent
+            while node:
+                ancestors.insert(0, node)
+                node = node.parent
         return ancestors
 
     def get_root(self):
