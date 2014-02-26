@@ -134,11 +134,13 @@ class TestTreeBase(object):
                 for o in model.get_tree()]
 
     def _assert_get_annotated_list(self, model, expected, parent=None):
+        results = model.get_annotated_list(parent)
         got = [
             (obj[0].desc, obj[1]['open'], obj[1]['close'], obj[1]['level'])
-            for obj in model.get_annotated_list(parent)
+            for obj in results
         ]
         assert expected == got
+        assert all([type(obj[0]) == model for obj in results])
 
 
 class TestEmptyTree(TestTreeBase):
@@ -226,9 +228,11 @@ class TestClassMethods(TestNonEmptyTree):
         assert self.got(model) == expected
 
     def test_get_tree_all(self, model):
+        nodes = model.get_tree()
         got = [(o.desc, o.get_depth(), o.get_children_count())
-               for o in model.get_tree()]
+               for o in nodes]
         assert got == UNCHANGED
+        assert all([type(o) == model for o in nodes])
 
     def test_dump_bulk_all(self, model):
         assert model.dump_bulk(keep_ids=False) == BASE_DATA
@@ -240,8 +244,9 @@ class TestClassMethods(TestNonEmptyTree):
         # the tree was modified by load_bulk, so we reload our node object
         node = model.objects.get(pk=node.pk)
 
+        nodes = model.get_tree(node)
         got = [(o.desc, o.get_depth(), o.get_children_count())
-               for o in model.get_tree(node)]
+               for o in nodes]
         expected = [('231', 3, 4),
                     ('1', 4, 0),
                     ('2', 4, 4),
@@ -254,15 +259,18 @@ class TestClassMethods(TestNonEmptyTree):
                     ('4', 4, 1),
                     ('41', 5, 0)]
         assert got == expected
+        assert all([type(o) == model for o in nodes])
 
     def test_get_tree_leaf(self, model):
         node = model.objects.get(desc='1')
 
         assert 0 == node.get_children_count()
+        nodes = model.get_tree(node)
         got = [(o.desc, o.get_depth(), o.get_children_count())
-               for o in model.get_tree(node)]
+               for o in nodes]
         expected = [('1', 1, 0)]
         assert got == expected
+        assert all([type(o) == model for o in nodes])
 
     def test_get_annotated_list_all(self, model):
         expected = [('1', True, [], 0), ('2', False, [], 0),
@@ -334,19 +342,24 @@ class TestClassMethods(TestNonEmptyTree):
         got = model.get_root_nodes()
         expected = ['1', '2', '3', '4']
         assert [node.desc for node in got] == expected
+        assert all([type(node) == model for node in got])
 
     def test_get_first_root_node(self, model):
         got = model.get_first_root_node()
         assert got.desc == '1'
+        assert type(got) == model
 
     def test_get_last_root_node(self, model):
         got = model.get_last_root_node()
         assert got.desc == '4'
+        assert type(got) == model
 
     def test_add_root(self, model):
         obj = model.add_root(desc='5')
         assert obj.get_depth() == 1
-        assert model.get_last_root_node().desc == '5'
+        got = model.get_last_root_node()
+        assert got.desc == '5'
+        assert type(got) == model
 
 
 class TestSimpleNodeMethods(TestNonEmptyTree):
@@ -387,6 +400,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc, expected in data:
             node = model.objects.get(desc=desc).get_root()
             assert node.desc == expected
+            assert type(node) == model
 
     def test_get_parent(self, model):
         data = [
@@ -405,6 +419,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             parent = node.get_parent()
             if expected:
                 assert parent.desc == expected
+                assert type(parent) == model
             else:
                 assert parent is None
             objs[desc] = node
@@ -418,6 +433,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             parent = node.get_parent(True)
             if expected:
                 assert parent.desc == expected
+                assert type(parent) == model
             else:
                 assert parent is None
 
@@ -430,6 +446,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc, expected in data:
             children = model.objects.get(desc=desc).get_children()
             assert [node.desc for node in children] == expected
+            assert all([type(node) == model for node in children])
 
     def test_get_children_count(self, model):
         data = [
@@ -450,6 +467,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc, expected in data:
             siblings = model.objects.get(desc=desc).get_siblings()
             assert [node.desc for node in siblings] == expected
+            assert all([type(node) == model for node in siblings])
 
     def test_get_first_sibling(self, model):
         data = [
@@ -464,6 +482,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc, expected in data:
             node = model.objects.get(desc=desc).get_first_sibling()
             assert node.desc == expected
+            assert type(node) == model
 
     def test_get_prev_sibling(self, model):
         data = [
@@ -481,6 +500,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
                 assert node is None
             else:
                 assert node.desc == expected
+                assert type(node) == model
 
     def test_get_next_sibling(self, model):
         data = [
@@ -498,6 +518,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
                 assert node is None
             else:
                 assert node.desc == expected
+                assert type(node) == model
 
     def test_get_last_sibling(self, model):
         data = [
@@ -512,6 +533,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc, expected in data:
             node = model.objects.get(desc=desc).get_last_sibling()
             assert node.desc == expected
+            assert type(node) == model
 
     def test_get_first_child(self, model):
         data = [
@@ -526,6 +548,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
                 assert node is None
             else:
                 assert node.desc == expected
+                assert type(node) == model
 
     def test_get_last_child(self, model):
         data = [
@@ -540,6 +563,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
                 assert node is None
             else:
                 assert node.desc == expected
+                assert type(node) == model
 
     def test_get_ancestors(self, model):
         data = [
@@ -550,6 +574,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc, expected in data:
             nodes = model.objects.get(desc=desc).get_ancestors()
             assert [node.desc for node in nodes] == expected
+            assert all([type(node) == model for node in nodes])
 
     def test_get_descendants(self, model):
         data = [
@@ -562,6 +587,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc, expected in data:
             nodes = model.objects.get(desc=desc).get_descendants()
             assert [node.desc for node in nodes] == expected
+            assert all([type(node) == model for node in nodes])
 
     def test_get_descendant_count(self, model):
         data = [
