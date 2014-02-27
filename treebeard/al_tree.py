@@ -8,13 +8,20 @@ from treebeard.exceptions import InvalidMoveToDescendant
 from treebeard.models import Node
 
 
-def get_base_model_class(cls):
+def get_result_class(cls):
     """
-    Return the class in this model's inheritance chain which implements tree behaviour
-    (i.e. the one which defines the 'parent' field). Necessary because a method like
-    get_children invoked on a multiple-table-inheritance subclass needs to perform
-    the query on the base class, in order to return child nodes that are not
-    the same subclass as that parent.
+    For the given model class, determine what class we should use for the nodes
+    returned by its tree methods (such as get_children).
+
+    Usually this will be trivially the same as the initial model class, but there are
+    special cases when model inheritance is in use:
+
+    * If the model extends another via multi-table inheritance, we need to use whichever
+      ancestor originally implemented the tree behaviour (i.e. the one which defines the
+      'parent' field). We can't use the subclass, because it's not guaranteed that the
+      other nodes reachable from the current one will be instances of the same subclass.
+
+    * If the model is a proxy model, the returned nodes should also use the proxy class.
     """
     base_class = cls._meta.get_field('parent').model
     if cls._meta.proxy_for_model == base_class:
@@ -48,7 +55,7 @@ class AL_Node(Node):
         newobj._cached_depth = 1
         if not cls.node_order_by:
             try:
-                max = get_base_model_class(cls).objects.filter(parent__isnull=True).order_by(
+                max = get_result_class(cls).objects.filter(parent__isnull=True).order_by(
                     'sib_order').reverse()[0].sib_order
             except IndexError:
                 max = 0
@@ -60,7 +67,7 @@ class AL_Node(Node):
     @classmethod
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
-        return get_base_model_class(cls).objects.filter(parent__isnull=True)
+        return get_result_class(cls).objects.filter(parent__isnull=True)
 
     def get_depth(self, update=False):
         """
@@ -91,7 +98,7 @@ class AL_Node(Node):
 
     def get_children(self):
         """:returns: A queryset of all the node's children"""
-        return get_base_model_class(self.__class__).objects.filter(parent=self)
+        return get_result_class(self.__class__).objects.filter(parent=self)
 
     def get_parent(self, update=False):
         """:returns: the parent node of the current node object."""
@@ -187,7 +194,7 @@ class AL_Node(Node):
 
     def add_child(self, **kwargs):
         """Adds a child to the node."""
-        cls = get_base_model_class(self.__class__)
+        cls = get_result_class(self.__class__)
         newobj = cls(**kwargs)
         try:
             newobj._cached_depth = self._cached_depth + 1
@@ -248,13 +255,13 @@ class AL_Node(Node):
             itself.
         """
         if self.parent:
-            return get_base_model_class(self.__class__).objects.filter(parent=self.parent)
+            return get_result_class(self.__class__).objects.filter(parent=self.parent)
         return self.__class__.get_root_nodes()
 
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
         pos = self._prepare_pos_var_for_add_sibling(pos)
-        newobj = get_base_model_class(self.__class__)(**kwargs)
+        newobj = get_result_class(self.__class__)(**kwargs)
         if not self.node_order_by:
             newobj.sib_order = self.__class__._get_new_sibling_order(pos,
                                                                      self)
@@ -270,7 +277,7 @@ class AL_Node(Node):
 
     @classmethod
     def _make_hole_in_db(cls, min, target_node):
-        qset = get_base_model_class(cls).objects.filter(sib_order__gte=min)
+        qset = get_result_class(cls).objects.filter(sib_order__gte=min)
         if target_node.is_root():
             qset = qset.filter(parent__isnull=True)
         else:
