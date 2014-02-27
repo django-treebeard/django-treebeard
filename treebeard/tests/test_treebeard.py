@@ -85,6 +85,11 @@ def related_model(request):
     return _prepare_db_test(request)
 
 
+@pytest.fixture(scope='function', params=models.INHERITED_MODELS)
+def inherited_model(request):
+    return _prepare_db_test(request)
+
+
 @pytest.fixture(scope='function', params=models.MP_SHORTPATH_MODELS)
 def mpshort_model(request):
     return _prepare_db_test(request)
@@ -1540,6 +1545,169 @@ class TestTreeSorted(TestTreeBase):
                     (1, 4, 'bcd', 1, 0),
                     (2, 1, 'fgh', 1, 0)]
         assert self.got(sorted_model) == expected
+
+
+class TestInheritedModels(TestTreeBase):
+
+    @classmethod
+    def setup_class(cls):
+        for model, inherited_model in zip(models.BASE_MODELS, models.INHERITED_MODELS):
+            model.add_root(desc='1')
+            model.add_root(desc='2')
+
+            node21 = model.objects.get(desc='2').add_child(desc='21')
+            # convert node21 into an instance of inherited_model
+            pk_name = inherited_model._meta.pk.name
+            inherited_node21 = inherited_model(**{pk_name: node21, 'extra_desc': 'foo'})
+            inherited_node21.save_base(raw=True)
+
+            model.objects.get(desc='21').add_child(desc='211')
+            model.objects.get(desc='21').add_child(desc='212')
+            model.objects.get(desc='2').add_child(desc='22')
+
+            node3 = model.add_root(desc='3')
+            # convert node3 into an instance of inherited_model
+            inherited_node3 = inherited_model(**{pk_name: node3, 'extra_desc': 'bar'})
+            inherited_node3.save_base(raw=True)
+
+    @classmethod
+    def teardown_class(cls):
+        models.empty_models_tables(models.BASE_MODELS)  # Will also empty INHERITED_MODELS by cascade
+
+    def test_get_tree_all(self, inherited_model):
+        got = [(o.desc, o.get_depth(), o.get_children_count())
+               for o in inherited_model.get_tree()]
+        expected = [
+            ('1', 1, 0),
+            ('2', 1, 2),
+            ('21', 2, 2),
+            ('211', 3, 0),
+            ('212', 3, 0),
+            ('22', 2, 0),
+            ('3', 1, 0),
+        ]
+        assert got == expected
+
+    def test_get_tree_node(self, inherited_model):
+        node = inherited_model.objects.get(desc='21')
+
+        got = [(o.desc, o.get_depth(), o.get_children_count())
+               for o in inherited_model.get_tree(node)]
+        expected = [
+            ('21', 2, 2),
+            ('211', 3, 0),
+            ('212', 3, 0),
+        ]
+        assert got == expected
+
+    def test_get_root_nodes(self, inherited_model):
+        got = inherited_model.get_root_nodes()
+        expected = ['1', '2', '3']
+        assert [node.desc for node in got] == expected
+
+    def test_get_first_root_node(self, inherited_model):
+        got = inherited_model.get_first_root_node()
+        assert got.desc == '1'
+
+    def test_get_last_root_node(self, inherited_model):
+        got = inherited_model.get_last_root_node()
+        assert got.desc == '3'
+
+    def test_is_root(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.is_root() == False
+        assert node3.is_root() == True
+
+    def test_is_leaf(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.is_leaf() == False
+        assert node3.is_leaf() == True
+
+    def test_get_root(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_root().desc == '2'
+        assert node3.get_root().desc == '3'
+
+    def test_get_parent(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_parent().desc == '2'
+        assert node3.get_parent() == None
+
+    def test_get_children(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert [node.desc for node in node21.get_children()] == ['211', '212']
+        assert [node.desc for node in node3.get_children()] == []
+
+    def test_get_children_count(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_children_count() == 2
+        assert node3.get_children_count() == 0
+
+    def test_get_siblings(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert [node.desc for node in node21.get_siblings()] == ['21', '22']
+        assert [node.desc for node in node3.get_siblings()] == ['1', '2', '3']
+
+    def test_get_first_sibling(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_first_sibling().desc == '21'
+        assert node3.get_first_sibling().desc == '1'
+
+    def test_get_prev_sibling(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_prev_sibling() == None
+        assert node3.get_prev_sibling().desc == '2'
+
+    def test_get_next_sibling(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_next_sibling().desc == '22'
+        assert node3.get_next_sibling() == None
+
+    def test_get_last_sibling(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_last_sibling().desc == '22'
+        assert node3.get_last_sibling().desc == '3'
+
+    def test_get_first_child(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_first_child().desc == '211'
+        assert node3.get_first_child() == None
+
+    def test_get_last_child(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_last_child().desc == '212'
+        assert node3.get_last_child() == None
+
+    def test_get_ancestors(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert [node.desc for node in node21.get_ancestors()] == ['2']
+        assert [node.desc for node in node3.get_ancestors()] == []
+
+    def test_get_descendants(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert [node.desc for node in node21.get_descendants()] == ['211', '212']
+        assert [node.desc for node in node3.get_descendants()] == []
+
+    def test_get_descendant_count(self, inherited_model):
+        node21 = inherited_model.objects.get(desc='21')
+        node3 = inherited_model.objects.get(desc='3')
+        assert node21.get_descendant_count() == 2
+        assert node3.get_descendant_count() == 0
 
 
 class TestMP_TreeAlphabet(TestTreeBase):

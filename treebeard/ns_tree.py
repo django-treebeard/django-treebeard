@@ -15,6 +15,21 @@ from treebeard.exceptions import InvalidMoveToDescendant
 from treebeard.models import Node
 
 
+def get_base_model_class(cls):
+    """
+    Return the class in this model's inheritance chain which implements tree behaviour
+    (i.e. the one which defines the 'lft' / rgt' fields). Necessary because a method
+    like get_children invoked on a multiple-table-inheritance subclass needs to
+    perform the query on the base class, in order to return child nodes that are not
+    the same subclass as that parent.
+    """
+    base_class = cls._meta.get_field('lft').model
+    if cls._meta.proxy_for_model == base_class:
+        return cls
+    else:
+        return base_class
+
+
 class NS_NodeQuerySet(models.query.QuerySet):
     """
     Custom queryset for the tree node manager.
@@ -116,7 +131,7 @@ class NS_Node(Node):
             newtree_id = 1
 
         # creating the new object
-        newobj = cls(**kwargs)
+        newobj = get_base_model_class(cls)(**kwargs)
         newobj.depth = 1
         newobj.tree_id = newtree_id
         newobj.lft = 1
@@ -141,7 +156,7 @@ class NS_Node(Node):
               '                ELSE rgt END '\
               ' WHERE rgt >= %(parent_rgt)d AND '\
               '       tree_id = %(tree_id)s' % {
-                  'table': connection.ops.quote_name(cls._meta.db_table),
+                  'table': connection.ops.quote_name(get_base_model_class(cls)._meta.db_table),
                   'parent_rgt': rgt,
                   'tree_id': tree_id,
                   'lftop': lftop,
@@ -153,7 +168,7 @@ class NS_Node(Node):
         sql = 'UPDATE %(table)s '\
               ' SET tree_id = tree_id+1 '\
               ' WHERE tree_id >= %(tree_id)d' % {
-                  'table': connection.ops.quote_name(cls._meta.db_table),
+                  'table': connection.ops.quote_name(get_base_model_class(cls)._meta.db_table),
                   'tree_id': tree_id}
         return sql, []
 
@@ -174,7 +189,7 @@ class NS_Node(Node):
                                                  self.rgt, False, 2)
 
         # creating a new object
-        newobj = self.__class__(**kwargs)
+        newobj = get_base_model_class(self.__class__)(**kwargs)
         newobj.tree_id = self.tree_id
         newobj.depth = self.depth + 1
         newobj.lft = self.lft + 1
@@ -200,7 +215,7 @@ class NS_Node(Node):
         pos = self._prepare_pos_var_for_add_sibling(pos)
 
         # creating a new object
-        newobj = self.__class__(**kwargs)
+        newobj = get_base_model_class(self.__class__)(**kwargs)
         newobj.depth = self.depth
 
         sql = None
@@ -296,7 +311,7 @@ class NS_Node(Node):
         """
 
         pos = self._prepare_pos_var_for_move(pos)
-        cls = self.__class__
+        cls = get_base_model_class(self.__class__)
 
         parent = None
 
@@ -434,7 +449,7 @@ class NS_Node(Node):
               ' WHERE (lft > %(drop_lft)d '\
               '     OR rgt > %(drop_lft)d) AND '\
               '     tree_id=%(tree_id)d' % {
-                  'table': connection.ops.quote_name(cls._meta.db_table),
+                  'table': connection.ops.quote_name(get_base_model_class(cls)._meta.db_table),
                   'gapsize': drop_rgt - drop_lft + 1,
                   'drop_lft': drop_lft,
                   'tree_id': tree_id}
@@ -443,6 +458,8 @@ class NS_Node(Node):
     @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """Loads a list/dictionary structure to the tree."""
+
+        cls = get_base_model_class(cls)
 
         # tree, iterative preorder
         added = []
@@ -492,7 +509,7 @@ class NS_Node(Node):
         """:returns: the root node for the current node object."""
         if self.lft == 1:
             return self
-        return self.__class__.objects.get(tree_id=self.tree_id, lft=1)
+        return get_base_model_class(self.__class__).objects.get(tree_id=self.tree_id, lft=1)
 
     def is_root(self):
         """:returns: True if the node is a root node (else, returns False)"""
@@ -550,6 +567,8 @@ class NS_Node(Node):
             A *queryset* of nodes ordered as DFS, including the parent.
             If no parent is given, all trees are returned.
         """
+        cls = get_base_model_class(cls)
+
         if parent is None:
             # return the entire tree
             return cls.objects.all()
@@ -565,7 +584,7 @@ class NS_Node(Node):
             include the node itself
         """
         if self.is_leaf():
-            return self.__class__.objects.none()
+            return get_base_model_class(self.__class__).objects.none()
         return self.__class__.get_tree(self).exclude(pk=self.pk)
 
     def get_descendant_count(self):
@@ -578,8 +597,8 @@ class NS_Node(Node):
             starting by the root node and descending to the parent.
         """
         if self.is_root():
-            return self.__class__.objects.none()
-        return self.__class__.objects.filter(
+            return get_base_model_class(self.__class__).objects.none()
+        return get_base_model_class(self.__class__).objects.filter(
             tree_id=self.tree_id,
             lft__lt=self.lft,
             rgt__gt=self.rgt)
@@ -616,7 +635,7 @@ class NS_Node(Node):
     @classmethod
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
-        return cls.objects.filter(lft=1)
+        return get_base_model_class(cls).objects.filter(lft=1)
 
     class Meta:
         """Abstract model."""
