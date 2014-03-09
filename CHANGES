@@ -1,3 +1,9 @@
+Release 2.0rc2 (March, 2014)
+----------------------------
+
+* Tree methods called on proxy models should consistently return instances
+  of that proxy model (thanks Matt Wescott)
+
 
 Release 2.0rc1 (February, 2014)
 -------------------------------
