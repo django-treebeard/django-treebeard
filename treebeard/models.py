@@ -34,8 +34,9 @@ class Node(models.Model):
 
     @classmethod
     def get_foreign_keys(cls):
-        """ Get foreign keys and models they refer to, so we can pre-process the
-        data for load_bulk """
+        """Get foreign keys and models they refer to, so we can pre-process
+        the data for load_bulk
+        """
         foreign_keys = {}
         for field in cls._meta.fields:
             if (
@@ -47,8 +48,9 @@ class Node(models.Model):
 
     @classmethod
     def _process_foreign_keys(cls, foreign_keys, node_data):
-        """ For each foreign key try to load the actual object so load_bulk
-        doesn't fail trying to load an int where django expects a model instance
+        """For each foreign key try to load the actual object so load_bulk
+        doesn't fail trying to load an int where django expects a
+        model instance
         """
         for key in foreign_keys.keys():
             if key in node_data:

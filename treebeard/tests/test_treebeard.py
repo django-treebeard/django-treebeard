@@ -1551,14 +1551,17 @@ class TestInheritedModels(TestTreeBase):
 
     @classmethod
     def setup_class(cls):
-        for model, inherited_model in zip(models.BASE_MODELS, models.INHERITED_MODELS):
+        themodels = zip(models.BASE_MODELS, models.INHERITED_MODELS)
+        for model, inherited_model in themodels:
             model.add_root(desc='1')
             model.add_root(desc='2')
 
             node21 = model.objects.get(desc='2').add_child(desc='21')
             # convert node21 into an instance of inherited_model
             pk_name = inherited_model._meta.pk.name
-            inherited_node21 = inherited_model(**{pk_name: node21, 'extra_desc': 'foo'})
+            inherited_node21 = inherited_model(
+                **{pk_name: node21, 'extra_desc': 'foo'}
+            )
             inherited_node21.save_base(raw=True)
 
             model.objects.get(desc='21').add_child(desc='211')
@@ -1567,12 +1570,15 @@ class TestInheritedModels(TestTreeBase):
 
             node3 = model.add_root(desc='3')
             # convert node3 into an instance of inherited_model
-            inherited_node3 = inherited_model(**{pk_name: node3, 'extra_desc': 'bar'})
+            inherited_node3 = inherited_model(
+                **{pk_name: node3, 'extra_desc': 'bar'}
+            )
             inherited_node3.save_base(raw=True)
 
     @classmethod
     def teardown_class(cls):
-        models.empty_models_tables(models.BASE_MODELS)  # Will also empty INHERITED_MODELS by cascade
+        # Will also empty INHERITED_MODELS by cascade
+        models.empty_models_tables(models.BASE_MODELS)
 
     def test_get_tree_all(self, inherited_model):
         got = [(o.desc, o.get_depth(), o.get_children_count())
@@ -1616,14 +1622,14 @@ class TestInheritedModels(TestTreeBase):
     def test_is_root(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
         node3 = inherited_model.objects.get(desc='3')
-        assert node21.is_root() == False
-        assert node3.is_root() == True
+        assert node21.is_root() is False
+        assert node3.is_root() is True
 
     def test_is_leaf(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
         node3 = inherited_model.objects.get(desc='3')
-        assert node21.is_leaf() == False
-        assert node3.is_leaf() == True
+        assert node21.is_leaf() is False
+        assert node3.is_leaf() is True
 
     def test_get_root(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
@@ -1635,7 +1641,7 @@ class TestInheritedModels(TestTreeBase):
         node21 = inherited_model.objects.get(desc='21')
         node3 = inherited_model.objects.get(desc='3')
         assert node21.get_parent().desc == '2'
-        assert node3.get_parent() == None
+        assert node3.get_parent() is None
 
     def test_get_children(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
@@ -1664,14 +1670,14 @@ class TestInheritedModels(TestTreeBase):
     def test_get_prev_sibling(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
         node3 = inherited_model.objects.get(desc='3')
-        assert node21.get_prev_sibling() == None
+        assert node21.get_prev_sibling() is None
         assert node3.get_prev_sibling().desc == '2'
 
     def test_get_next_sibling(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
         node3 = inherited_model.objects.get(desc='3')
         assert node21.get_next_sibling().desc == '22'
-        assert node3.get_next_sibling() == None
+        assert node3.get_next_sibling() is None
 
     def test_get_last_sibling(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
@@ -1683,13 +1689,13 @@ class TestInheritedModels(TestTreeBase):
         node21 = inherited_model.objects.get(desc='21')
         node3 = inherited_model.objects.get(desc='3')
         assert node21.get_first_child().desc == '211'
-        assert node3.get_first_child() == None
+        assert node3.get_first_child() is None
 
     def test_get_last_child(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
         node3 = inherited_model.objects.get(desc='3')
         assert node21.get_last_child().desc == '212'
-        assert node3.get_last_child() == None
+        assert node3.get_last_child() is None
 
     def test_get_ancestors(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
@@ -1700,7 +1706,8 @@ class TestInheritedModels(TestTreeBase):
     def test_get_descendants(self, inherited_model):
         node21 = inherited_model.objects.get(desc='21')
         node3 = inherited_model.objects.get(desc='3')
-        assert [node.desc for node in node21.get_descendants()] == ['211', '212']
+        assert [node.desc for node in node21.get_descendants()] == [
+            '211', '212']
         assert [node.desc for node in node3.get_descendants()] == []
 
     def test_get_descendant_count(self, inherited_model):
@@ -2459,7 +2466,6 @@ class TestAdminTreeList(TestNonEmptyTree):
                                                  object.pk)
             assert expected_output in table_output
 
-
     def test_result_tree_list_with_get(self, model_without_proxy):
         model = model_without_proxy
         # Test t GET parameter with value id
@@ -2614,4 +2620,3 @@ class TestTreeAdmin(TestNonEmptyTree):
                     ('4', 1, 1),
                     ('41', 2, 0)]
         assert self.got(model) == expected
-
