@@ -1,7 +1,7 @@
 """Adjacency List"""
 
 from django.core import serializers
-from django.db import connection, models, transaction
+from django.db import models, transaction
 from django.utils.translation import ugettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant

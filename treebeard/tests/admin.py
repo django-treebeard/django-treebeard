@@ -1,5 +1,3 @@
-import datetime
-
 from django.contrib import admin
 from treebeard.admin import admin_factory
 from treebeard.forms import movenodeform_factory

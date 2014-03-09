@@ -33,11 +33,10 @@ else:
 register = Library()
 
 if sys.version_info >= (3, 0):
-    from django.utils.encoding import force_str, smart_str
+    from django.utils.encoding import force_str
     from urllib.parse import urljoin
 else:
     from django.utils.encoding import force_unicode as force_str
-    from django.utils.encoding import smart_unicode as smart_str
     from urlparse import urljoin
 
 
