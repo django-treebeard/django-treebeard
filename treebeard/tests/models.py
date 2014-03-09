@@ -48,6 +48,10 @@ class MP_TestNodeRelated(MP_Node):
         return 'Node %d' % self.pk
 
 
+class MP_TestNodeInherited(MP_TestNode):
+    extra_desc = models.CharField(max_length=255)
+
+
 class NS_TestNode(NS_Node):
     desc = models.CharField(max_length=255)
 
@@ -75,6 +79,10 @@ class NS_TestNodeRelated(NS_Node):
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
+
+
+class NS_TestNodeInherited(NS_TestNode):
+    extra_desc = models.CharField(max_length=255)
 
 
 class AL_TestNode(AL_Node):
@@ -119,6 +127,10 @@ class AL_TestNodeRelated(AL_Node):
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
+
+
+class AL_TestNodeInherited(AL_TestNode):
+    extra_desc = models.CharField(max_length=255)
 
 
 class MP_TestNodeSorted(MP_Node):
@@ -239,6 +251,7 @@ DEP_MODELS = AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep
 MP_SHORTPATH_MODELS = MP_TestNodeShortPath, MP_TestSortedNodeShortPath
 RELATED_MODELS = AL_TestNodeRelated, MP_TestNodeRelated, NS_TestNodeRelated
 UNICODE_MODELS = AL_UnicodeNode, MP_UnicodeNode, NS_UnicodetNode
+INHERITED_MODELS = AL_TestNodeInherited, MP_TestNodeInherited, NS_TestNodeInherited
 
 
 def empty_models_tables(models):

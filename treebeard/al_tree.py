@@ -8,6 +8,28 @@ from treebeard.exceptions import InvalidMoveToDescendant
 from treebeard.models import Node
 
 
+def get_result_class(cls):
+    """
+    For the given model class, determine what class we should use for the nodes
+    returned by its tree methods (such as get_children).
+
+    Usually this will be trivially the same as the initial model class, but there are
+    special cases when model inheritance is in use:
+
+    * If the model extends another via multi-table inheritance, we need to use whichever
+      ancestor originally implemented the tree behaviour (i.e. the one which defines the
+      'parent' field). We can't use the subclass, because it's not guaranteed that the
+      other nodes reachable from the current one will be instances of the same subclass.
+
+    * If the model is a proxy model, the returned nodes should also use the proxy class.
+    """
+    base_class = cls._meta.get_field('parent').model
+    if cls._meta.proxy_for_model == base_class:
+        return cls
+    else:
+        return base_class
+
+
 class AL_NodeManager(models.Manager):
     """Custom manager for nodes in an Adjacency List tree."""
 
@@ -33,7 +55,7 @@ class AL_Node(Node):
         newobj._cached_depth = 1
         if not cls.node_order_by:
             try:
-                max = cls.objects.filter(parent__isnull=True).order_by(
+                max = get_result_class(cls).objects.filter(parent__isnull=True).order_by(
                     'sib_order').reverse()[0].sib_order
             except IndexError:
                 max = 0
@@ -45,7 +67,7 @@ class AL_Node(Node):
     @classmethod
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
-        return cls.objects.filter(parent__isnull=True)
+        return get_result_class(cls).objects.filter(parent__isnull=True)
 
     def get_depth(self, update=False):
         """
@@ -76,11 +98,20 @@ class AL_Node(Node):
 
     def get_children(self):
         """:returns: A queryset of all the node's children"""
-        return self.__class__.objects.filter(parent=self)
+        return get_result_class(self.__class__).objects.filter(parent=self)
 
     def get_parent(self, update=False):
         """:returns: the parent node of the current node object."""
-        return self.parent
+        if self._meta.proxy_for_model:
+            # the current node is a proxy model; the returned parent should be the
+            # same proxy model, so we need to explicitly fetch it as an instance of
+            # that model rather than simply following the 'parent' relation
+            if self.parent_id is None:
+                return None
+            else:
+                return self.__class__.objects.get(pk=self.parent_id)
+        else:
+            return self.parent
 
     def get_ancestors(self):
         """
@@ -88,10 +119,20 @@ class AL_Node(Node):
             starting by the root node and descending to the parent.
         """
         ancestors = []
-        node = self.parent
-        while node:
-            ancestors.insert(0, node)
-            node = node.parent
+        if self._meta.proxy_for_model:
+            # the current node is a proxy model; our result set should use the same
+            # proxy model, so we need to explicitly fetch instances of that model
+            # when following the 'parent' relation
+            cls = self.__class__
+            node = self
+            while node.parent_id:
+                node = cls.objects.get(pk=node.parent_id)
+                ancestors.insert(0, node)
+        else:
+            node = self.parent
+            while node:
+                ancestors.insert(0, node)
+                node = node.parent
         return ancestors
 
     def get_root(self):
@@ -153,14 +194,15 @@ class AL_Node(Node):
 
     def add_child(self, **kwargs):
         """Adds a child to the node."""
-        newobj = self.__class__(**kwargs)
+        cls = get_result_class(self.__class__)
+        newobj = cls(**kwargs)
         try:
             newobj._cached_depth = self._cached_depth + 1
         except AttributeError:
             pass
-        if not self.__class__.node_order_by:
+        if not cls.node_order_by:
             try:
-                max = self.__class__.objects.filter(parent=self).reverse(
+                max = cls.objects.filter(parent=self).reverse(
                 )[0].sib_order
             except IndexError:
                 max = 0
@@ -213,13 +255,13 @@ class AL_Node(Node):
             itself.
         """
         if self.parent:
-            return self.__class__.objects.filter(parent=self.parent)
+            return get_result_class(self.__class__).objects.filter(parent=self.parent)
         return self.__class__.get_root_nodes()
 
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
         pos = self._prepare_pos_var_for_add_sibling(pos)
-        newobj = self.__class__(**kwargs)
+        newobj = get_result_class(self.__class__)(**kwargs)
         if not self.node_order_by:
             newobj.sib_order = self.__class__._get_new_sibling_order(pos,
                                                                      self)
@@ -235,7 +277,7 @@ class AL_Node(Node):
 
     @classmethod
     def _make_hole_in_db(cls, min, target_node):
-        qset = cls.objects.filter(sib_order__gte=min)
+        qset = get_result_class(cls).objects.filter(sib_order__gte=min)
         if target_node.is_root():
             qset = qset.filter(parent__isnull=True)
         else:
