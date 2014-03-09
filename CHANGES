@@ -1,8 +1,9 @@
 Release 2.0rc2 (March, 2014)
 ----------------------------
 
+* Support models that use multi-table inheritance (Matt Wescott)
 * Tree methods called on proxy models should consistently return instances
-  of that proxy model (thanks Matt Wescott)
+  of that proxy model (Matt Wescott)
 
 
 Release 2.0rc1 (February, 2014)
