@@ -366,6 +366,19 @@ class TestClassMethods(TestNonEmptyTree):
         assert got.desc == '5'
         assert type(got) == model
 
+    def test_add_root_with_passed_instance(self, model):
+        obj = model(desc='5')
+        result = model.add_root(instance=obj)
+        assert result == obj
+        got = model.get_last_root_node()
+        assert got.desc == '5'
+        assert type(got) == model
+
+    def test_add_root_with_already_saved_instance(self, model):
+        obj = model.objects.get(desc='4')
+        with pytest.raises(ValueError):
+            model.add_root(instance=obj)
+
 
 class TestSimpleNodeMethods(TestNonEmptyTree):
     def test_is_root(self, model):

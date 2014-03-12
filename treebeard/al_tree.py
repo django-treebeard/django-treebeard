@@ -53,7 +53,16 @@ class AL_Node(Node):
     @classmethod
     def add_root(cls, **kwargs):
         """Adds a root node to the tree."""
-        newobj = cls(**kwargs)
+
+        if len(kwargs) == 1 and 'instance' in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs['instance']
+            if newobj.pk:
+                raise ValueError("Attempted to add a tree node that is "\
+                    "already in the database")
+        else:
+            newobj = cls(**kwargs)
+
         newobj._cached_depth = 1
         if not cls.node_order_by:
             try:

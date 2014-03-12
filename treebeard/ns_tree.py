@@ -139,8 +139,16 @@ class NS_Node(Node):
             # adding the first root node
             newtree_id = 1
 
-        # creating the new object
-        newobj = get_result_class(cls)(**kwargs)
+        if len(kwargs) == 1 and 'instance' in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs['instance']
+            if newobj.pk:
+                raise ValueError("Attempted to add a tree node that is "\
+                    "already in the database")
+        else:
+            # creating the new object
+            newobj = get_result_class(cls)(**kwargs)
+
         newobj.depth = 1
         newobj.tree_id = newtree_id
         newobj.lft = 1
