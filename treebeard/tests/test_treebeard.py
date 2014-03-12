@@ -1605,24 +1605,15 @@ class TestInheritedModels(TestTreeBase):
             model.add_root(desc='1')
             model.add_root(desc='2')
 
-            node21 = model.objects.get(desc='2').add_child(desc='21')
-            # convert node21 into an instance of inherited_model
-            pk_name = inherited_model._meta.pk.name
-            inherited_node21 = inherited_model(
-                **{pk_name: node21, 'extra_desc': 'foo'}
-            )
-            inherited_node21.save_base(raw=True)
+            node21 = inherited_model(desc='21')
+            model.objects.get(desc='2').add_child(instance=node21)
 
             model.objects.get(desc='21').add_child(desc='211')
             model.objects.get(desc='21').add_child(desc='212')
             model.objects.get(desc='2').add_child(desc='22')
 
-            node3 = model.add_root(desc='3')
-            # convert node3 into an instance of inherited_model
-            inherited_node3 = inherited_model(
-                **{pk_name: node3, 'extra_desc': 'bar'}
-            )
-            inherited_node3.save_base(raw=True)
+            node3 = inherited_model(desc='3')
+            model.add_root(instance=node3)
 
     @classmethod
     def teardown_class(cls):
