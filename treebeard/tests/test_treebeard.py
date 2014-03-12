@@ -19,7 +19,7 @@ import pytest
 from treebeard import numconv
 from treebeard.admin import admin_factory
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
-    PathOverflow, MissingNodeOrderBy
+    PathOverflow, MissingNodeOrderBy, NodeAlreadySaved
 from treebeard.forms import movenodeform_factory
 from treebeard.templatetags.admin_tree import get_static_url
 from treebeard.tests import models
@@ -376,7 +376,7 @@ class TestClassMethods(TestNonEmptyTree):
 
     def test_add_root_with_already_saved_instance(self, model):
         obj = model.objects.get(desc='4')
-        with pytest.raises(ValueError):
+        with pytest.raises(NodeAlreadySaved):
             model.add_root(instance=obj)
 
 
@@ -713,7 +713,7 @@ class TestAddChild(TestNonEmptyTree):
 
     def test_add_child_with_already_saved_instance(self, model):
         child = model.objects.get(desc='21')
-        with pytest.raises(ValueError):
+        with pytest.raises(NodeAlreadySaved):
             model.objects.get(desc='2').add_child(instance=child)
 
 
@@ -920,7 +920,7 @@ class TestAddSibling(TestNonEmptyTree):
     def test_add_sibling_already_saved_instance(self, model):
         node_wchildren = model.objects.get(desc='2')
         existing_node = model.objects.get(desc='4')
-        with pytest.raises(ValueError):
+        with pytest.raises(NodeAlreadySaved):
             node_wchildren.add_sibling('last-sibling', instance=existing_node)
 
 

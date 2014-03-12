@@ -7,6 +7,8 @@ Exceptions
 
 .. autoexception:: InvalidMoveToDescendant
 
+.. autoexception:: NodeAlreadySaved
+
 .. autoexception:: PathOverflow
 
 .. autoexception:: MissingNodeOrderBy

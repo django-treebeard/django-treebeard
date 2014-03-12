@@ -11,7 +11,7 @@ from django.db import connection, models, transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_noop as _
 
-from treebeard.exceptions import InvalidMoveToDescendant
+from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
 from treebeard.models import Node
 
 
@@ -143,7 +143,7 @@ class NS_Node(Node):
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
             if newobj.pk:
-                raise ValueError("Attempted to add a tree node that is "\
+                raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
             # creating the new object
@@ -211,7 +211,7 @@ class NS_Node(Node):
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
             if newobj.pk:
-                raise ValueError("Attempted to add a tree node that is "\
+                raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
             # creating a new object
@@ -245,7 +245,7 @@ class NS_Node(Node):
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
             if newobj.pk:
-                raise ValueError("Attempted to add a tree node that is "\
+                raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
             # creating a new object
