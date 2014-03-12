@@ -300,8 +300,17 @@ class MP_AddRootHandler(MP_AddHandler):
         else:
             # adding the first root node
             newpath = self.cls._get_path(None, 1, 1)
+
+        if len(self.kwargs) == 1 and 'instance' in self.kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = self.kwargs['instance']
+            if newobj.pk:
+                raise ValueError("Attempted to add a tree node that is "\
+                    "already in the database")
+        else:
             # creating the new object
-        newobj = self.cls(**self.kwargs)
+            newobj = self.cls(**self.kwargs)
+
         newobj.depth = 1
         newobj.path = newpath
         # saving the instance before returning it
