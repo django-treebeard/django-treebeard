@@ -4,7 +4,7 @@ from django.core import serializers
 from django.db import models, transaction
 from django.utils.translation import ugettext_noop as _
 
-from treebeard.exceptions import InvalidMoveToDescendant
+from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
 from treebeard.models import Node
 
 
@@ -58,7 +58,7 @@ class AL_Node(Node):
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
             if newobj.pk:
-                raise ValueError("Attempted to add a tree node that is "\
+                raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
             newobj = cls(**kwargs)
@@ -214,7 +214,7 @@ class AL_Node(Node):
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
             if newobj.pk:
-                raise ValueError("Attempted to add a tree node that is "\
+                raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
             newobj = cls(**kwargs)
@@ -290,7 +290,7 @@ class AL_Node(Node):
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
             if newobj.pk:
-                raise ValueError("Attempted to add a tree node that is "\
+                raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
             # creating a new object

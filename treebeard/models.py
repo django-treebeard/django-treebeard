@@ -32,6 +32,9 @@ class Node(models.Model):
             be inserted into the tree.
 
         :returns: the created node object. It will be save()d by this method.
+
+        :raise NodeAlreadySaved: when the passed ``instance`` already exists
+            in the database
         """
         raise NotImplementedError
 
@@ -371,6 +374,9 @@ class Node(models.Model):
             be inserted into the tree.
 
         :returns: The created node object. It will be save()d by this method.
+
+        :raise NodeAlreadySaved: when the passed ``instance`` already exists
+            in the database
         """
         raise NotImplementedError
 
@@ -408,6 +414,8 @@ class Node(models.Model):
            ``pos`` parm wasn't ``sorted-sibling``
         :raise MissingNodeOrderBy: when passing ``sorted-sibling`` as ``pos``
            and the :attr:`node_order_by` attribute is missing
+        :raise NodeAlreadySaved: when the passed ``instance`` already exists
+            in the database
         """
         raise NotImplementedError
 

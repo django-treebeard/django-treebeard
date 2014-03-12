@@ -13,7 +13,8 @@ from django.utils.translation import ugettext_noop as _
 
 from treebeard.numconv import NumConv
 from treebeard.models import Node
-from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow
+from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow,\
+    NodeAlreadySaved
 
 
 def get_result_class(cls):
@@ -305,7 +306,7 @@ class MP_AddRootHandler(MP_AddHandler):
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs['instance']
             if newobj.pk:
-                raise ValueError("Attempted to add a tree node that is "\
+                raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
             # creating the new object
@@ -338,7 +339,7 @@ class MP_AddChildHandler(MP_AddHandler):
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs['instance']
             if newobj.pk:
-                raise ValueError("Attempted to add a tree node that is "\
+                raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
             # creating a new object
@@ -386,7 +387,7 @@ class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs['instance']
             if newobj.pk:
-                raise ValueError("Attempted to add a tree node that is "\
+                raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
             # creating a new object
