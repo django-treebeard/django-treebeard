@@ -694,6 +694,28 @@ class TestAddChild(TestNonEmptyTree):
                     ('41', 2, 0)]
         assert self.got(model) == expected
 
+    def test_add_child_with_passed_instance(self, model):
+        child = model(desc='2311')
+        result = model.objects.get(desc='231').add_child(instance=child)
+        assert result == child
+        expected = [('1', 1, 0),
+                    ('2', 1, 4),
+                    ('21', 2, 0),
+                    ('22', 2, 0),
+                    ('23', 2, 1),
+                    ('231', 3, 1),
+                    ('2311', 4, 0),
+                    ('24', 2, 0),
+                    ('3', 1, 0),
+                    ('4', 1, 1),
+                    ('41', 2, 0)]
+        assert self.got(model) == expected
+
+    def test_add_child_with_already_saved_instance(self, model):
+        child = model.objects.get(desc='21')
+        with pytest.raises(ValueError):
+            model.objects.get(desc='2').add_child(instance=child)
+
 
 class TestAddSibling(TestNonEmptyTree):
     def test_add_sibling_invalid_pos(self, model):

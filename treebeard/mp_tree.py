@@ -334,8 +334,16 @@ class MP_AddChildHandler(MP_AddHandler):
             return self.node.get_last_child().add_sibling(
                 'sorted-sibling', **self.kwargs)
 
-        # creating a new object
-        newobj = self.node_cls(**self.kwargs)
+        if len(self.kwargs) == 1 and 'instance' in self.kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = self.kwargs['instance']
+            if newobj.pk:
+                raise ValueError("Attempted to add a tree node that is "\
+                    "already in the database")
+        else:
+            # creating a new object
+            newobj = self.node_cls(**self.kwargs)
+
         newobj.depth = self.node.depth + 1
         if self.node.is_leaf():
             # the node had no children, adding the first child

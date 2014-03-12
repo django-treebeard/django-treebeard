@@ -209,7 +209,16 @@ class AL_Node(Node):
     def add_child(self, **kwargs):
         """Adds a child to the node."""
         cls = get_result_class(self.__class__)
-        newobj = cls(**kwargs)
+
+        if len(kwargs) == 1 and 'instance' in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs['instance']
+            if newobj.pk:
+                raise ValueError("Attempted to add a tree node that is "\
+                    "already in the database")
+        else:
+            newobj = cls(**kwargs)
+
         try:
             newobj._cached_depth = self._cached_depth + 1
         except AttributeError:
