@@ -207,8 +207,16 @@ class NS_Node(Node):
         sql, params = self.__class__._move_right(self.tree_id,
                                                  self.rgt, False, 2)
 
-        # creating a new object
-        newobj = get_result_class(self.__class__)(**kwargs)
+        if len(kwargs) == 1 and 'instance' in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs['instance']
+            if newobj.pk:
+                raise ValueError("Attempted to add a tree node that is "\
+                    "already in the database")
+        else:
+            # creating a new object
+            newobj = get_result_class(self.__class__)(**kwargs)
+
         newobj.tree_id = self.tree_id
         newobj.depth = self.depth + 1
         newobj.lft = self.lft + 1
