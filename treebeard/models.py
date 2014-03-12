@@ -27,6 +27,9 @@ class Node(models.Model):
 
         :param \*\*kwargs: object creation data that will be passed to the
             inherited Node model
+        :param instance: Instead of passing object creation data, you can
+            pass an already-constructed (but not yet saved) model instance to
+            be inserted into the tree.
 
         :returns: the created node object. It will be save()d by this method.
         """
@@ -363,6 +366,9 @@ class Node(models.Model):
 
             Object creation data that will be passed to the inherited Node
             model
+        :param instance: Instead of passing object creation data, you can
+            pass an already-constructed (but not yet saved) model instance to
+            be inserted into the tree.
 
         :returns: The created node object. It will be save()d by this method.
         """
@@ -389,6 +395,9 @@ class Node(models.Model):
 
             Object creation data that will be passed to the inherited
             Node model
+        :param instance: Instead of passing object creation data, you can
+            pass an already-constructed (but not yet saved) model instance to
+            be inserted into the tree.
 
         :returns:
 

@@ -26,6 +26,13 @@ API
 
         MyNode.add_root(numval=1, strval='abcd')
 
+     Or, to pass in an existing instance:
+
+     .. code-block:: python
+
+        new_node = MyNode(numval=1, strval='abcd')
+        MyNode.add_root(instance=new_node)
+
   .. automethod:: add_child
 
      Example:
@@ -34,6 +41,13 @@ API
 
         node.add_child(numval=1, strval='abcd')
 
+     Or, to pass in an existing instance:
+
+     .. code-block:: python
+
+        new_node = MyNode(numval=1, strval='abcd')
+        node.add_child(instance=new_node)
+
   .. automethod:: add_sibling
 
      Examples:
@@ -41,6 +55,13 @@ API
      .. code-block:: python
 
         node.add_sibling('sorted-sibling', numval=1, strval='abc')
+
+     Or, to pass in an existing instance:
+
+     .. code-block:: python
+
+        new_node = MyNode(numval=1, strval='abc')
+        node.add_sibling('sorted-sibling', instance=new_node)
 
   .. automethod:: delete
 
