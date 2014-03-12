@@ -874,6 +874,20 @@ class TestAddSibling(TestNonEmptyTree):
                     ('41', 2, 0)]
         assert self.got(model) == expected
 
+    def test_add_sibling_with_passed_instance(self, model):
+        node_wchildren = model.objects.get(desc='2')
+        obj = model(desc='5')
+        result = node_wchildren.add_sibling('last-sibling', instance=obj)
+        assert result == obj
+        assert obj.get_depth() == 1
+        assert node_wchildren.get_last_sibling().desc == '5'
+
+    def test_add_sibling_already_saved_instance(self, model):
+        node_wchildren = model.objects.get(desc='2')
+        existing_node = model.objects.get(desc='4')
+        with pytest.raises(ValueError):
+            node_wchildren.add_sibling('last-sibling', instance=existing_node)
+
 
 class TestDelete(TestNonEmptyTree):
 

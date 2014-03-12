@@ -365,8 +365,16 @@ class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
     def process(self):
         self.pos = self.node._prepare_pos_var_for_add_sibling(self.pos)
 
-        # creating a new object
-        newobj = self.node_cls(**self.kwargs)
+        if len(self.kwargs) == 1 and 'instance' in self.kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = self.kwargs['instance']
+            if newobj.pk:
+                raise ValueError("Attempted to add a tree node that is "\
+                    "already in the database")
+        else:
+            # creating a new object
+            newobj = self.node_cls(**self.kwargs)
+
         newobj.depth = self.node.depth
 
         if self.pos == 'sorted-sibling':

@@ -267,7 +267,17 @@ class AL_Node(Node):
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
         pos = self._prepare_pos_var_for_add_sibling(pos)
-        newobj = get_result_class(self.__class__)(**kwargs)
+
+        if len(kwargs) == 1 and 'instance' in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs['instance']
+            if newobj.pk:
+                raise ValueError("Attempted to add a tree node that is "\
+                    "already in the database")
+        else:
+            # creating a new object
+            newobj = get_result_class(self.__class__)(**kwargs)
+
         if not self.node_order_by:
             newobj.sib_order = self.__class__._get_new_sibling_order(pos,
                                                                      self)

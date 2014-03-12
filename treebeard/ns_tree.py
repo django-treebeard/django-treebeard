@@ -225,8 +225,16 @@ class NS_Node(Node):
 
         pos = self._prepare_pos_var_for_add_sibling(pos)
 
-        # creating a new object
-        newobj = get_result_class(self.__class__)(**kwargs)
+        if len(kwargs) == 1 and 'instance' in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs['instance']
+            if newobj.pk:
+                raise ValueError("Attempted to add a tree node that is "\
+                    "already in the database")
+        else:
+            # creating a new object
+            newobj = get_result_class(self.__class__)(**kwargs)
+
         newobj.depth = self.depth
 
         sql = None
