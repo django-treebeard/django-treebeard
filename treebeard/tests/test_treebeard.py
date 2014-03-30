@@ -1758,15 +1758,18 @@ class TestInheritedModels(TestTreeBase):
 
 
 class TestMP_TreeAlphabet(TestTreeBase):
+    @pytest.mark.skipif(
+        not os.getenv('TREEBEARD_TEST_ALPHABET', False),
+        reason='TREEBEARD_TEST_ALPHABET env variable not set.'
+    )
     def test_alphabet(self, mpalphabet_model):
-        if not os.getenv('TREEBEARD_TEST_ALPHABET', False):
-            # run this test only if the enviroment variable is set
-            return
+        """This isn't actually a test, it's an informational routine."""
         basealpha = numconv.BASE85
         got_err = False
         last_good = None
-        for alphabetlen in range(35, len(basealpha) + 1):
+        for alphabetlen in range(3, len(basealpha) + 1):
             alphabet = basealpha[0:alphabetlen]
+            assert len(alphabet) >= 3
             expected = [alphabet[0] + char for char in alphabet[1:]]
             expected.extend([alphabet[1] + char for char in alphabet])
             expected.append(alphabet[2] + alphabet[0])
@@ -1776,6 +1779,7 @@ class TestMP_TreeAlphabet(TestTreeBase):
 
             # change the model's alphabet
             mpalphabet_model.alphabet = alphabet
+            mpalphabet_model.numconv_obj_ = None
 
             # insert root nodes
             for pos in range(len(alphabet) * 2):
@@ -1789,13 +1793,12 @@ class TestMP_TreeAlphabet(TestTreeBase):
             got = [obj.path
                    for obj in mpalphabet_model.objects.all()]
             if got != expected:
-                got_err = True
+                break
             last_good = alphabet
-        sys.stdout.write(
-            '\nThe best BASE85 based alphabet for your setup is: %s\n' % (
-                last_good, )
+        assert False, (
+            'Best BASE85 based alphabet for your setup: {} (base {})'.format(
+                last_good, len(last_good))
         )
-        sys.stdout.flush()
 
 
 class TestHelpers(TestTreeBase):
