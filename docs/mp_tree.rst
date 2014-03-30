@@ -111,18 +111,29 @@ extra steps, materialized path is more efficient than other approaches.
 
         .. code-block:: console
 
-          $ TREEBEARD_TEST_ALPHABET=1 python manage.py test treebeard.TestTreeAlphabet
+          $ TREEBEARD_TEST_ALPHABET=1 py.test -k test_alphabet
 
-        On my Mountain Lion system, these are the optimal values for the
-        three supported databases in their *default* configuration:
+        In OS X Mavericks, good readable values for the three supported
+        databases in their *default* configuration:
 
-         ================ ================
-         Database         Optimal Alphabet
-         ================ ================
-         MySQL 5.6.10     0-9A-Z
-         PostgreSQL 9.2.4 0-9A-Z
-         Sqlite3          0-9A-Z
-         ================ ================
+         ================ ================ ====
+         Database         Optimal Alphabet Base
+         ================ ================ ====
+         MySQL 5.6.17     0-9A-Z           36
+         PostgreSQL 9.3.4 0-9A-Za-z        62
+         Sqlite3          0-9A-Za-z        62
+         ================ ================ ====
+
+        The default value is MySQL's since it will work in all DBs,
+        but when working with a better databse, changing the
+        :attr:`alphabet` value is recommended in order to increase the
+        density of the paths.
+
+        For an even better approach, change the collation of the
+        :attr:`path` column in the database to handle raw ASCII, and
+        use the printable ASCII characters (0x20 to 0x7E) as the
+        :attr:`alphabet`.
+
 
   .. attribute:: node_order_by
 
