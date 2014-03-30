@@ -1052,9 +1052,11 @@ class MP_Node(Node):
         """
         parentpath = cls._get_basepath(path, depth - 1)
         key = cls._int2str(newstep)
-        return '%s%s%s' % (parentpath,
-                           '0' * (cls.steplen - len(key)),
-                           key)
+        return '{}{}{}'.format(
+            parentpath,
+            cls.alphabet[0] * (cls.steplen - len(key)),
+            key
+        )
 
     def _inc_path(self):
         """:returns: The path of the next sibling of a given node path."""
@@ -1062,9 +1064,11 @@ class MP_Node(Node):
         key = self._int2str(newpos)
         if len(key) > self.steplen:
             raise PathOverflow(_("Path Overflow from: '%s'" % (self.path, )))
-        return '%s%s%s' % (self.path[:-self.steplen],
-                           '0' * (self.steplen - len(key)),
-                           key)
+        return '{}{}{}'.format(
+            self.path[:-self.steplen],
+            self.alphabet[0] * (self.steplen - len(key)),
+            key
+        )
 
     def _get_lastpos_in_path(self):
         """:returns: The integer value of the last step in a path."""
