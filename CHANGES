@@ -1,3 +1,9 @@
+Release 2.0 (April 2, 2014)
+---------------------------
+
+* Stable release.
+
+
 Release 2.0rc2 (March, 2014)
 ----------------------------
 
@@ -52,6 +58,7 @@ This is a beta release.
 * Renamed Node.get_database_engine() to Node.get_database_vendor(). As the name
   implies, it returns the database vendor instead of the engine used. Treebeard
   will get the value from Django, but you can subclass the method if needed.
+
 
 Release 1.61 (Jul 24, 2010)
 ---------------------------
