@@ -1052,7 +1052,7 @@ class MP_Node(Node):
         """
         parentpath = cls._get_basepath(path, depth - 1)
         key = cls._int2str(newstep)
-        return '{}{}{}'.format(
+        return '{0}{1}{2}'.format(
             parentpath,
             cls.alphabet[0] * (cls.steplen - len(key)),
             key
@@ -1064,7 +1064,7 @@ class MP_Node(Node):
         key = self._int2str(newpos)
         if len(key) > self.steplen:
             raise PathOverflow(_("Path Overflow from: '%s'" % (self.path, )))
-        return '{}{}{}'.format(
+        return '{0}{1}{2}'.format(
             self.path[:-self.steplen],
             self.alphabet[0] * (self.steplen - len(key)),
             key
