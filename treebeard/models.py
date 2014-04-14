@@ -504,7 +504,7 @@ class Node(models.Model):
 
     def delete(self):
         """Removes a node and all it's descendants."""
-        self.__class__.objects.filter(id=self.pk).delete()
+        self.__class__.objects.filter(pk=self.pk).delete()
 
     def _prepare_pos_var(self, pos, method_name, valid_pos, valid_sorted_pos):
         if pos is None:
