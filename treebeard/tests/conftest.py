@@ -39,6 +39,8 @@ def pytest_report_header(config):
 
 
 def pytest_configure(config):
+    if django.VERSION >= (1, 7):
+        django.setup()
     setup_test_environment()
     connection.creation.create_test_db(verbosity=2, autoclobber=True)
 
