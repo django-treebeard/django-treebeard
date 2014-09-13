@@ -23,6 +23,10 @@ from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
 from treebeard.forms import movenodeform_factory
 from treebeard.templatetags.admin_tree import get_static_url
 from treebeard.tests import models
+from treebeard.tests.admin import register_all as admin_register_all
+
+
+admin_register_all()
 
 
 BASE_DATA = [
@@ -2514,6 +2518,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         # Test t GET parameter with value id
         request = RequestFactory().get('/admin/tree/?t=id')
         site = AdminSite()
+        admin_register_all(site)
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
         m = admin_class(model, site)
