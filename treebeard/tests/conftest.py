@@ -47,7 +47,10 @@ def pytest_configure(config):
 
 def pytest_unconfigure(config):
     dbsettings = settings.DATABASES['default']
-    dbtestname = dbsettings['TEST_NAME']
+    if django.VERSION >= (1, 7):
+        dbtestname = dbsettings['TEST']['NAME']
+    else:
+        dbtestname = dbsettings['TEST_NAME']
     connection.close()
     if dbsettings['ENGINE'].split('.')[-1] == 'postgresql_psycopg2':
         connection.connection = None
