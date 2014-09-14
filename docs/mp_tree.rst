@@ -168,9 +168,9 @@ extra steps, materialized path is more efficient than other approaches.
 
             MyNodeModel._meta.get_field('path').max_length = 1024
 
-       2. You can't rely on Django's `auto_now` properties in date fields
-          for sorting, you'll have to manually set the value before creating
-          a node:
+       2. You can't rely on Django's `auto_now` or auto_now_add properties in
+          date/datetime fields for sorting, you'll have to manually set the
+          value before creating a node:
 
           .. code-block:: python
 
@@ -181,6 +181,19 @@ extra steps, materialized path is more efficient than other approaches.
 
             TestNodeSortedAutoNow.add_root(desc='foo',
                                            created=datetime.datetime.now())
+
+          Also, you can use another method to define your auto_now_add, this
+          will also work normally:
+
+          .. code-block:: python
+
+            import datetime
+            class TestNodeSortedAutoNow(MP_Node):
+                desc = models.CharField(max_length=255)
+                created = models.DateTimeField(default=datetime.datetime.now)
+                node_order_by = ['created']
+
+            TestNodeSortedAutoNow.add_root(desc='foo')
 
      .. note::
 
