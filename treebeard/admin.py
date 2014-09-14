@@ -17,6 +17,12 @@ from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
 from treebeard.al_tree import AL_Node
 
 
+try:
+    from django.contrib.admin.options import TO_FIELD_VAR
+except ImportError:
+    from django.contrib.admin.views.main import TO_FIELD_VAR
+
+
 class TreeAdmin(admin.ModelAdmin):
     """Django Admin class for treebeard."""
 

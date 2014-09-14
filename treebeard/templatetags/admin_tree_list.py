@@ -2,6 +2,7 @@
 
 from django.template import Library
 from treebeard.templatetags import needs_checkboxes
+from treebeard.admin import TO_FIELD_VAR
 
 
 register = Library()
@@ -10,7 +11,7 @@ CHECKBOX_TMPL = ('<input type="checkbox" class="action-select" value="%d" '
 
 
 def _line(context, node, request):
-    if 't' in request.GET and request.GET['t'] == 'id':
+    if TO_FIELD_VAR in request.GET and request.GET[TO_FIELD_VAR] == 'id':
         raw_id_fields = """
         onclick="opener.dismissRelatedLookupPopup(window, '%d'); return false;"
         """ % (node.pk,)

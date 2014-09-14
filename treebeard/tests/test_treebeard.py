@@ -17,7 +17,7 @@ from django.test.client import RequestFactory
 import pytest
 
 from treebeard import numconv
-from treebeard.admin import admin_factory
+from treebeard.admin import admin_factory, TO_FIELD_VAR
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy, NodeAlreadySaved
 from treebeard.forms import movenodeform_factory
@@ -2516,7 +2516,8 @@ class TestAdminTreeList(TestNonEmptyTree):
     def test_result_tree_list_with_get(self, model_without_proxy):
         model = model_without_proxy
         # Test t GET parameter with value id
-        request = RequestFactory().get('/admin/tree/?t=id')
+        request = RequestFactory().get(
+            '/admin/tree/?{0}=id'.format(TO_FIELD_VAR))
         site = AdminSite()
         admin_register_all(site)
         form_class = movenodeform_factory(model)
