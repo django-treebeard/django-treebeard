@@ -4,7 +4,6 @@
 from __future__ import with_statement, unicode_literals
 import datetime
 import os
-import sys
 
 from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
