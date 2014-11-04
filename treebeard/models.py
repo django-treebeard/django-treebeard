@@ -568,20 +568,13 @@ class Node(models.Model):
         return siblings.filter(reduce(operator.or_, filters))
 
     @classmethod
-    def get_annotated_list(cls, parent=None):
+    def get_annotated_list_qs(cls, qs):
         """
-        Gets an annotated list from a tree branch.
-
-        :param parent:
-
-            The node whose descendants will be annotated. The node itself
-            will be included in the list. If not given, the entire tree
-            will be annotated.
+        Gets an annotated list from a queryset.
         """
-
         result, info = [], {}
         start_depth, prev_depth = (None, None)
-        for node in cls.get_tree(parent):
+        for node in qs:
             depth = node.get_depth()
             if start_depth is None:
                 start_depth = depth
@@ -594,6 +587,29 @@ class Node(models.Model):
         if start_depth and start_depth > 0:
             info['close'] = list(range(0, prev_depth - start_depth + 1))
         return result
+
+    @classmethod
+    def get_annotated_list(cls, parent=None, max_depth=None):
+        """
+        Gets an annotated list from a tree branch.
+
+        :param parent:
+
+            The node whose descendants will be annotated. The node itself
+            will be included in the list. If not given, the entire tree
+            will be annotated.
+
+        :param max_depth:
+
+            Optionally limit to specified depth
+        """
+
+        result, info = [], {}
+        start_depth, prev_depth = (None, None)
+        qs = cls.get_tree(parent)
+        if max_depth:
+            qs = qs.filter(depth__lte=max_depth)
+        return cls.get_annotated_list_qs(qs)
 
     @classmethod
     def _get_serializable_model(cls):
