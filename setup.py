@@ -3,7 +3,7 @@
 import os
 from setuptools import setup
 from setuptools.command.test import test
-
+import codecs
 
 def root_dir():
     rd = os.path.dirname(__file__)
@@ -35,7 +35,7 @@ setup_args = dict(
     package_data={
         'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
     description='Efficient tree implementations for Django 1.4+',
-    long_description=open(root_dir() + '/README.rst').read(),
+    long_description=codecs.open(root_dir() + '/README.rst', encoding='utf-8').read(),
     cmdclass={'test': pytest_test},
     install_requires=['Django>=1.4'],
     tests_require=['pytest'],
