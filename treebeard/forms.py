@@ -113,7 +113,7 @@ class MoveNodeForm(forms.ModelForm):
         # if initial was provided, it should override the values from instance
         if initial is not None:
             object_data.update(initial)
-        super(BaseModelForm, self).__init__(data, files, auto_id, prefix,
+        super(MoveNodeForm, self).__init__(data, files, auto_id, prefix,
                                             object_data, error_class,
                                             label_suffix, empty_permitted)
 
