@@ -84,38 +84,35 @@ class MoveNodeForm(forms.ModelForm):
                  initial=None, error_class=ErrorList, label_suffix=':',
                  empty_permitted=False, instance=None):
         opts = self._meta
-        if instance is None:
-            if opts.model is None:
-                raise ValueError('MoveNodeForm has no model class specified.')
-        else:
-            opts.model = type(instance)
-        self.is_sorted = getattr(opts.model, 'node_order_by', False)
+        if opts.model is None:
+            raise ValueError('ModelForm has no model class specified')
 
+        # update the '_position' field choices
+        self.is_sorted = getattr(opts.model, 'node_order_by', False)
         if self.is_sorted:
             choices_sort_mode = self.__class__.__position_choices_sorted
         else:
             choices_sort_mode = self.__class__.__position_choices_unsorted
         self.declared_fields['_position'].choices = choices_sort_mode
 
-        if instance is None:
-            # if we didn't get an instance, instantiate a new one
-            instance = opts.model()
-            object_data = {}
-            choices_for_node = None
-        else:
-            object_data = model_to_dict(instance, opts.fields, opts.exclude)
-            object_data.update(self._get_position_ref_node(instance))
-            choices_for_node = instance
-
-        choices = self.mk_dropdown_tree(opts.model, for_node=choices_for_node)
+        # update the '_ref_node_id' choices
+        choices = self.mk_dropdown_tree(opts.model, for_node=instance)
         self.declared_fields['_ref_node_id'].choices = choices
-        self.instance = instance
-        # if initial was provided, it should override the values from instance
+
+        # put initial data for these fields into a map, update the map with
+        # initial data, and pass this new map to the parent constructor as
+        # initial data
+        if instance is None:
+            initial_ = {}
+        else:
+            initial_ = self._get_position_ref_node(instance)
+
         if initial is not None:
-            object_data.update(initial)
-        super(MoveNodeForm, self).__init__(data, files, auto_id, prefix,
-                                            object_data, error_class,
-                                            label_suffix, empty_permitted)
+            initial_.update(initial)
+
+        super(MoveNodeForm, self).__init__(
+            data, files, auto_id, prefix, initial_, error_class, label_suffix, 
+            empty_permitted, instance)
 
     def _clean_cleaned_data(self):
         """ delete auxilary fields not belonging to node model """
