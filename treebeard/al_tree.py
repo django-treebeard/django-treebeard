@@ -35,7 +35,7 @@ def get_result_class(cls):
 class AL_NodeManager(models.Manager):
     """Custom manager for nodes in an Adjacency List tree."""
 
-    def get_query_set(self):
+    def get_queryset(self):
         """Sets the custom queryset as the default."""
         if self.model.node_order_by:
             order_by = ['parent'] + list(self.model.node_order_by)
