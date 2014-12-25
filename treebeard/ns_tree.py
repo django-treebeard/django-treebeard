@@ -104,7 +104,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
 class NS_NodeManager(models.Manager):
     """Custom manager for nodes in a Nested Sets tree."""
 
-    def get_query_set(self):
+    def get_queryset(self):
         """Sets the custom queryset as the default."""
         return NS_NodeQuerySet(self.model).order_by('tree_id', 'lft')
 
