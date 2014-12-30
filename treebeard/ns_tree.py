@@ -98,7 +98,6 @@ class NS_NodeQuerySet(models.query.QuerySet):
                     reduce(operator.or_,
                            toremove)
                 ).delete(removed_ranges=ranges)
-        transaction.commit_unless_managed()
 
 
 class NS_NodeManager(models.Manager):
@@ -155,7 +154,6 @@ class NS_Node(Node):
         newobj.rgt = 2
         # saving the instance before returning it
         newobj.save()
-        transaction.commit_unless_managed()
         return newobj
 
     @classmethod
@@ -232,7 +230,6 @@ class NS_Node(Node):
 
         # saving the instance before returning it
         newobj.save()
-        transaction.commit_unless_managed()
 
         return newobj
 
@@ -335,7 +332,6 @@ class NS_Node(Node):
             cursor.execute(sql, params)
         newobj.save()
 
-        transaction.commit_unless_managed()
 
         return newobj
 
@@ -468,7 +464,6 @@ class NS_Node(Node):
                                              fromobj.rgt, fromobj.tree_id)
         cursor.execute(sql, params)
 
-        transaction.commit_unless_managed()
 
     @classmethod
     def _get_close_gap_sql(cls, drop_lft, drop_rgt, tree_id):
@@ -526,7 +521,6 @@ class NS_Node(Node):
                     (node_obj.pk, node)
                     for node in node_struct['children'][::-1]
                 ])
-        transaction.commit_unless_managed()
         return added
 
     def get_children(self):

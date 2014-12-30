@@ -123,7 +123,6 @@ class Node(models.Model):
                     (node_obj, node)
                     for node in node_struct['children'][::-1]
                 ])
-        transaction.commit_unless_managed()
         return added
 
     @classmethod
