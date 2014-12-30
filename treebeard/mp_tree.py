@@ -96,7 +96,6 @@ class MP_NodeQuerySet(models.query.QuerySet):
         if toremove:
             qset = self.model.objects.filter(reduce(operator.or_, toremove))
             super(MP_NodeQuerySet, qset).delete()
-        transaction.commit_unless_managed()
 
 
 class MP_NodeManager(models.Manager):
@@ -316,7 +315,6 @@ class MP_AddRootHandler(MP_AddHandler):
         newobj.path = newpath
         # saving the instance before returning it
         newobj.save()
-        transaction.commit_unless_managed()
         return newobj
 
 
@@ -368,7 +366,6 @@ class MP_AddChildHandler(MP_AddHandler):
 
         # we increase the numchild value of the object in memory
         self.node.numchild += 1
-        transaction.commit_unless_managed()
         return newobj
 
 
@@ -422,7 +419,6 @@ class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
         newobj.path = newpath
         newobj.save()
 
-        transaction.commit_unless_managed()
         return newobj
 
 
@@ -483,7 +479,6 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         self.sanity_updates_after_move(oldpath, newpath)
 
         self.run_sql_stmts()
-        transaction.commit_unless_managed()
 
     def sanity_updates_after_move(self, oldpath, newpath):
         """
@@ -783,7 +778,6 @@ class MP_Node(Node):
                 vals = [node_data[2], node_data[0]]
                 cursor.execute(sql, vals)
 
-            transaction.commit_unless_managed()
 
     @classmethod
     def get_tree(cls, parent=None):
@@ -870,7 +864,6 @@ class MP_Node(Node):
             node = cls(**dict(zip(field_names, node_data[:-2])))
             node.descendants_count = node_data[-1]
             ret.append(node)
-        transaction.commit_unless_managed()
         return ret
 
     def get_depth(self):
