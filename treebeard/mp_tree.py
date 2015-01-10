@@ -102,7 +102,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
 class MP_NodeManager(models.Manager):
     """Custom manager for nodes in a Materialized Path tree."""
 
-    def get_query_set(self):
+    def get_queryset(self):
         """Sets the custom queryset as the default."""
         return MP_NodeQuerySet(self.model).order_by('path')
 
