@@ -37,42 +37,25 @@ tox
 ``django-treebeard`` uses `tox`_ to run the test suite in all the supported
 environments:
 
-    - py26-dj14-sqlite
-    - py26-dj14-mysql
-    - py26-dj14-pgsql
-    - py26-dj15-sqlite
-    - py26-dj15-mysql
-    - py26-dj15-pgsql
-    - py26-dj16-sqlite
-    - py26-dj16-mysql
-    - py26-dj16-pgsql
-    - py27-dj14-sqlite
-    - py27-dj14-mysql
-    - py27-dj14-pgsql
-    - py27-dj15-sqlite
-    - py27-dj15-mysql
-    - py27-dj15-pgsql
-    - py32-dj15-sqlite
-    - py32-dj15-pgsql
-    - py33-dj15-sqlite
-    - py33-dj15-pgsq
     - py27-dj16-sqlite
     - py27-dj16-mysql
     - py27-dj16-pgsql
-    - py32-dj16-sqlite
-    - py32-dj16-pgsql
-    - py33-dj16-sqlite
-    - py33-dj16-pgsql
+    - py27-dj17-sqlite
+    - py27-dj17-mysql
+    - py27-dj17-pgsql
+    - py34-dj16-sqlite
+    - py34-dj16-pgsql
+    - py34-dj17-sqlite
+    - py34-dj17-pgsql
 
-
-This means that the test suite will run 26 times to test every
+This means that the test suite will run 10 times to test every
 environment supported by ``django-treebeard``. This takes a long time.
 If you want to test only one or a few environments, please use the `-e`
 option in `tox`_, like:
 
 .. code-block:: console
 
-    $ tox -e py33-dj16-pgsql
+    $ tox -e py34-dj17-pgsql
 
 
 .. _pytest: http://pytest.org/
