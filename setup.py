@@ -34,10 +34,10 @@ setup_args = dict(
     package_dir={'treebeard': 'treebeard'},
     package_data={
         'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
-    description='Efficient tree implementations for Django 1.4+',
+    description='Efficient tree implementations for Django 1.6+',
     long_description=open(root_dir() + '/README.rst').read(),
     cmdclass={'test': pytest_test},
-    install_requires=['Django>=1.4'],
+    install_requires=['Django>=1.6'],
     tests_require=['pytest'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -46,10 +46,7 @@ setup_args = dict(
         'Environment :: Web Environment',
         'Framework :: Django',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Operating System :: OS Independent',
         'Topic :: Software Development :: Libraries',
