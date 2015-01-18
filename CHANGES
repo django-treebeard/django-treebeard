@@ -1,7 +1,11 @@
-Release ?.? (??? ??, 2015)
+Release 3.0 (Jan 18, 2015)
 --------------------------
 
 * Limited tests (and hence support) to Python 2.7+/3.4+ and Django 1.6+
+* Removed usage of deprecated Django functions.
+* Fixed documentation issues.
+* Fixed issues in MoveNodeForm
+* Added get_annotated_list_qs and max_depth for get_annotated_list
 
 
 Release 2.0 (April 2, 2014)
