@@ -28,7 +28,7 @@ class TreeAdmin(admin.ModelAdmin):
 
     change_list_template = 'admin/tree_change_list.html'
 
-    def queryset(self, request):
+    def get_queryset(self, request):
         if issubclass(self.model, AL_Node):
             # AL Trees return a list instead of a QuerySet for .get_tree()
             # So we're returning the regular .queryset cause we will use
