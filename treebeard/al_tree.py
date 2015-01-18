@@ -3,7 +3,6 @@
 from django.core import serializers
 from django.db import models, transaction
 from django.utils.translation import ugettext_noop as _
-
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
 from treebeard.models import Node
 
@@ -34,14 +33,13 @@ def get_result_class(cls):
 
 class AL_NodeManager(models.Manager):
     """Custom manager for nodes in an Adjacency List tree."""
-
-    def get_query_set(self):
+    def get_queryset(self):
         """Sets the custom queryset as the default."""
         if self.model.node_order_by:
             order_by = ['parent'] + list(self.model.node_order_by)
         else:
             order_by = ['parent', 'sib_order']
-        return super(AL_NodeManager, self).get_query_set().order_by(*order_by)
+        return super(AL_NodeManager, self).get_queryset().order_by(*order_by)
 
 
 class AL_Node(Node):
@@ -73,7 +71,6 @@ class AL_Node(Node):
                 max = 0
             newobj.sib_order = max + 1
         newobj.save()
-        transaction.commit_unless_managed()
         return newobj
 
     @classmethod
@@ -232,7 +229,6 @@ class AL_Node(Node):
             newobj.sib_order = max + 1
         newobj.parent = self
         newobj.save()
-        transaction.commit_unless_managed()
         return newobj
 
     @classmethod
@@ -301,7 +297,6 @@ class AL_Node(Node):
                                                                      self)
         newobj.parent_id = self.parent_id
         newobj.save()
-        transaction.commit_unless_managed()
         return newobj
 
     @classmethod
@@ -403,7 +398,6 @@ class AL_Node(Node):
                 self.parent = target.parent
 
         self.save()
-        transaction.commit_unless_managed()
 
     class Meta:
         """Abstract model."""
