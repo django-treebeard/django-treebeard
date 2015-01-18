@@ -71,7 +71,6 @@ class AL_Node(Node):
                 max = 0
             newobj.sib_order = max + 1
         newobj.save()
-        transaction.commit_unless_managed()
         return newobj
 
     @classmethod
@@ -230,7 +229,6 @@ class AL_Node(Node):
             newobj.sib_order = max + 1
         newobj.parent = self
         newobj.save()
-        transaction.commit_unless_managed()
         return newobj
 
     @classmethod
@@ -299,7 +297,6 @@ class AL_Node(Node):
                                                                      self)
         newobj.parent_id = self.parent_id
         newobj.save()
-        transaction.commit_unless_managed()
         return newobj
 
     @classmethod
@@ -401,7 +398,6 @@ class AL_Node(Node):
                 self.parent = target.parent
 
         self.save()
-        transaction.commit_unless_managed()
 
     class Meta:
         """Abstract model."""
