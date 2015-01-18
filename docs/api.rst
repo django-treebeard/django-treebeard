@@ -411,6 +411,8 @@ API
      .. versionadded:: 1.55
 
 
+  .. automethod:: get_annotated_list_qs
+
   .. automethod:: get_database_vendor
 
      Example:
