@@ -2,6 +2,7 @@
 
 import sys
 
+from django.conf import settings
 from django.conf.urls import patterns, url
 
 from django.contrib import admin, messages
@@ -41,6 +42,12 @@ class TreeAdmin(admin.ModelAdmin):
         if issubclass(self.model, AL_Node):
             # For AL trees, use the old admin display
             self.change_list_template = 'admin/tree_list.html'
+        if extra_context is None:
+            extra_context = {}
+        lacks_request = ('request' not in extra_context and
+            'django.core.context_processors.request' not in settings.TEMPLATE_CONTEXT_PROCESSORS)
+        if lacks_request:
+            extra_context['request'] = request
         return super(TreeAdmin, self).changelist_view(request, extra_context)
 
     def get_urls(self):
