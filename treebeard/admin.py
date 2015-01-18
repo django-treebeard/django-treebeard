@@ -32,9 +32,9 @@ class TreeAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         if issubclass(self.model, AL_Node):
             # AL Trees return a list instead of a QuerySet for .get_tree()
-            # So we're returning the regular .queryset cause we will use
+            # So we're returning the regular .get_queryset cause we will use
             # the old admin
-            return super(TreeAdmin, self).queryset(request)
+            return super(TreeAdmin, self).get_queryset(request)
         else:
             return self.model.get_tree()
 
