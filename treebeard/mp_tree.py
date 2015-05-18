@@ -304,7 +304,7 @@ class MP_AddRootHandler(MP_AddHandler):
         if len(self.kwargs) == 1 and 'instance' in self.kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs['instance']
-            if newobj.pk:
+            if newobj.pk and not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -336,7 +336,7 @@ class MP_AddChildHandler(MP_AddHandler):
         if len(self.kwargs) == 1 and 'instance' in self.kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs['instance']
-            if newobj.pk:
+            if newobj.pk and not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -383,7 +383,7 @@ class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
         if len(self.kwargs) == 1 and 'instance' in self.kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs['instance']
-            if newobj.pk:
+            if newobj.pk and not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:

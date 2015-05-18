@@ -141,7 +141,7 @@ class NS_Node(Node):
         if len(kwargs) == 1 and 'instance' in kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
-            if newobj.pk:
+            if newobj.pk and not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -208,7 +208,7 @@ class NS_Node(Node):
         if len(kwargs) == 1 and 'instance' in kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
-            if newobj.pk:
+            if newobj.pk and not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -241,7 +241,7 @@ class NS_Node(Node):
         if len(kwargs) == 1 and 'instance' in kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
-            if newobj.pk:
+            if newobj.pk and not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:

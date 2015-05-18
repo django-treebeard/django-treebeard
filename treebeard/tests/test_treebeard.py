@@ -9,6 +9,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import User
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.db import models as django_models
 from django.db.models import Q
 from django.template import Template, Context
 from django.test import TestCase
@@ -19,7 +20,7 @@ from treebeard import numconv
 from treebeard.admin import admin_factory, TO_FIELD_VAR
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy, NodeAlreadySaved
-from treebeard.forms import movenodeform_factory
+from treebeard.forms import movenodeform_factory, MoveNodeForm
 from treebeard.templatetags.admin_tree import get_static_url
 from treebeard.tests import models
 from treebeard.tests.admin import register_all as admin_register_all
@@ -719,6 +720,15 @@ class TestAddChild(TestNonEmptyTree):
         with pytest.raises(NodeAlreadySaved):
             model.objects.get(desc='2').add_child(instance=child)
 
+    def test_add_child_with_pk_set(self, model):
+        """
+        If the model is using a natural primary key then it will be already
+        set when the instance is inserted
+        """
+        child = model(id=999999, desc='natural key')
+        result = model.objects.get(desc='2').add_child(instance=child)
+        assert result == child
+
 
 class TestAddSibling(TestNonEmptyTree):
     def test_add_sibling_invalid_pos(self, model):
@@ -925,6 +935,15 @@ class TestAddSibling(TestNonEmptyTree):
         existing_node = model.objects.get(desc='4')
         with pytest.raises(NodeAlreadySaved):
             node_wchildren.add_sibling('last-sibling', instance=existing_node)
+
+    def test_add_child_with_pk_set(self, model):
+        """
+        If the model is using a natural primary key then it will be already
+        set when the instance is inserted
+        """
+        child = model(id=999999, desc='natural key')
+        result = model.objects.get(desc='2').add_child(instance=child)
+        assert result == child
 
 
 class TestDelete(TestNonEmptyTree):
@@ -2287,6 +2306,25 @@ class TestForm(TestNonEmptyTree):
         form = form_class(
             data={'_position': _position, 'desc': 'New Form Test'})
         assert form.is_valid()
+        assert form.save() is not None
+        assert original_count < model.objects.all().count()
+
+    def test_save_new_with_pk_set(self, model):
+        """
+        If the model is using a natural primary key then it will be already
+        set when the instance is inserted
+        """
+        original_count = model.objects.all().count()
+        assert original_count == 10
+        _position = 'first-child'
+        form_class = movenodeform_factory(model)
+        form = form_class(
+            data={'_position': _position, 'id': 999999, 'desc': 'New Form Test'})
+        assert form.is_valid()
+        # Fake a natural key by updating the instance directly, because the
+        # model form will have removed the id from cleaned data because it
+        # thinks it is an AutoField
+        form.instance.id = 999999
         assert form.save() is not None
         assert original_count < model.objects.all().count()
 
