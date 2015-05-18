@@ -260,6 +260,11 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
             # to make || work as it should, enable ansi mode
             # http://dev.mysql.com/doc/refman/5.0/en/ansi-mode.html
             sqlpath = "CONCAT(%s, SUBSTR(path, %s))"
+        elif vendor == 'microsoft':
+            # MSSQL uses "+" rather than "||" for concatenation,
+            # it also requires a length argument for its substring
+            # method.
+            sqlpath = '%s + SUBSTRING(path, %s, LEN(path))'
         else:
             sqlpath = "%s||SUBSTR(path, %s)"
 
