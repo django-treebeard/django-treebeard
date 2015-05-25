@@ -135,13 +135,14 @@ class MoveNodeForm(forms.ModelForm):
             for field in self.cleaned_data:
                 if not isinstance(self.cleaned_data[field], (list, QuerySet)):
                     cl_data[field] = self.cleaned_data[field]
+            instance = self._meta.model(**cl_data)
             if reference_node_id:
                 reference_node = self._meta.model.objects.get(
                     pk=reference_node_id)
-                self.instance = reference_node.add_child(**cl_data)
+                self.instance = reference_node.add_child(instance=instance)
                 self.instance.move(reference_node, pos=position_type)
             else:
-                self.instance = self._meta.model.add_root(**cl_data)
+                self.instance = self._meta.model.add_root(instance=instance)
         else:
             self.instance.save()
             if reference_node_id:

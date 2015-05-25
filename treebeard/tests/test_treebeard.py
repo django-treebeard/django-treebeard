@@ -1759,6 +1759,31 @@ class TestInheritedModels(TestTreeBase):
         assert node21.get_descendant_count() == 2
         assert node3.get_descendant_count() == 0
 
+    def test_save_new_using_form(self, inherited_model):
+        original_count = inherited_model.objects.all().count()
+        assert original_count == 2
+        _position = 'first-child'
+        form_class = movenodeform_factory(inherited_model)
+        form = form_class(data={'_position': _position,
+                                'desc': 'New Form Test',
+                                'extra_desc': 'Test Extra Desc'})
+        assert form.is_valid()
+        assert form.save() is not None
+        assert original_count < inherited_model.objects.all().count()
+
+    def test_save_new_child_using_form(self, inherited_model):
+        original_count = inherited_model.objects.all().count()
+        assert original_count == 2
+        _position = 'first-child'
+        form_class = movenodeform_factory(inherited_model)
+        form = form_class(data={'_position': _position,
+                                '_ref_node_id': inherited_model.objects.get(desc='21').pk,
+                                'desc': 'Child Form Test',
+                                'extra_desc': 'Test Extra Desc'})
+        assert form.is_valid()
+        assert form.save() is not None
+        assert original_count < inherited_model.objects.all().count()
+
 
 class TestMP_TreeAlphabet(TestTreeBase):
     @pytest.mark.skipif(
