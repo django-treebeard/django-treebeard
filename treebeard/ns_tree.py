@@ -53,12 +53,13 @@ class NS_NodeQuerySet(models.query.QuerySet):
 
         :returns: ``None``
         """
+        model = get_result_class(self.model)
         if removed_ranges is not None:
             # we already know the children, let's call the default django
             # delete method and let it handle the removal of the user's
             # foreign keys...
             super(NS_NodeQuerySet, self).delete()
-            cursor = self.model._get_database_cursor('write')
+            cursor = model._get_database_cursor('write')
 
             # Now closing the gap (Celko's trees book, page 62)
             # We do this for every gap that was left in the tree when the nodes
@@ -68,7 +69,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
             # complete reordering of the tree (uses COUNT)...
             for tree_id, drop_lft, drop_rgt in sorted(removed_ranges,
                                                       reverse=True):
-                sql, params = self.model._get_close_gap_sql(drop_lft, drop_rgt,
+                sql, params = model._get_close_gap_sql(drop_lft, drop_rgt,
                                                             tree_id)
                 cursor.execute(sql, params)
         else:
@@ -94,7 +95,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
                                 Q(tree_id=node.tree_id))
                 ranges.append((node.tree_id, node.lft, node.rgt))
             if toremove:
-                self.model.objects.filter(
+                model.objects.filter(
                     reduce(operator.or_,
                            toremove)
                 ).delete(removed_ranges=ranges)
