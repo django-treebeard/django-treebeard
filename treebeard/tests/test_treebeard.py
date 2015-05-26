@@ -62,53 +62,57 @@ def _prepare_db_test(request):
     return request.param
 
 
+def idfn(fixture_value):
+    return fixture_value.__name__
+
 @pytest.fixture(scope='function',
-                params=models.BASE_MODELS + models.PROXY_MODELS)
+                params=models.BASE_MODELS + models.PROXY_MODELS,
+                ids=idfn)
 def model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.BASE_MODELS)
+@pytest.fixture(scope='function', params=models.BASE_MODELS, ids=idfn)
 def model_without_proxy(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.UNICODE_MODELS)
+@pytest.fixture(scope='function', params=models.UNICODE_MODELS, ids=idfn)
 def model_with_unicode(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.SORTED_MODELS)
+@pytest.fixture(scope='function', params=models.SORTED_MODELS, ids=idfn)
 def sorted_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.RELATED_MODELS)
+@pytest.fixture(scope='function', params=models.RELATED_MODELS, ids=idfn)
 def related_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.INHERITED_MODELS)
+@pytest.fixture(scope='function', params=models.INHERITED_MODELS, ids=idfn)
 def inherited_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.MP_SHORTPATH_MODELS)
+@pytest.fixture(scope='function', params=models.MP_SHORTPATH_MODELS, ids=idfn)
 def mpshort_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=[models.MP_TestNodeShortPath])
+@pytest.fixture(scope='function', params=[models.MP_TestNodeShortPath], ids=idfn)
 def mpshortnotsorted_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=[models.MP_TestNodeAlphabet])
+@pytest.fixture(scope='function', params=[models.MP_TestNodeAlphabet], ids=idfn)
 def mpalphabet_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=[models.MP_TestNodeSortedAutoNow])
+@pytest.fixture(scope='function', params=[models.MP_TestNodeSortedAutoNow], ids=idfn)
 def mpsortedautonow_model(request):
     return _prepare_db_test(request)
 
