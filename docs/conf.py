@@ -53,7 +53,7 @@ latex_documents = [(
 intersphinx_mapping = {
     'python': ('http://docs.python.org/3', None),
     'django': (
-        'https://docs.djangoproject.com/en/1.6/',
-        'https://docs.djangoproject.com/en/1.6/_objects/'
+        'https://docs.djangoproject.com/en/1.7/',
+        'https://docs.djangoproject.com/en/1.7/_objects/'
     ),
 }

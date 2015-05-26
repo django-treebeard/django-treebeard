@@ -6,7 +6,7 @@ Prerequisites
 -------------
 
 ``django-treebeard`` needs at least **Python 2.7/3.4** to run, and
-**Django 1.6 or better**.
+**Django 1.7 or better**.
 
 
 Installing
