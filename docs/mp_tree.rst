@@ -125,7 +125,7 @@ extra steps, materialized path is more efficient than other approaches.
          ================ ================ ====
 
         The default value is MySQL's since it will work in all DBs,
-        but when working with a better databse, changing the
+        but when working with a better database, changing the
         :attr:`alphabet` value is recommended in order to increase the
         density of the paths.
 
