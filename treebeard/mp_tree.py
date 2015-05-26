@@ -94,7 +94,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
         # Django will handle this as a SELECT and then a DELETE of
         # ids, and will deal with removing related objects
         if toremove:
-            qset = self.model.objects.filter(reduce(operator.or_, toremove))
+            qset = get_result_class(self.model).objects.filter(reduce(operator.or_, toremove))
             super(MP_NodeQuerySet, qset).delete()
 
 

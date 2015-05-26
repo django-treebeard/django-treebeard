@@ -1759,6 +1759,19 @@ class TestInheritedModels(TestTreeBase):
         assert node21.get_descendant_count() == 2
         assert node3.get_descendant_count() == 0
 
+    def test_cascading_deletion(self, inherited_model):
+        # Deleting a node by calling delete() on the inherited_model class
+        # should delete descendants, even if those descendants are not
+        # instances of inherited_model
+        base_model = inherited_model.__bases__[0]
+
+        node21 = inherited_model.objects.get(desc='21')
+        node21.delete()
+        node2 = base_model.objects.get(desc='2')
+        for desc in ['21', '211', '212']:
+            assert not base_model.objects.filter(desc=desc).exists()
+        assert [node.desc for node in node2.get_descendants()] == ['22']
+
 
 class TestMP_TreeAlphabet(TestTreeBase):
     @pytest.mark.skipif(
