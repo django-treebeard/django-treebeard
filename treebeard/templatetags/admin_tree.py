@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib.admin.templatetags.admin_list import (
     result_headers, result_hidden_fields)
 from django.contrib.admin.util import lookup_field, display_for_field
-from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
+from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE, SEARCH_VAR
 from django.core.exceptions import ObjectDoesNotExist
 from django.template import Library
 from django.utils.html import conditional_escape
@@ -213,6 +213,14 @@ def check_empty_dict(GET_dict):
     return empty
 
 
+def is_filtered_cl(cl, request):
+    """
+    Returns True if the changelist is being filtered or searched.
+    """
+    return not check_empty_dict(cl.get_filters_params()) or  \
+        request.GET.get(SEARCH_VAR, None) != None
+
+
 @register.inclusion_tag(
     'admin/tree_change_list_results.html', takes_context=True)
 def result_tree(context, cl, request):
@@ -232,7 +240,7 @@ def result_tree(context, cl, request):
         'class_attrib': mark_safe(' class="oder-grabber"')
     })
     return {
-        'filtered': not check_empty_dict(request.GET),
+        'filtered': is_filtered_cl(cl, request),
         'result_hidden_fields': list(result_hidden_fields(cl)),
         'result_headers': headers,
         'results': list(results(cl)),
