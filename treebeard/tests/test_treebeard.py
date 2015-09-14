@@ -62,53 +62,57 @@ def _prepare_db_test(request):
     return request.param
 
 
+def idfn(fixture_value):
+    return fixture_value.__name__
+
 @pytest.fixture(scope='function',
-                params=models.BASE_MODELS + models.PROXY_MODELS)
+                params=models.BASE_MODELS + models.PROXY_MODELS,
+                ids=idfn)
 def model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.BASE_MODELS)
+@pytest.fixture(scope='function', params=models.BASE_MODELS, ids=idfn)
 def model_without_proxy(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.UNICODE_MODELS)
+@pytest.fixture(scope='function', params=models.UNICODE_MODELS, ids=idfn)
 def model_with_unicode(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.SORTED_MODELS)
+@pytest.fixture(scope='function', params=models.SORTED_MODELS, ids=idfn)
 def sorted_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.RELATED_MODELS)
+@pytest.fixture(scope='function', params=models.RELATED_MODELS, ids=idfn)
 def related_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.INHERITED_MODELS)
+@pytest.fixture(scope='function', params=models.INHERITED_MODELS, ids=idfn)
 def inherited_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=models.MP_SHORTPATH_MODELS)
+@pytest.fixture(scope='function', params=models.MP_SHORTPATH_MODELS, ids=idfn)
 def mpshort_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=[models.MP_TestNodeShortPath])
+@pytest.fixture(scope='function', params=[models.MP_TestNodeShortPath], ids=idfn)
 def mpshortnotsorted_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=[models.MP_TestNodeAlphabet])
+@pytest.fixture(scope='function', params=[models.MP_TestNodeAlphabet], ids=idfn)
 def mpalphabet_model(request):
     return _prepare_db_test(request)
 
 
-@pytest.fixture(scope='function', params=[models.MP_TestNodeSortedAutoNow])
+@pytest.fixture(scope='function', params=[models.MP_TestNodeSortedAutoNow], ids=idfn)
 def mpsortedautonow_model(request):
     return _prepare_db_test(request)
 
@@ -1759,6 +1763,19 @@ class TestInheritedModels(TestTreeBase):
         assert node21.get_descendant_count() == 2
         assert node3.get_descendant_count() == 0
 
+    def test_cascading_deletion(self, inherited_model):
+        # Deleting a node by calling delete() on the inherited_model class
+        # should delete descendants, even if those descendants are not
+        # instances of inherited_model
+        base_model = inherited_model.__bases__[0]
+
+        node21 = inherited_model.objects.get(desc='21')
+        node21.delete()
+        node2 = base_model.objects.get(desc='2')
+        for desc in ['21', '211', '212']:
+            assert not base_model.objects.filter(desc=desc).exists()
+        assert [node.desc for node in node2.get_descendants()] == ['22']
+
     def test_save_new_using_form(self, inherited_model):
         original_count = inherited_model.objects.all().count()
         assert original_count == 2
@@ -1783,6 +1800,7 @@ class TestInheritedModels(TestTreeBase):
         assert form.is_valid()
         assert form.save() is not None
         assert original_count < inherited_model.objects.all().count()
+
 
 
 class TestMP_TreeAlphabet(TestTreeBase):

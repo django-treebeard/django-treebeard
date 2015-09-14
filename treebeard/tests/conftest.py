@@ -13,25 +13,6 @@ from django.test.client import Client
 from django.core.management import call_command
 from django.core import mail
 from django.db import connection
-from django.db.models.base import ModelBase
-from _pytest import python as _pytest_python
-
-
-def idmaker(argnames, argvalues):
-    idlist = []
-    for valindex, valset in enumerate(argvalues):
-        this_id = []
-        for nameindex, val in enumerate(valset):
-            argname = argnames[nameindex]
-            if isinstance(val, (float, int, str)):
-                this_id.append(str(val))
-            elif isinstance(val, ModelBase):
-                this_id.append(val.__name__)
-            else:
-                this_id.append("{0}-{1}={2!s}".format(argname, valindex))
-        idlist.append("][".join(this_id))
-    return idlist
-_pytest_python.idmaker = idmaker
 
 
 def pytest_report_header(config):

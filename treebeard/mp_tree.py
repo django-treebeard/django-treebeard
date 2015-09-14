@@ -94,7 +94,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
         # Django will handle this as a SELECT and then a DELETE of
         # ids, and will deal with removing related objects
         if toremove:
-            qset = self.model.objects.filter(reduce(operator.or_, toremove))
+            qset = get_result_class(self.model).objects.filter(reduce(operator.or_, toremove))
             super(MP_NodeQuerySet, qset).delete()
 
 
@@ -713,7 +713,7 @@ class MP_Node(Node):
         :param destructive:
 
             A boolean value. If True, a more agressive fix_tree method will be
-            attemped. If False (the default), it will use a safe (and fast!)
+            attempted. If False (the default), it will use a safe (and fast!)
             fix approach, but it will only solve the ``depth`` and
             ``numchild`` nodes, it won't fix the tree holes or broken path
             ordering.
