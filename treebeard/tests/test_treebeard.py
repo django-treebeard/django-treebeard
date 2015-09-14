@@ -1802,7 +1802,6 @@ class TestInheritedModels(TestTreeBase):
         assert original_count < inherited_model.objects.all().count()
 
 
-
 class TestMP_TreeAlphabet(TestTreeBase):
     @pytest.mark.skipif(
         not os.getenv('TREEBEARD_TEST_ALPHABET', False),
