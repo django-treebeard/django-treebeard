@@ -16,7 +16,6 @@ try:
     from django.contrib.admin.utils import lookup_field, display_for_field
 except ImportError:  # < Django 1.8
     from django.contrib.admin.util import lookup_field, display_for_field
-from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
 from django.core.exceptions import ObjectDoesNotExist
 from django.template import Library
 from django.utils.html import conditional_escape
@@ -52,12 +51,21 @@ except ImportError:
 from treebeard.templatetags import needs_checkboxes
 
 
+def get_empty_value_display(cls):
+    if hasattr(cls.model_admin, 'get_empty_value_display'):
+        return cls.model_admin.get_empty_value_display()
+    else:
+        # Django < 1.9
+        from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
+        return EMPTY_CHANGELIST_VALUE
+
+
 def get_result_and_row_class(cl, field_name, result):
     row_class = ''
     try:
         f, attr, value = lookup_field(field_name, result, cl.model_admin)
     except ObjectDoesNotExist:
-        result_repr = EMPTY_CHANGELIST_VALUE
+        result_repr = get_empty_value_display(cl)
     else:
         if f is None:
             if field_name == 'action_checkbox':
@@ -77,7 +85,7 @@ def get_result_and_row_class(cl, field_name, result):
             if isinstance(f.rel, models.ManyToOneRel):
                 field_val = getattr(result, f.name)
                 if field_val is None:
-                    result_repr = EMPTY_CHANGELIST_VALUE
+                    result_repr = get_empty_value_display(cl)
                 else:
                     result_repr = field_val
             else:
