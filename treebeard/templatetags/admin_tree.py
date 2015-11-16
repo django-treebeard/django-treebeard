@@ -16,7 +16,11 @@ try:
     from django.contrib.admin.utils import lookup_field, display_for_field
 except ImportError:  # < Django 1.8
     from django.contrib.admin.util import lookup_field, display_for_field
-from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
+try:
+    from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE as empty_value_display
+except ImportError:
+    from django.contrib.admin import site
+    emtpy_value_display = site.empty_value_display
 from django.core.exceptions import ObjectDoesNotExist
 from django.template import Library
 from django.utils.html import conditional_escape
