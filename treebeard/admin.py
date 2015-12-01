@@ -5,8 +5,10 @@ import sys
 from django.conf import settings
 from django.conf.urls import patterns, url
 
+
 from django.contrib import admin, messages
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.views.i18n import javascript_catalog
 from django.utils.translation import ugettext_lazy as _
 if sys.version_info >= (3, 0):
     from django.utils.encoding import force_str
@@ -55,11 +57,24 @@ class TreeAdmin(admin.ModelAdmin):
         Adds a url to move nodes to this admin
         """
         urls = super(TreeAdmin, self).get_urls()
+        # new_urls = patterns(
+        #     '',
+        #     url('^move/$', self.admin_site.admin_view(self.move_node), ),
+        #     url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog',
+        #         {'packages': ('treebeard',)}),
+        # )
+        dict = {
+            'packages': ('treebeard',),
+        }
+        catalog = javascript_catalog
+
         new_urls = patterns(
             '',
             url('^move/$', self.admin_site.admin_view(self.move_node), ),
-            url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog',
-                {'packages': ('treebeard',)}),
+            # url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog',
+            #     {'packages': ('treebeard',)}),
+            url(r'^jsi18n/$', catalog,
+                dict),
         )
         return new_urls + urls
 
