@@ -273,7 +273,7 @@ def treebeard_css():
     """
     LINK_HTML = """<link rel="stylesheet" type="text/css" href="%s"/>"""
     css_file = urljoin(get_static_url(), 'treebeard/treebeard-admin.css')
-    return LINK_HTML % css_file
+    return mark_safe(LINK_HTML % css_file)
 
 
 @register.simple_tag
@@ -297,4 +297,4 @@ def treebeard_js():
     scripts = [SCRIPT_HTML % 'jsi18n',
                SCRIPT_HTML % js_file,
                JQUERY_UI % jquery_ui]
-    return ''.join(scripts)
+    return mark_safe(''.join(scripts))
