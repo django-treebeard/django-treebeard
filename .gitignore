@@ -1,0 +1,21 @@
+syntax: glob
+
+.DS_Store
+.buildinfo
+*.pyc
+*.orig
+*.swp
+.coverage
+build
+dist
+_build
+MANIFEST
+.project
+.pydevproject
+.settings
+htmlcov
+.tox
+*.xml
+.coverage.*
+*.egg-info
+.idea
