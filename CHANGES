@@ -1,3 +1,13 @@
+Release 4.0 (Dec 28, 2015)
+--------------------------
+
+* Added support for 3.5 and Django 1.7, 1.8 and 1.9
+* Django 1.6 is no longer supported.
+* Remove deprecated backports needed for now unsupported Django versions
+* Fixed a bug with queryset deletion not handling inheritance correctly.
+* Assorted documentation fixes
+
+
 Release 3.0 (Jan 18, 2015)
 --------------------------
 
