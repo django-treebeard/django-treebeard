@@ -61,6 +61,18 @@ def set_test_db_name(conf, test_name):
 DATABASES = {'default': get_db_conf()}
 SECRET_KEY = '7r33b34rd'
 
+
+class DisableMigrations(object):
+
+    def __contains__(self, item):
+        return True
+
+    def __getitem__(self, item):
+        return "notmigrations"
+
+
+MIGRATION_MODULES = DisableMigrations()
+
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
