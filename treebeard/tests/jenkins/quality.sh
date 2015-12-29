@@ -8,7 +8,7 @@ coverage erase
 
 # Combining the coverage data of all the test runs
 # in the different OS/Python combinations.
-find $WORKSPACE -mindepth 1 -maxdepth 2 -name '.coverage.*' -exec cp -v \{\} . \;
+find $WORKSPACE/.tests -mindepth 1 -maxdepth 2 -name 'coverage.*' -exec cp -v \{\} . \;
 coverage combine
 coverage report
 coverage xml
