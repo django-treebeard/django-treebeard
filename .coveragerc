@@ -2,6 +2,7 @@
 branch = True
 source = treebeard
 parallel = True
+data_file = .tests/coverage
 
 [paths]
 source =

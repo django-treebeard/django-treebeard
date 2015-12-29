@@ -2,6 +2,7 @@ syntax: glob
 
 .DS_Store
 .buildinfo
+.tests
 *.pyc
 *.orig
 *.swp
@@ -15,6 +16,4 @@ MANIFEST
 .settings
 htmlcov
 .tox
-*.xml
-.coverage.*
 *.egg-info

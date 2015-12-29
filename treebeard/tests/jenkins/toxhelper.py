@@ -10,12 +10,16 @@ See https://tabo.pe/jenkins/ for the results.
 import sys
 
 import os
+import os.path
 import pytest
 
 from coverage import coverage
 
 
 def run_the_tests():
+    tests_dir = os.path.join(os.path.dirname(__file__), "../../../.tests")
+    if not os.path.isdir(tests_dir):
+        os.mkdir(tests_dir)
     if 'TOX_DB' in os.environ:
         os.environ['DATABASE_HOST'], os.environ['DATABASE_PORT'] = {
             'pgsql': ('dummy_test_database_server', '5434'),
