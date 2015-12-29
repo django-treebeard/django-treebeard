@@ -8,15 +8,17 @@ nodes change list - @jjdelc
 import datetime
 import sys
 
+import django
 from django.db import models
 from django.conf import settings
 from django.contrib.admin.templatetags.admin_list import (
     result_headers, result_hidden_fields)
 try:
-    from django.contrib.admin.utils import lookup_field, display_for_field
+    from django.contrib.admin.utils import (
+        lookup_field, display_for_field, display_for_value)
 except ImportError:  # < Django 1.8
-    from django.contrib.admin.util import lookup_field, display_for_field
-from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
+    from django.contrib.admin.util import (
+        lookup_field, display_for_field, display_for_value)
 from django.core.exceptions import ObjectDoesNotExist
 from django.template import Library
 from django.utils.html import conditional_escape
@@ -43,50 +45,62 @@ else:
     from urlparse import urljoin
 
 
-try:
-    from django.contrib.admin.util import display_for_value
-    from django.utils.html import format_html
-except ImportError:
-    from treebeard.templatetags import display_for_value, format_html
+from django.utils.html import format_html
 
 from treebeard.templatetags import needs_checkboxes
 
 
 def get_result_and_row_class(cl, field_name, result):
-    row_class = ''
+    if django.VERSION >= (1, 9):
+        empty_value_display = cl.model_admin.get_empty_value_display()
+    else:
+        from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
+        empty_value_display = EMPTY_CHANGELIST_VALUE
+    row_classes = ['field-%s' % field_name]
     try:
         f, attr, value = lookup_field(field_name, result, cl.model_admin)
     except ObjectDoesNotExist:
-        result_repr = EMPTY_CHANGELIST_VALUE
+        result_repr = empty_value_display
     else:
+        if django.VERSION >= (1, 9):
+            empty_value_display = getattr(
+                attr, 'empty_value_display', empty_value_display)
         if f is None:
             if field_name == 'action_checkbox':
-                row_class = mark_safe(' class="action-checkbox"')
+                row_classes = ['action-checkbox']
             allow_tags = getattr(attr, 'allow_tags', False)
             boolean = getattr(attr, 'boolean', False)
-            if boolean:
-                allow_tags = True
-            result_repr = display_for_value(value, boolean)
+            if django.VERSION >= (1, 9):
+                result_repr = display_for_value(
+                    value, empty_value_display, boolean)
+            else:
+                result_repr = display_for_value(value, boolean)
             # Strip HTML tags in the resulting text, except if the
             # function has an "allow_tags" attribute set to True.
+            # WARNING: this will be deprecated in Django 2.0
             if allow_tags:
                 result_repr = mark_safe(result_repr)
             if isinstance(value, (datetime.date, datetime.time)):
-                row_class = mark_safe(' class="nowrap"')
+                row_classes.append('nowrap')
         else:
             if isinstance(f.rel, models.ManyToOneRel):
                 field_val = getattr(result, f.name)
                 if field_val is None:
-                    result_repr = EMPTY_CHANGELIST_VALUE
+                    result_repr = empty_value_display
                 else:
                     result_repr = field_val
             else:
-                result_repr = display_for_field(value, f)
+                if django.VERSION >= (1, 9):
+                    result_repr = display_for_field(
+                        value, f, empty_value_display)
+                else:
+                    result_repr = display_for_field(value, f)
             if isinstance(f, (models.DateField, models.TimeField,
                               models.ForeignKey)):
-                row_class = mark_safe(' class="nowrap"')
+                row_classes.append('nowrap')
         if force_str(result_repr) == '':
             result_repr = mark_safe('&nbsp;')
+        row_class = mark_safe(' class="%s"' % ' '.join(row_classes))
     return result_repr, row_class
 
 
@@ -257,9 +271,11 @@ def treebeard_css():
     """
     Template tag to print out the proper <link/> tag to include a custom .css
     """
-    LINK_HTML = """<link rel="stylesheet" type="text/css" href="%s"/>"""
     css_file = urljoin(get_static_url(), 'treebeard/treebeard-admin.css')
-    return LINK_HTML % css_file
+    return format_html(
+        """<link rel="stylesheet" type="text/css" href="{}"/>""",
+        mark_safe(css_file)
+    )
 
 
 @register.simple_tag
@@ -268,19 +284,18 @@ def treebeard_js():
     Template tag to print out the proper <script/> tag to include a custom .js
     """
     path = get_static_url()
-    SCRIPT_HTML = """<script type="text/javascript" src="%s"></script>"""
-    js_file = '/'.join([path.rstrip('/'), 'treebeard', 'treebeard-admin.js'])
+    js_file = urljoin(path, 'treebeard/treebeard-admin.js')
+    jquery_ui = urljoin(path, 'treebeard/jquery-ui-1.8.5.custom.min.js')
 
     # Jquery UI is needed to call disableSelection() on drag and drop so
     # text selections arent marked while dragging a table row
     # http://www.lokkju.com/blog/archives/143
-    JQUERY_UI = ("<script>"
-                 "(function($){jQuery = $.noConflict(true);})(django.jQuery);"
-                 "</script>"
-                 "<script type=\"text/javascript\" src=\"%s\"></script>")
-    jquery_ui = urljoin(path, 'treebeard/jquery-ui-1.8.5.custom.min.js')
-
-    scripts = [SCRIPT_HTML % 'jsi18n',
-               SCRIPT_HTML % js_file,
-               JQUERY_UI % jquery_ui]
-    return ''.join(scripts)
+    TEMPLATE = (
+        '<script type="text/javascript" src="{}"></script>'
+        '<script type="text/javascript" src="{}"></script>'
+        '<script>'
+            '(function($){{jQuery = $.noConflict(true);}})(django.jQuery);'
+        '</script>'
+        '<script type="text/javascript" src="{}"></script>')
+    return format_html(
+        TEMPLATE, "jsi18n", mark_safe(js_file), mark_safe(jquery_ui))
