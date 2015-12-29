@@ -42,8 +42,7 @@ def get_db_conf():
             }[engine]
         if engine == 'django.db.backends.mysql':
             conf['OPTIONS'] = {
-                'init_command': 'SET storage_engine=INNODB,'
-                                'character_set_connection=utf8,'
+                'init_command': 'SET character_set_connection=utf8,'
                                 'collation_connection=utf8_unicode_ci'}
     set_test_db_name(conf, test_name)
     return conf
