@@ -12,7 +12,7 @@ if sys.version_info >= (3, 0):
     from django.utils.encoding import force_str
 else:
     from django.utils.encoding import force_unicode as force_str
-
+from django.views.i18n import javascript_catalog
 from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
                                   InvalidMoveToDescendant, PathOverflow)
 from treebeard.al_tree import AL_Node
@@ -55,12 +55,11 @@ class TreeAdmin(admin.ModelAdmin):
         Adds a url to move nodes to this admin
         """
         urls = super(TreeAdmin, self).get_urls()
-        new_urls = patterns(
-            '',
+        new_urls = [
             url('^move/$', self.admin_site.admin_view(self.move_node), ),
-            url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog',
+            url(r'^jsi18n/$', javascript_catalog,
                 {'packages': ('treebeard',)}),
-        )
+        ]
         return new_urls + urls
 
     def get_node(self, node_id):
