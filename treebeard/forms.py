@@ -4,6 +4,7 @@ from django import forms
 from django.db.models.query import QuerySet
 from django.forms.models import BaseModelForm, ErrorList, model_to_dict
 from django.forms.models import modelform_factory as django_modelform_factory
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
@@ -177,7 +178,7 @@ class MoveNodeForm(forms.ModelForm):
         if cls.is_loop_safe(for_node, node):
             options.append(
                 (node.pk,
-                 mark_safe(cls.mk_indent(node.get_depth()) + str(node))))
+                 mark_safe(cls.mk_indent(node.get_depth()) + escape(node))))
             for subnode in node.get_children():
                 cls.add_subtree(for_node, subnode, options)
 

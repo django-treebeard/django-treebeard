@@ -2211,6 +2211,19 @@ class TestForm(TestNonEmptyTree):
         assert 'id__position' in str(form)
         assert 'id__ref_node_id' in str(form)
 
+    def test_move_node_form(self, model):
+        form_class = movenodeform_factory(model)
+
+        bad_node = model.objects.get(desc='1').add_child(
+            desc='Benign<script>alert("Compromised");</script>'
+        )
+
+        form = form_class(instance=bad_node)
+        rendered_html = form.as_p()
+        assert "Benign" in rendered_html
+        assert "<script>" not in rendered_html
+        assert "&lt;script&gt;" in rendered_html
+
     def test_get_position_ref_node(self, model):
         form_class = movenodeform_factory(model)
 
