@@ -1,3 +1,9 @@
+Release 4.0.1 (May 1, 2016)
+---------------------------
+
+* Escape input in forms (Martin Koistinen / Divio)
+* Clarification on model detail pages (Michael Huang)
+
 Release 4.0 (Dec 28, 2015)
 --------------------------
 
