@@ -54,13 +54,13 @@ class TreeAdmin(admin.ModelAdmin):
         """
         Adds a url to move nodes to this admin
         """
+        from django.views.i18n import javascript_catalog
+        
         urls = super(TreeAdmin, self).get_urls()
-        new_urls = patterns(
-            '',
+        new_urls = [
             url('^move/$', self.admin_site.admin_view(self.move_node), ),
-            url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog',
-                {'packages': ('treebeard',)}),
-        )
+            url(r'^jsi18n/$', javascript_catalog, {'packages': ('treebeard',)}),
+        ]
         return new_urls + urls
 
     def get_node(self, node_id):
