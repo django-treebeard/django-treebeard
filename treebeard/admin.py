@@ -3,7 +3,7 @@
 import sys
 
 from django.conf import settings
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from django.contrib import admin, messages
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -55,7 +55,7 @@ class TreeAdmin(admin.ModelAdmin):
         Adds a url to move nodes to this admin
         """
         from django.views.i18n import javascript_catalog
-        
+
         urls = super(TreeAdmin, self).get_urls()
         new_urls = [
             url('^move/$', self.admin_site.admin_view(self.move_node), ),
