@@ -45,7 +45,7 @@ class TreeAdmin(admin.ModelAdmin):
         if extra_context is None:
             extra_context = {}
         lacks_request = ('request' not in extra_context and
-            'django.template.context_processors.request' not in settings.TEMPLATE_CONTEXT_PROCESSORS)
+            'django.template.context_processors.request' not in settings.TEMPLATES[0]['OPTIONS']['context_processors'])
         if lacks_request:
             extra_context['request'] = request
         return super(TreeAdmin, self).changelist_view(request, extra_context)
