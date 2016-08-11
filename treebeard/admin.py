@@ -3,7 +3,7 @@
 import sys
 
 from django.conf import settings
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from django.contrib import admin, messages
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -45,7 +45,7 @@ class TreeAdmin(admin.ModelAdmin):
         if extra_context is None:
             extra_context = {}
         lacks_request = ('request' not in extra_context and
-            'django.core.context_processors.request' not in settings.TEMPLATE_CONTEXT_PROCESSORS)
+            'django.template.context_processors.request' not in settings.TEMPLATES[0]['OPTIONS']['context_processors'])
         if lacks_request:
             extra_context['request'] = request
         return super(TreeAdmin, self).changelist_view(request, extra_context)
@@ -55,7 +55,7 @@ class TreeAdmin(admin.ModelAdmin):
         Adds a url to move nodes to this admin
         """
         from django.views.i18n import javascript_catalog
-        
+
         urls = super(TreeAdmin, self).get_urls()
         new_urls = [
             url('^move/$', self.admin_site.admin_view(self.move_node), ),
