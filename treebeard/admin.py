@@ -2,8 +2,10 @@
 
 import sys
 
+import django
+
 from django.conf import settings
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from django.contrib import admin, messages
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -44,8 +46,19 @@ class TreeAdmin(admin.ModelAdmin):
             self.change_list_template = 'admin/tree_list.html'
         if extra_context is None:
             extra_context = {}
-        lacks_request = ('request' not in extra_context and
-            'django.core.context_processors.request' not in settings.TEMPLATE_CONTEXT_PROCESSORS)
+        if django.VERSION < (1, 10):
+            request_context = 'django.core.context_processors.request' in settings.TEMPLATE_CONTEXT_PROCESSORS
+        else:
+            request_context = any(
+                map(
+                    lambda tmpl:
+                        tmpl.get('BACKEND', None) == 'django.template.backends.django.DjangoTemplates' and
+                        tmpl.get('APP_DIRS', False) and
+                        'django.template.context_processors.request' in tmpl.get('OPTIONS', {}).get('context_processors', []),
+                    settings.TEMPLATES
+                )
+            )
+        lacks_request = ('request' not in extra_context and not request_context)
         if lacks_request:
             extra_context['request'] = request
         return super(TreeAdmin, self).changelist_view(request, extra_context)

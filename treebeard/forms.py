@@ -83,7 +83,7 @@ class MoveNodeForm(forms.ModelForm):
 
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
                  initial=None, error_class=ErrorList, label_suffix=':',
-                 empty_permitted=False, instance=None):
+                 empty_permitted=False, instance=None, **kwargs):
         opts = self._meta
         if opts.model is None:
             raise ValueError('ModelForm has no model class specified')
@@ -113,7 +113,7 @@ class MoveNodeForm(forms.ModelForm):
 
         super(MoveNodeForm, self).__init__(
             data, files, auto_id, prefix, initial_, error_class, label_suffix, 
-            empty_permitted, instance)
+            empty_permitted, instance, **kwargs)
 
     def _clean_cleaned_data(self):
         """ delete auxilary fields not belonging to node model """
