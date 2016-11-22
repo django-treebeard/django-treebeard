@@ -1,10 +1,11 @@
-
+================
 django-treebeard
 ================
 
-django-treebeard is a library that implements efficient tree implementations
-for the Django Web Framework 1.6+, written by Gustavo Picón and licensed under
-the Apache License 2.0.
+**django-treebeard** is a library that implements efficient tree implementations
+for the Django Web Framework 1.7 and later.
+
+It is written by Gustavo Picón and licensed under the Apache License 2.0.
 
 django-treebeard is:
 
@@ -26,4 +27,4 @@ django-treebeard is:
 
 You can find the documentation in
 
-    https://tabo.pe/projects/django-treebeard/docs/tip/
+    http://django-treebeard.readthedocs.io/en/latest/
