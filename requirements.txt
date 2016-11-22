@@ -1,0 +1,11 @@
+# These requirements are only necessary when developing on treebeard.
+
+# Developing
+ipython
+ipdb
+django_extensions
+
+# Testing
+pytest
+pytest-django
+tox
