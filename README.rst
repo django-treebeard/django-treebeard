@@ -21,10 +21,18 @@ django-treebeard is:
 - **Clean**: Testable and well tested code base. Code/branch test coverage is above
   96%. Tests are available in Jenkins:
 
-  - Test suite running on different versions of Python, Django and database
-    engine: https://tabo.pe/jenkins/job/django-treebeard/
-  - Code quality: https://tabo.pe/jenkins/job/django-treebeard-quality/
+  - Test suite running on different versions of Python and Django:
+    https://travis-ci.org/django-treebeard/django-treebeard/
 
 You can find the documentation in
 
     http://django-treebeard.readthedocs.io/en/latest/
+
+Supported versions
+==================
+
+**django-treebeard** supports
+
+* Django 1.7 - 1.10
+* Python 2.7, 3.4, 3.5
+* PostgreSQL, MySQL, SQLite database back-ends (others are untested)
