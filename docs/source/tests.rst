@@ -7,9 +7,14 @@ recommended that you run and update the test suite when you send patches.
 py.test
 -------
 
-You will need `pytest`_ to run the test suite.
+You will need `pytest`_ to run the test suite. It's included with the
+development dependencies:
 
-To run the test suite:
+.. code-block:: console
+
+    $ pip install -r requirements.txt
+
+Then just run the test suite:
 
 .. code-block:: console
 
