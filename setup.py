@@ -9,10 +9,10 @@ import codecs
 
 
 def root_dir():
-    rd = os.path.dirname(__file__)
-    if rd:
-        return rd
-    return '.'
+    try:
+        return os.path.dirname(__file__)
+    except NameError:
+        return '.'
 
 
 setup_args = dict(
@@ -27,7 +27,7 @@ setup_args = dict(
     package_data={
         'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
     description='Efficient tree implementations for Django',
-    long_description=codecs.open(root_dir() + '/README.rst', encoding='utf-8').read(),
+    long_description=codecs.open(os.path.join(root_dir(), 'README.rst'), encoding='utf-8').read(),
     install_requires=['Django>=1.7'],
     tests_require=['pytest'],
     classifiers=[
