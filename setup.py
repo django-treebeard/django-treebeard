@@ -1,8 +1,10 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
 import os
 from setuptools import setup
-from setuptools.command.test import test
+from treebeard import __version__
 import codecs
 
 
@@ -13,12 +15,10 @@ def root_dir():
     return '.'
 
 
-
-
 setup_args = dict(
     name='django-treebeard',
-    version='4.0.1',
-    url='https://tabo.pe/projects/django-treebeard/',
+    version=__version__,
+    url='https://github.com/django-treebeard/django-treebeard/',
     author='Gustavo Picon',
     author_email='tabo@tabo.pe',
     license='Apache License 2.0',
@@ -26,7 +26,7 @@ setup_args = dict(
     package_dir={'treebeard': 'treebeard'},
     package_data={
         'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
-    description='Efficient tree implementations for Django 1.7+',
+    description='Efficient tree implementations for Django',
     long_description=codecs.open(root_dir() + '/README.rst', encoding='utf-8').read(),
     install_requires=['Django>=1.7'],
     tests_require=['pytest'],
