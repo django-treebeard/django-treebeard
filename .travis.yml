@@ -10,21 +10,34 @@ python:
     - 3.5
 
 env:
-    - DJANGO="Django>=1.7,<1.8"
-    - DJANGO="Django>=1.8,<1.9"
-    - DJANGO="Django>=1.9,<1.10"
-    - DJANGO="Django>=1.10,<1.11"
+    - DJANGO="Django>=1.8,<1.9" DATABASE_ENGINE="sqlite"
+    - DJANGO="Django>=1.9,<1.10" DATABASE_ENGINE="sqlite"
+    - DJANGO="Django>=1.10,<1.11" DATABASE_ENGINE="sqlite"
 
-matrix:
-    exclude:
-        # Python 3.5 is not supported by Django 1.7
-        - python: 3.5
-          env: 'DJANGO="Django>=1.7,<1.8"'
+    - DJANGO="Django>=1.8,<1.9" DATABASE_ENGINE="psql"
+    - DJANGO="Django>=1.9,<1.10" DATABASE_ENGINE="psql"
+    - DJANGO="Django>=1.10,<1.11" DATABASE_ENGINE="psql"
+
+    - DJANGO="Django>=1.8,<1.9" DATABASE_ENGINE="mysql"
+    - DJANGO="Django>=1.9,<1.10" DATABASE_ENGINE="mysql"
+    - DJANGO="Django>=1.10,<1.11" DATABASE_ENGINE="mysql"
 
 install:
-    - pip install $DJANGO "pytest>3.0"
+    - pip install $DJANGO
+    - pip install -r requirements_test.txt
+    # Add project to Python path
+    - pip install -e .
     # Useful for debugging
     - pip freeze
+
+addons:
+  # Newest available version currently
+  postgresql: "9.4"
+
+# Create MySQL and Postgres databases
+before_script:
+  - psql -c 'create database travis_ci_test;' -U postgres
+  - mysql -e 'CREATE DATABASE IF NOT EXISTS travis_ci_test;' -uroot
 
 script: pytest
 
