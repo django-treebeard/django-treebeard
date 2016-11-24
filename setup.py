@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 from treebeard import __version__
 import codecs
 
@@ -22,10 +22,8 @@ setup_args = dict(
     author='Gustavo Picon',
     author_email='tabo@tabo.pe',
     license='Apache License 2.0',
-    packages=['treebeard', 'treebeard.templatetags', 'treebeard.tests'],
-    package_dir={'treebeard': 'treebeard'},
-    package_data={
-        'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
+    packages=find_packages(exclude=['docs']),
+    include_package_data=True,
     description='Efficient tree implementations for Django',
     long_description=codecs.open(os.path.join(root_dir(), 'README.rst'), encoding='utf-8').read(),
     install_requires=['Django>=1.7'],
