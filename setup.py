@@ -13,15 +13,6 @@ def root_dir():
     return '.'
 
 
-class pytest_test(test):
-    def finalize_options(self):
-        test.finalize_options(self)
-        self.test_args = []
-        self.test_suite = True
-
-    def run_tests(self):
-        import pytest
-        pytest.main([])
 
 
 setup_args = dict(
@@ -37,7 +28,6 @@ setup_args = dict(
         'treebeard': ['templates/admin/*.html', 'static/treebeard/*']},
     description='Efficient tree implementations for Django 1.7+',
     long_description=codecs.open(root_dir() + '/README.rst', encoding='utf-8').read(),
-    cmdclass={'test': pytest_test},
     install_requires=['Django>=1.7'],
     tests_require=['pytest'],
     classifiers=[

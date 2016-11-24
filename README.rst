@@ -31,8 +31,8 @@ You can find the documentation in
 Supported versions
 ==================
 
-**django-treebeard** supports
+**django-treebeard** officially supports
 
-* Django 1.7 - 1.10
+* Django 1.8 - 1.10
 * Python 2.7, 3.4, 3.5
-* PostgreSQL, MySQL, SQLite database back-ends (others are untested)
+* PostgreSQL, MySQL, SQLite database back-ends.
