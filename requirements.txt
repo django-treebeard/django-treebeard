@@ -6,6 +6,5 @@ ipdb
 django_extensions
 
 # Testing
-pytest
-pytest-django
-tox
+tox>=2.5
+-r requirements_test.txt
