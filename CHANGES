@@ -1,3 +1,13 @@
+Release 4.1.0 (Nov 24, 2016)
+---------------------------
+
+* Add support for Django-1.10
+* Drop support for Django-1.7
+* Moved Repository from Bitbucket to GitHub
+* Moved documentation to https://django-treebeard.readthedocs.io/
+* Moved continuous integration to https://travis-ci.org/django-treebeard/django-treebeard
+
+
 Release 4.0.1 (May 1, 2016)
 ---------------------------
 
