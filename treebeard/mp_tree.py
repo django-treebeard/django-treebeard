@@ -17,6 +17,34 @@ from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow,\
     NodeAlreadySaved
 
 
+# The following functions generate vendor-specific SQL functions
+def sql_concat(*args, **kwargs):
+    vendor = kwargs.pop('vendor', None)
+    if vendor == 'mysql':
+        return 'CONCAT({})'.format(', '.join(args))
+    if vendor == 'microsoft':
+        return ' + '.join(args)
+    return '||'.join(args)
+
+
+def sql_length(field, vendor=None):
+    if vendor == 'microsoft':
+        return 'LEN({})'.format(field)
+    return 'LENGTH({})'.format(field)
+
+
+def sql_substr(field, pos, length=None, **kwargs):
+    vendor = kwargs.pop('vendor', None)
+    function = 'SUBSTR({field}, {pos})'
+    if length:
+        function = 'SUBSTR({field}, {pos}, {length})'
+    if vendor == 'microsoft':
+        if not length:
+            length = 'LEN({})'.format(field)
+        function = 'SUBSTRING({field}, {pos}, {length})'
+    return function.format(field=field, pos=pos, length=length)
+
+
 def get_result_class(cls):
     """
     For the given model class, determine what class we should use for the
@@ -261,7 +289,7 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
             # http://dev.mysql.com/doc/refman/5.0/en/ansi-mode.html
             sqlpath = "CONCAT(%s, SUBSTR(path, %s))"
         else:
-            sqlpath = "%s||SUBSTR(path, %s)"
+            sqlpath = sql_concat("%s", sql_substr("path", "%s", vendor=vendor), vendor=vendor)
 
         sql2 = ["path=%s" % (sqlpath, )]
         vals = [newpath, len(oldpath) + 1]
@@ -270,7 +298,7 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
             # done in another query
             # doesn't even work with sql_mode='ANSI,TRADITIONAL'
             # TODO: FIND OUT WHY?!?? right now I'm just blaming mysql
-            sql2.append("depth=LENGTH(%s)/%%s" % (sqlpath, ))
+            sql2.append(("depth=" + sql_length("%s", vendor=vendor) + "/%%s") % (sqlpath, ))
             vals.extend([newpath, len(oldpath) + 1, self.node_cls.steplen])
         sql3 = "WHERE path LIKE %s"
         vals.extend([oldpath + '%'])
@@ -544,7 +572,8 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         :returns: The sql needed to update the depth of all the nodes in a
                   branch.
         """
-        sql = "UPDATE %s SET depth=LENGTH(path)/%%s WHERE path LIKE %%s" % (
+        vendor = self.node_cls.get_database_vendor('write')
+        sql = ("UPDATE %s SET depth=" + sql_length("path", vendor=vendor) + "/%%s WHERE path LIKE %%s") % (
             connection.ops.quote_name(
                 get_result_class(self.node_cls)._meta.db_table), )
         vals = [self.node_cls.steplen, path + '%']
@@ -660,6 +689,7 @@ class MP_Node(Node):
                   5. a list of ids nodes that report a wrong number of children
         """
         cls = get_result_class(cls)
+        vendor = cls.get_database_vendor('write')
 
         evil_chars, bad_steplen, orphans = [], [], []
         wrong_depth, wrong_numchild = [], []
@@ -688,7 +718,7 @@ class MP_Node(Node):
             real_numchild = cls.objects.filter(
                 path__range=cls._get_children_path_interval(node.path)
             ).extra(
-                where=['LENGTH(path)/%d=%d' % (cls.steplen, node.depth + 1)]
+                where=[(sql_length("path", vendor=vendor) + '/%d=%d') % (cls.steplen, node.depth + 1)]
             ).count()
             if real_numchild != node.numchild:
                 wrong_numchild.append(node.pk)
@@ -735,6 +765,7 @@ class MP_Node(Node):
                patches are welcome).
         """
         cls = get_result_class(cls)
+        vendor = cls.get_database_vendor('write')
 
         if destructive:
             dump = cls.dump_bulk(None, True)
@@ -745,10 +776,11 @@ class MP_Node(Node):
 
             # fix the depth field
             # we need the WHERE to speed up postgres
-            sql = "UPDATE %s "\
-                  "SET depth=LENGTH(path)/%%s "\
-                  "WHERE depth!=LENGTH(path)/%%s" % (
-                      connection.ops.quote_name(cls._meta.db_table), )
+            sql = (
+                "UPDATE %s "
+                "SET depth=" + sql_length("path", vendor=vendor) + "/%%s "
+                "WHERE depth!=" + sql_length("path", vendor=vendor) + "/%%s"
+            ) % (connection.ops.quote_name(cls._meta.db_table), )
             vals = [cls.steplen, cls.steplen]
             cursor.execute(sql, vals)
 
@@ -756,18 +788,18 @@ class MP_Node(Node):
             vals = ['_' * cls.steplen]
             # the cake and sql portability are a lie
             if cls.get_database_vendor('read') == 'mysql':
-                sql = "SELECT tbn1.path, tbn1.numchild, ("\
-                      "SELECT COUNT(1) "\
-                      "FROM %(table)s AS tbn2 "\
-                      "WHERE tbn2.path LIKE "\
-                      "CONCAT(tbn1.path, %%s)) AS real_numchild "\
-                      "FROM %(table)s AS tbn1 "\
-                      "HAVING tbn1.numchild != real_numchild" % {
-                          'table': connection.ops.quote_name(
-                              cls._meta.db_table)}
+                sql = (
+                    "SELECT tbn1.path, tbn1.numchild, ("
+                    "SELECT COUNT(1) "
+                    "FROM %(table)s AS tbn2 "
+                    "WHERE tbn2.path LIKE " +
+                    sql_concat("tbn1.path", "%%s", vendor=vendor) + ") AS real_numchild "
+                    "FROM %(table)s AS tbn1 "
+                    "HAVING tbn1.numchild != real_numchild"
+                ) % {'table': connection.ops.quote_name(cls._meta.db_table)}
             else:
                 subquery = "(SELECT COUNT(1) FROM %(table)s AS tbn2"\
-                           " WHERE tbn2.path LIKE tbn1.path||%%s)"
+                           " WHERE tbn2.path LIKE " + sql_concat("tbn1.path", "%%s", vendor=vendor) + ")"
                 sql = ("SELECT tbn1.path, tbn1.numchild, " + subquery +
                        " FROM %(table)s AS tbn1 WHERE tbn1.numchild != " +
                        subquery)
@@ -838,6 +870,7 @@ class MP_Node(Node):
         #~
 
         cls = get_result_class(cls)
+        vendor = cls.get_database_vendor('write')
 
         if parent:
             depth = parent.depth + 1
@@ -848,19 +881,21 @@ class MP_Node(Node):
             params = []
             extrand = ''
 
-        sql = 'SELECT * FROM %(table)s AS t1 INNER JOIN '\
-              ' (SELECT '\
-              '   SUBSTR(path, 1, %(subpathlen)s) AS subpath, '\
-              '   COUNT(1)-1 AS count '\
-              '   FROM %(table)s '\
-              '   WHERE depth >= %(depth)s %(extrand)s'\
-              '   GROUP BY subpath) AS t2 '\
-              ' ON t1.path=t2.subpath '\
-              ' ORDER BY t1.path' % {
-                  'table': connection.ops.quote_name(cls._meta.db_table),
-                  'subpathlen': depth * cls.steplen,
-                  'depth': depth,
-                  'extrand': extrand}
+        sql = (
+            'SELECT * FROM %(table)s AS t1 INNER JOIN '
+            ' (SELECT '
+            '   ' + sql_substr("path", "1", "%(subpathlen)s", vendor=vendor) + ' AS subpath, '
+            '   COUNT(1)-1 AS count '
+            '   FROM %(table)s '
+            '   WHERE depth >= %(depth)s %(extrand)s'
+            '   GROUP BY subpath) AS t2 '
+            ' ON t1.path=t2.subpath '
+            ' ORDER BY t1.path'
+        ) % {
+            'table': connection.ops.quote_name(cls._meta.db_table),
+            'subpathlen': depth * cls.steplen,
+            'depth': depth,
+                'extrand': extrand}
         cursor = cls._get_database_cursor('write')
         cursor.execute(sql, params)
 
