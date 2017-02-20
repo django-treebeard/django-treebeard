@@ -1,0 +1,30 @@
+environment:
+  matrix:
+    - TOXENV: py27-dj18
+      DATABASE_ENGINE: sqlite
+    - TOXENV: py34-dj18
+      DATABASE_ENGINE: sqlite
+    - TOXENV: py35-dj18
+      DATABASE_ENGINE: sqlite
+    - TOXENV: py36-dj18
+      DATABASE_ENGINE: sqlite
+    - TOXENV: py27-dj10
+      DATABASE_ENGINE: sqlite
+    - TOXENV: py34-dj10
+      DATABASE_ENGINE: sqlite
+    - TOXENV: py35-dj10
+      DATABASE_ENGINE: sqlite
+    - TOXENV: py36-dj10
+      DATABASE_ENGINE: sqlite
+
+matrix:
+  fast_finish: true
+
+install:
+  - echo.pytest > requirements_test.txt
+  - C:\Python36\python -m pip install tox
+
+build: false  # Not a C# project
+
+test_script:
+  - C:\Python36\scripts\tox
