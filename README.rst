@@ -7,6 +7,23 @@ for the Django Web Framework 1.8 and later.
 
 It is written by Gustavo Picón and licensed under the Apache License 2.0.
 
+Status
+------
+
+.. image:: https://readthedocs.org/projects/django-treebeard/badge/?version=latest
+    :target: https://readthedocs.org/projects/django-treebeard/
+    
+.. image:: https://travis-ci.org/django-treebeard/django-treebeard.svg?branch=master
+    :target: https://travis-ci.org/django-treebeard/django-treebeard
+
+.. image:: https://ci.appveyor.com/api/projects/status/mwbf062v68lhw05c?svg=true
+    :target: https://ci.appveyor.com/project/mvantellingen/django-treebeard
+
+.. image:: https://img.shields.io/pypi/v/django-treebeard.svg
+    :target: https://pypi.python.org/pypi/django-treebeard/
+
+Features
+--------
 django-treebeard is:
 
 - **Flexible**: Includes 3 different tree implementations with the same API:
