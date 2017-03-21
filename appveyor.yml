@@ -1,17 +1,13 @@
+services:
+  - mssql2016
+
 environment:
   matrix:
-    - TOXENV: py27-dj18-sqlite
-    - TOXENV: py34-dj18-sqlite
-    - TOXENV: py35-dj18-sqlite
-    - TOXENV: py36-dj18-sqlite
-    - TOXENV: py27-dj19-sqlite
-    - TOXENV: py34-dj19-sqlite
-    - TOXENV: py35-dj19-sqlite
-    - TOXENV: py36-dj19-sqlite
-    - TOXENV: py27-dj110-sqlite
-    - TOXENV: py34-dj110-sqlite
-    - TOXENV: py35-dj110-sqlite
-    - TOXENV: py36-dj110-sqlite
+    - TOXENV: py27-dj18-mssql
+    - TOXENV: py27-dj19-mssql
+    - TOXENV: py27-dj110-mssql
+    - TOXENV: py35-dj19-mssql
+    - TOXENV: py36-dj110-mssql
 
 matrix:
   fast_finish: true

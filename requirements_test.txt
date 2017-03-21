@@ -1,5 +1,0 @@
-# Dependencies needed for individual (tox, Travis) test runs
-
-pytest>3.0
-psycopg2>2.6
-mysqlclient>=1.3.9
