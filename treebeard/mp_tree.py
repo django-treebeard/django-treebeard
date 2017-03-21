@@ -881,14 +881,16 @@ class MP_Node(Node):
             params = []
             extrand = ''
 
+        subpath = sql_substr("path", "1", "%(subpathlen)s", vendor=vendor)
+
         sql = (
             'SELECT * FROM %(table)s AS t1 INNER JOIN '
             ' (SELECT '
-            '   ' + sql_substr("path", "1", "%(subpathlen)s", vendor=vendor) + ' AS subpath, '
+            '   ' + subpath + ' AS subpath, '
             '   COUNT(1)-1 AS count '
             '   FROM %(table)s '
             '   WHERE depth >= %(depth)s %(extrand)s'
-            '   GROUP BY subpath) AS t2 '
+            '   GROUP BY '+ subpath + ') AS t2 '
             ' ON t1.path=t2.subpath '
             ' ORDER BY t1.path'
         ) % {
