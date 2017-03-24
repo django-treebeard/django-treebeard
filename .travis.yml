@@ -4,43 +4,100 @@ sudo: false
 
 language: python
 
-python:
-    - 2.7
-    - 3.4
-    - 3.5
-
-env:
-    - DJANGO="Django>=1.8,<1.9" DATABASE_ENGINE="sqlite"
-    - DJANGO="Django>=1.9,<1.10" DATABASE_ENGINE="sqlite"
-    - DJANGO="Django>=1.10,<1.11" DATABASE_ENGINE="sqlite"
-
-    - DJANGO="Django>=1.8,<1.9" DATABASE_ENGINE="psql"
-    - DJANGO="Django>=1.9,<1.10" DATABASE_ENGINE="psql"
-    - DJANGO="Django>=1.10,<1.11" DATABASE_ENGINE="psql"
-
-    - DJANGO="Django>=1.8,<1.9" DATABASE_ENGINE="mysql"
-    - DJANGO="Django>=1.9,<1.10" DATABASE_ENGINE="mysql"
-    - DJANGO="Django>=1.10,<1.11" DATABASE_ENGINE="mysql"
-
-install:
-    - pip install $DJANGO
-    - pip install -r requirements_test.txt
-    # Add project to Python path
-    - pip install -e .
-    # Useful for debugging
-    - pip freeze
-
 addons:
   # Newest available version currently
   postgresql: "9.4"
+
+
+matrix:
+  include:
+    - python: 2.7
+      env: TOXENV=py27-dj18-sqlite
+    - python: 2.7
+      env: TOXENV=py27-dj19-sqlite
+    - python: 2.7
+      env: TOXENV=py27-dj110-sqlite
+    - python: 3.4
+      env: TOXENV=py34-dj18-sqlite
+    - python: 3.4
+      env: TOXENV=py34-dj19-sqlite
+    - python: 3.4
+      env: TOXENV=py34-dj110-sqlite
+    - python: 3.5
+      env: TOXENV=py35-dj18-sqlite
+    - python: 3.5
+      env: TOXENV=py35-dj19-sqlite
+    - python: 3.5
+      env: TOXENV=py35-dj110-sqlite
+    - python: 3.6
+      env: TOXENV=py36-dj18-sqlite
+    - python: 3.6
+      env: TOXENV=py36-dj19-sqlite
+    - python: 3.6
+      env: TOXENV=py36-dj110-sqlite
+
+    - python: 2.7
+      env: TOXENV=py27-dj18-postgres
+    - python: 2.7
+      env: TOXENV=py27-dj19-postgres
+    - python: 2.7
+      env: TOXENV=py27-dj110-postgres
+    - python: 3.4
+      env: TOXENV=py34-dj18-postgres
+    - python: 3.4
+      env: TOXENV=py34-dj19-postgres
+    - python: 3.4
+      env: TOXENV=py34-dj110-postgres
+    - python: 3.5
+      env: TOXENV=py35-dj18-postgres
+    - python: 3.5
+      env: TOXENV=py35-dj19-postgres
+    - python: 3.5
+      env: TOXENV=py35-dj110-postgres
+    - python: 3.6
+      env: TOXENV=py36-dj18-postgres
+    - python: 3.6
+      env: TOXENV=py36-dj19-postgres
+    - python: 3.6
+      env: TOXENV=py36-dj110-postgres
+
+    - python: 2.7
+      env: TOXENV=py27-dj18-mysql
+    - python: 2.7
+      env: TOXENV=py27-dj19-mysql
+    - python: 2.7
+      env: TOXENV=py27-dj110-mysql
+    - python: 3.4
+      env: TOXENV=py34-dj18-mysql
+    - python: 3.4
+      env: TOXENV=py34-dj19-mysql
+    - python: 3.4
+      env: TOXENV=py34-dj110-mysql
+    - python: 3.5
+      env: TOXENV=py35-dj18-mysql
+    - python: 3.5
+      env: TOXENV=py35-dj19-mysql
+    - python: 3.5
+      env: TOXENV=py35-dj110-mysql
+    - python: 3.6
+      env: TOXENV=py36-dj18-mysql
+    - python: 3.6
+      env: TOXENV=py36-dj19-mysql
+    - python: 3.6
+      env: TOXENV=py36-dj110-mysql
+
+
+install:
+  - pip install tox codecov
+
 
 # Create MySQL and Postgres databases
 before_script:
   - psql -c 'create database travis_ci_test;' -U postgres
   - mysql -e 'CREATE DATABASE IF NOT EXISTS travis_ci_test;' -uroot
 
-script: pytest
+script: tox
 
 # Can discuss again if somebody wants them.
 notifications:
-    email: false
+  email: false

@@ -1,27 +1,18 @@
+services:
+  - mssql2016
+
 environment:
   matrix:
-    - TOXENV: py27-dj18
-      DATABASE_ENGINE: sqlite
-    - TOXENV: py34-dj18
-      DATABASE_ENGINE: sqlite
-    - TOXENV: py35-dj18
-      DATABASE_ENGINE: sqlite
-    - TOXENV: py36-dj18
-      DATABASE_ENGINE: sqlite
-    - TOXENV: py27-dj10
-      DATABASE_ENGINE: sqlite
-    - TOXENV: py34-dj10
-      DATABASE_ENGINE: sqlite
-    - TOXENV: py35-dj10
-      DATABASE_ENGINE: sqlite
-    - TOXENV: py36-dj10
-      DATABASE_ENGINE: sqlite
+    - TOXENV: py27-dj18-mssql
+    - TOXENV: py27-dj19-mssql
+    - TOXENV: py27-dj110-mssql
+    - TOXENV: py35-dj19-mssql
+    - TOXENV: py36-dj110-mssql
 
 matrix:
   fast_finish: true
 
 install:
-  - echo.pytest > requirements_test.txt
   - C:\Python36\python -m pip install tox
 
 build: false  # Not a C# project

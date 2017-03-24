@@ -36,6 +36,19 @@ def get_db_conf():
             'HOST': '127.0.0.1',
             'PORT': '',
         }
+    elif database_engine == "mssql":
+        return {
+            'ENGINE': 'sql_server.pyodbc',
+            'NAME': 'master',
+            'USER': 'sa',
+            'PASSWORD': 'Password12!',
+            'HOST': '(local)\SQL2016',
+            'PORT': '',
+            'OPTIONS': {
+                'driver': 'SQL Server Native Client 11.0',
+                'MARS_Connection': 'True',
+            },
+        }
 
 DATABASES = {'default': get_db_conf()}
 SECRET_KEY = '7r33b34rd'
