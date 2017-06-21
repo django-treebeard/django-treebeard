@@ -3,3 +3,4 @@ recursive-include treebeard *.py
 recursive-include treebeard/static *
 recursive-include treebeard/templates *
 recursive-include treebeard/locale *
+recursive-include docs Makefile README.md make.bat *.py *.png *.rst
