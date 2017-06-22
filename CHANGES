@@ -1,3 +1,9 @@
+Release 4.1.2 (Jun 22, 2017)
+---------------------------
+
+* Fixed MANIFEST.in for Debian packaging.
+
+
 Release 4.1.1 (May 24, 2017)
 ---------------------------
 
