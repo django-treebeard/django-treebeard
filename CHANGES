@@ -1,11 +1,11 @@
 Release 4.1.2 (Jun 22, 2017)
----------------------------
+----------------------------
 
 * Fixed MANIFEST.in for Debian packaging.
 
 
 Release 4.1.1 (May 24, 2017)
----------------------------
+----------------------------
 
 * Removed deprecated templatetag inclusion
 * Added support for Python-3.6
@@ -13,7 +13,7 @@ Release 4.1.1 (May 24, 2017)
 
 
 Release 4.1.0 (Nov 24, 2016)
----------------------------
+----------------------------
 
 * Add support for Django-1.10
 * Drop support for Django-1.7
