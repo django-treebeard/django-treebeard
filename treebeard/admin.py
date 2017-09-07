@@ -38,7 +38,7 @@ class TreeAdmin(admin.ModelAdmin):
             # the old admin
             return super(TreeAdmin, self).get_queryset(request)
         else:
-            return self.model.get_tree()
+            return self.model.get_tree(None, True)
 
     def changelist_view(self, request, extra_context=None):
         if issubclass(self.model, AL_Node):
@@ -77,7 +77,7 @@ class TreeAdmin(admin.ModelAdmin):
         return new_urls + urls
 
     def get_node(self, node_id):
-        return self.model.objects.get(pk=node_id)
+        return self.model._default_manager.get(pk=node_id)
 
     def try_to_move_node(self, as_child, node, pos, request, target):
         try:

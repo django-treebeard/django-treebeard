@@ -592,7 +592,7 @@ class NS_Node(Node):
         return ret
 
     @classmethod
-    def get_tree(cls, parent=None):
+    def get_tree(cls, parent=None, use_default_manager=False):
         """
         :returns:
 
@@ -601,14 +601,24 @@ class NS_Node(Node):
         """
         cls = get_result_class(cls)
 
+        original_manager = cls.objects
+
+        if use_default_manager:
+            cls.objects = cls._default_manager
+
         if parent is None:
             # return the entire tree
             return cls.objects.all()
         if parent.is_leaf():
             return cls.objects.filter(pk=parent.pk)
-        return cls.objects.filter(
+        results = cls.objects.filter(
             tree_id=parent.tree_id,
             lft__range=(parent.lft, parent.rgt - 1))
+
+        if use_default_manager:
+            cls.objects = original_manager
+
+        return results
 
     def get_descendants(self):
         """
