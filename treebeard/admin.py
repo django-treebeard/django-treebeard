@@ -67,8 +67,12 @@ class TreeAdmin(admin.ModelAdmin):
         """
         Adds a url to move nodes to this admin
         """
-        from django.views.i18n import javascript_catalog
-        
+        if django.VERSION < (1, 10):
+            from django.views.i18n import javascript_catalog
+        else:
+            from django.views.i18n import JavaScriptCatalog
+            javascript_catalog = JavaScriptCatalog.as_view()
+
         urls = super(TreeAdmin, self).get_urls()
         new_urls = [
             url('^move/$', self.admin_site.admin_view(self.move_node), ),
