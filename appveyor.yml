@@ -8,6 +8,7 @@ environment:
     - TOXENV: py27-dj110-mssql
     - TOXENV: py35-dj19-mssql
     - TOXENV: py36-dj110-mssql
+    - TOXENV: py36-dj111-mssql
 
 matrix:
   fast_finish: true

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Unit/Functional tests"""
 
-from __future__ import with_statement, unicode_literals
+from __future__ import unicode_literals
 import datetime
 import os
 
