@@ -17,4 +17,4 @@ Release logic:
 11. git commit -m 'Start with <version>'
 12. git push
 """
-__version__ = '4.1.2'
+__version__ = '4.2.0'
