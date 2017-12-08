@@ -69,14 +69,15 @@ class TreeAdmin(admin.ModelAdmin):
         """
         if django.VERSION < (1, 10):
             from django.views.i18n import javascript_catalog
+            javascript_catalog_url = url(r'^jsi18n/$', javascript_catalog, {'packages': ('treebeard',)})
         else:
             from django.views.i18n import JavaScriptCatalog
-            javascript_catalog = JavaScriptCatalog.as_view()
+            javascript_catalog_url = url(r'^jsi18n/$', JavaScriptCatalog.as_view(packages=['treebeard',]))
 
         urls = super(TreeAdmin, self).get_urls()
         new_urls = [
             url('^move/$', self.admin_site.admin_view(self.move_node), ),
-            url(r'^jsi18n/$', javascript_catalog, {'packages': ('treebeard',)}),
+            javascript_catalog_url,
         ]
         return new_urls + urls
 
