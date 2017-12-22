@@ -298,4 +298,4 @@ def treebeard_js():
         '</script>'
         '<script type="text/javascript" src="{}"></script>')
     return format_html(
-        TEMPLATE, "jsi18n", mark_safe(js_file), mark_safe(jquery_ui))
+        TEMPLATE, "/jsi18n", mark_safe(js_file), mark_safe(jquery_ui))
