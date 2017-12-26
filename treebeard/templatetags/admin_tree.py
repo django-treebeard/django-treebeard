@@ -166,7 +166,7 @@ def items_for_result(cl, result, form):
             else:
                 attr = pk
             value = result.serializable_value(attr)
-            result_id = repr(force_str(value))[1:]
+            result_id = "'%s'" % force_str(value)
             onclickstr = (
                 ' onclick="opener.dismissRelatedLookupPopup(window, %s);'
                 ' return false;"')
