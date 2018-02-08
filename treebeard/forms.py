@@ -55,9 +55,7 @@ class MoveNodeForm(forms.ModelForm):
 
     _position = forms.ChoiceField(required=True, label=_("Position"))
 
-    _ref_node_id = forms.TypedChoiceField(required=False,
-                                          coerce=int,
-                                          label=_("Relative to"))
+    _ref_node_id = forms.ChoiceField(required=False, label=_("Relative to"))
 
     def _get_position_ref_node(self, instance):
         if self.is_sorted:
