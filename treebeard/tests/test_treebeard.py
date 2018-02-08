@@ -116,7 +116,6 @@ def mpalphabet_model(request):
 def mpsortedautonow_model(request):
     return _prepare_db_test(request)
 
-
 @pytest.fixture(scope='function', params=[models.MP_TestNodeSmallStep])
 def mpsmallstep_model(request):
     return _prepare_db_test(request)
@@ -2110,7 +2109,7 @@ class TestIssues(TestTreeBase):
 
 class TestMoveNodeForm(TestNonEmptyTree):
     def _get_nodes_list(self, nodes):
-        return [(pk, '%sNode %d' % ('&nbsp;' * 4 * (depth - 1), pk))
+        return [(pk, '%sNode %s' % ('&nbsp;' * 4 * (depth - 1), pk))
                 for pk, depth in nodes]
 
     def _assert_nodes_in_choices(self, form, nodes):
@@ -2386,7 +2385,7 @@ class TestAdminTree(TestNonEmptyTree):
         # All nodes are in the result tree
         for object in model.objects.all():
             url = cl.url_for_result(object)
-            node = '<a href="%s">Node %i</a>' % (url, object.pk)
+            node = '<a href="%s">Node %s</a>' % (url, object.pk)
             assert node in table_output
         # Unfiltered
         assert '<input type="hidden" id="has-filters" value="0"/>' in \
@@ -2510,7 +2509,7 @@ class TestAdminTreeList(TestNonEmptyTree):
                            'request': request})
         table_output = self.template.render(context)
 
-        output_template = '<li><a href="%i/" >Node %i</a>'
+        output_template = '<li><a href="%s/" >Node %s</a>'
         for object in model.objects.all():
             expected_output = output_template % (object.pk, object.pk)
             assert expected_output in table_output
@@ -2534,8 +2533,8 @@ class TestAdminTreeList(TestNonEmptyTree):
                            'action_form': True})
         table_output = self.template.render(context)
         output_template = ('<input type="checkbox" class="action-select" '
-                           'value="%i" name="_selected_action" />'
-                           '<a href="%i/" >Node %i</a>')
+                           'value="%s" name="_selected_action" />'
+                           '<a href="%s/" >Node %s</a>')
 
         for object in model.objects.all():
             expected_output = output_template % (object.pk, object.pk,
@@ -2562,7 +2561,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         context = Context({'cl': cl,
                            'request': request})
         table_output = self.template.render(context)
-        output_template = "opener.dismissRelatedLookupPopup(window, '%i');"
+        output_template = "opener.dismissRelatedLookupPopup(window, '%s');"
         for object in model.objects.all():
             expected_output = output_template % object.pk
             assert expected_output in table_output
