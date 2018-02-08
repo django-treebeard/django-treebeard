@@ -118,7 +118,10 @@ class MoveNodeForm(forms.ModelForm):
         reference_node_id = 0
 
         if '_ref_node_id' in self.cleaned_data:
-            reference_node_id = self.cleaned_data['_ref_node_id']
+            if self.cleaned_data['_ref_node_id'] != '0':
+                reference_node_id = self.cleaned_data['_ref_node_id']
+                if reference_node_id.isdigit():
+                    reference_node_id = int(reference_node_id)
             del self.cleaned_data['_ref_node_id']
 
         position_type = self.cleaned_data['_position']
@@ -129,7 +132,7 @@ class MoveNodeForm(forms.ModelForm):
     def save(self, commit=True):
         position_type, reference_node_id = self._clean_cleaned_data()
 
-        if self.instance.pk is None:
+        if self.instance.pk is None or self.instance._state.adding:
             cl_data = {}
             for field in self.cleaned_data:
                 if not isinstance(self.cleaned_data[field], (list, QuerySet)):
