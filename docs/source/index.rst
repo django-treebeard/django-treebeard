@@ -19,10 +19,7 @@ is a library that implements efficient tree implementations for the
   :ref:`model-inheritance` with :ref:`abstract-base-classes`.
   to define your own models.
 - **Clean**: Testable and well tested code base. Code/branch test coverage
-  is above 96%. Tests are available in Jenkins:
-
-  - `Tests running on different versions of Python, Django and DB engines`_
-  - `Code Quality`_
+  is above 96%.
 
 
 Overview
@@ -64,12 +61,6 @@ Development
 .. toctree::
 
    tests
-
-
-
-.. _`Tests running on different versions of Python, Django and DB engines`:
-   https://tabo.pe/jenkins/job/django-treebeard/
-.. _`Code Quality`: https://tabo.pe/jenkins/job/django-treebeard-quality/
 
 
 Indices and tables
