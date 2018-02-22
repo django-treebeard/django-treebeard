@@ -76,10 +76,10 @@ settings file.
    If you are going to use the :class:`~treebeard.admin.TreeAdmin`
    class, you need to add the path to treebeard's templates in
    :django:setting:`TEMPLATE_DIRS`.
-   Also you need to enable
-   ``django.core.context_processors.request``
-   in the :django:setting:`TEMPLATE_CONTEXT_PROCESSORS`
-   setting in your django settings file.
+   Also you need to add
+   ``django.template.context_processors.request``
+   to :django:setting:`TEMPLATES['OPTIONS']['contxt_processors']`
+   setting in your django settings file (see https://docs.djangoproject.com/en/1.11/ref/templates/upgrading/ for how to define this setting within the TEMPLATES settings).
 
 
 .. _`django-treebeard's PyPI page`:
