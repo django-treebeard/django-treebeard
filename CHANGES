@@ -1,4 +1,4 @@
-Release *dev*
+Release 4.2.1 (Mar 9, 2018)
 ----------------------------
 
 * Bugfix issues #90: admin change list view and jsi18n load for Django-1.11
