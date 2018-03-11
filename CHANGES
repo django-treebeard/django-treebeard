@@ -1,3 +1,8 @@
+Release 4.2.2 (Mar 11, 2018)
+----------------------------
+
+* Bugfix issues #97: UnboundLocalError raised on treebeard admin
+
 Release 4.2.1 (Mar 9, 2018)
 ----------------------------
 
