@@ -100,7 +100,7 @@ def get_result_and_row_class(cl, field_name, result):
                 row_classes.append('nowrap')
         if force_str(result_repr) == '':
             result_repr = mark_safe('&nbsp;')
-        row_class = mark_safe(' class="%s"' % ' '.join(row_classes))
+    row_class = mark_safe(' class="%s"' % ' '.join(row_classes))
     return result_repr, row_class
 
 
