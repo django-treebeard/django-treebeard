@@ -83,7 +83,8 @@ def get_result_and_row_class(cl, field_name, result):
             if isinstance(value, (datetime.date, datetime.time)):
                 row_classes.append('nowrap')
         else:
-            if isinstance(f.rel, models.ManyToOneRel):
+            related_field_name = 'rel' if django.VERSION <= (2, 0) else 'remote_field'
+            if isinstance(getattr(f, related_field_name), models.ManyToOneRel):
                 field_val = getattr(result, f.name)
                 if field_val is None:
                     result_repr = empty_value_display
