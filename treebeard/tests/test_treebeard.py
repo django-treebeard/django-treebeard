@@ -2403,8 +2403,12 @@ class TestAdminTree(TestNonEmptyTree):
         request = RequestFactory().get('/admin/tree/')
         site = AdminSite()
         form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        m = admin_class(model, site)
+        ModelAdmin = admin_factory(form_class)
+
+        class UnicodeModelAdmin(ModelAdmin):
+            list_display = ('__str__', 'desc')
+
+        m = UnicodeModelAdmin(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(request, model, list_display, list_display_links,
