@@ -61,7 +61,7 @@ Example:
    .. code-block:: python
 
         class MyAdmin(TreeAdmin):
-            fields = ('title', 'body', 'is_edited', 'timestamp', '_position', '_ref_node_id',)
+            list_display = ('title', 'body', 'is_edited', 'timestamp', '_position', '_ref_node_id',)
             form = movenodeform_factory(MyNode)
 
         admin.site.register(MyNode, MyAdmin)
