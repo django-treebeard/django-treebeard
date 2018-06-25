@@ -83,5 +83,5 @@ settings file.
 
 
 .. _`django-treebeard's PyPI page`:
-   http://pypi.python.org/pypi/django-treebeard
+   https://pypi.org/project/django-treebeard/
 
