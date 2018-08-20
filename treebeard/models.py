@@ -6,6 +6,7 @@ import operator
 if sys.version_info >= (3, 0):
     from functools import reduce
 
+import django
 from django.db.models import Q
 from django.db import models, transaction, router, connections
 
@@ -49,7 +50,10 @@ class Node(models.Model):
                 field.get_internal_type() == 'ForeignKey' and
                 field.name != 'parent'
             ):
-                foreign_keys[field.name] = field.rel.to
+                if django.VERSION >= (1, 9):
+                    foreign_keys[field.name] = field.remote_field.model
+                else:
+                    foreign_keys[field.name] = field.rel.to
         return foreign_keys
 
     @classmethod

@@ -83,7 +83,8 @@ def get_result_and_row_class(cl, field_name, result):
             if isinstance(value, (datetime.date, datetime.time)):
                 row_classes.append('nowrap')
         else:
-            if isinstance(f.rel, models.ManyToOneRel):
+            related_field_name = 'rel' if django.VERSION <= (2, 0) else 'remote_field'
+            if isinstance(getattr(f, related_field_name), models.ManyToOneRel):
                 field_val = getattr(result, f.name)
                 if field_val is None:
                     result_repr = empty_value_display
@@ -100,7 +101,7 @@ def get_result_and_row_class(cl, field_name, result):
                 row_classes.append('nowrap')
         if force_str(result_repr) == '':
             result_repr = mark_safe('&nbsp;')
-        row_class = mark_safe(' class="%s"' % ' '.join(row_classes))
+    row_class = mark_safe(' class="%s"' % ' '.join(row_classes))
     return result_repr, row_class
 
 
@@ -166,7 +167,7 @@ def items_for_result(cl, result, form):
             else:
                 attr = pk
             value = result.serializable_value(attr)
-            result_id = repr(force_str(value))[1:]
+            result_id = "'%s'" % force_str(value)
             onclickstr = (
                 ' onclick="opener.dismissRelatedLookupPopup(window, %s);'
                 ' return false;"')

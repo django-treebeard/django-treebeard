@@ -3,6 +3,7 @@ Django settings for testing treebeard
 """
 
 import os
+import django
 
 
 def get_db_conf():
@@ -53,20 +54,6 @@ def get_db_conf():
 DATABASES = {'default': get_db_conf()}
 SECRET_KEY = '7r33b34rd'
 
-# This little hacks forces Django into the old syncdb behaviour,
-# creating models without migrations.
-
-class DisableMigrations(object):
-
-    def __contains__(self, item):
-        return True
-
-    def __getitem__(self, item):
-        return "notmigrations"
-
-
-MIGRATION_MODULES = DisableMigrations()
-
 INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -76,6 +63,23 @@ INSTALLED_APPS = [
     'treebeard',
     'treebeard.tests'
 ]
+
+# This little hacks forces Django into the old syncdb behaviour,
+# creating models without migrations.
+
+if django.VERSION >= (1, 9):
+    MIGRATION_MODULES = {app.split('.')[-1]: None for app in INSTALLED_APPS}
+else:
+    class DisableMigrations(object):
+
+        def __contains__(self, item):
+            return True
+
+        def __getitem__(self, item):
+            return "notmigrations"
+
+
+    MIGRATION_MODULES = DisableMigrations()
 
 MIDDLEWARE_CLASSES = [
     'django.contrib.sessions.middleware.SessionMiddleware',

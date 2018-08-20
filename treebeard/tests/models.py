@@ -32,7 +32,7 @@ class MP_UnicodeNode(MP_Node):
 
 
 class MP_TestNodeSomeDep(models.Model):
-    node = models.ForeignKey(MP_TestNode)
+    node = models.ForeignKey(MP_TestNode, on_delete=models.CASCADE)
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
@@ -42,7 +42,7 @@ class MP_TestNodeRelated(MP_Node):
     steplen = 3
 
     desc = models.CharField(max_length=255)
-    related = models.ForeignKey(RelatedModel)
+    related = models.ForeignKey(RelatedModel, on_delete=models.CASCADE)
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
@@ -67,7 +67,7 @@ class NS_UnicodetNode(NS_Node):
 
 
 class NS_TestNodeSomeDep(models.Model):
-    node = models.ForeignKey(NS_TestNode)
+    node = models.ForeignKey(NS_TestNode, on_delete=models.CASCADE)
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
@@ -75,7 +75,7 @@ class NS_TestNodeSomeDep(models.Model):
 
 class NS_TestNodeRelated(NS_Node):
     desc = models.CharField(max_length=255)
-    related = models.ForeignKey(RelatedModel)
+    related = models.ForeignKey(RelatedModel, on_delete=models.CASCADE)
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
@@ -89,7 +89,8 @@ class AL_TestNode(AL_Node):
     parent = models.ForeignKey('self',
                                related_name='children_set',
                                null=True,
-                               db_index=True)
+                               db_index=True,
+                               on_delete=models.CASCADE)
     sib_order = models.PositiveIntegerField()
     desc = models.CharField(max_length=255)
 
@@ -101,7 +102,8 @@ class AL_UnicodeNode(AL_Node):
     parent = models.ForeignKey('self',
                                related_name='children_set',
                                null=True,
-                               db_index=True)
+                               db_index=True,
+                               on_delete=models.CASCADE)
     sib_order = models.PositiveIntegerField()
     desc = models.CharField(max_length=255)
 
@@ -110,7 +112,7 @@ class AL_UnicodeNode(AL_Node):
 
 
 class AL_TestNodeSomeDep(models.Model):
-    node = models.ForeignKey(AL_TestNode)
+    node = models.ForeignKey(AL_TestNode, on_delete=models.CASCADE)
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
@@ -120,10 +122,11 @@ class AL_TestNodeRelated(AL_Node):
     parent = models.ForeignKey('self',
                                related_name='children_set',
                                null=True,
-                               db_index=True)
+                               db_index=True,
+                               on_delete=models.CASCADE)
     sib_order = models.PositiveIntegerField()
     desc = models.CharField(max_length=255)
-    related = models.ForeignKey(RelatedModel)
+    related = models.ForeignKey(RelatedModel, on_delete=models.CASCADE)
 
     def __str__(self):  # pragma: no cover
         return 'Node %d' % self.pk
@@ -158,7 +161,8 @@ class AL_TestNodeSorted(AL_Node):
     parent = models.ForeignKey('self',
                                related_name='children_set',
                                null=True,
-                               db_index=True)
+                               db_index=True,
+                               on_delete=models.CASCADE)
     node_order_by = ['val1', 'val2', 'desc']
     val1 = models.IntegerField()
     val2 = models.IntegerField()

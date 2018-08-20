@@ -12,7 +12,7 @@ Status
 
 .. image:: https://readthedocs.org/projects/django-treebeard/badge/?version=latest
     :target: https://readthedocs.org/projects/django-treebeard/
-    
+
 .. image:: https://travis-ci.org/django-treebeard/django-treebeard.svg?branch=master
     :target: https://travis-ci.org/django-treebeard/django-treebeard
 
@@ -20,7 +20,7 @@ Status
     :target: https://ci.appveyor.com/project/mvantellingen/django-treebeard
 
 .. image:: https://img.shields.io/pypi/v/django-treebeard.svg
-    :target: https://pypi.python.org/pypi/django-treebeard/
+    :target: https://pypi.org/project/django-treebeard/
 
 Features
 --------
@@ -50,6 +50,6 @@ Supported versions
 
 **django-treebeard** officially supports
 
-* Django 1.8 - 1.10
-* Python 2.7, 3.4, 3.5
+* Django 1.8 - 2.0
+* Python 2.7, 3.4, 3.5, 3.6
 * PostgreSQL, MySQL, SQLite database back-ends.

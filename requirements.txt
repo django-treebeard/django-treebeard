@@ -7,4 +7,3 @@ django_extensions
 
 # Testing
 tox>=2.5
--r requirements_test.txt
