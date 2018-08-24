@@ -818,7 +818,7 @@ class MP_Node(Node):
 
 
     @classmethod
-    def get_tree(cls, parent=None):
+    def get_tree(cls, parent=None, use_default_manager=False):
         """
         :returns:
 
@@ -827,22 +827,32 @@ class MP_Node(Node):
         """
         cls = get_result_class(cls)
 
+        original_manager = cls.objects
+
+        if use_default_manager:
+            cls.objects = cls._default_manager
+
         if parent is None:
             # return the entire tree
             return cls.objects.all()
         if parent.is_leaf():
             return cls.objects.filter(pk=parent.pk)
-        return cls.objects.filter(
+        results = cls.objects.filter(
             path__startswith=parent.path,
             depth__gte=parent.depth
         ).order_by(
             'path'
         )
 
+        if use_default_manager:
+            cls.objects = original_manager
+
+        return results
+
     @classmethod
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
-        return get_result_class(cls).objects.filter(depth=1).order_by('path')
+        return get_result_class(cls)._default_manager.filter(depth=1).order_by('path')
 
     @classmethod
     def get_descendants_group_count(cls, parent=None):

@@ -74,9 +74,12 @@ class AL_Node(Node):
         return newobj
 
     @classmethod
-    def get_root_nodes(cls):
+    def get_root_nodes(cls, use_default_manager=False):
         """:returns: A queryset containing the root nodes in the tree."""
-        return get_result_class(cls).objects.filter(parent__isnull=True)
+        if use_default_manager:
+            return get_result_class(cls)._default_manager.filter(parent__isnull=True)
+        else:
+            return get_result_class(cls).objects.filter(parent__isnull=True)
 
     def get_depth(self, update=False):
         """
@@ -105,9 +108,12 @@ class AL_Node(Node):
         self._cached_depth = depth
         return depth
 
-    def get_children(self):
+    def get_children(self, use_default_manager=False):
         """:returns: A queryset of all the node's children"""
-        return get_result_class(self.__class__).objects.filter(parent=self)
+        if use_default_manager:
+            return get_result_class(self.__class__)._default_manager.filter(parent=self)
+        else:
+            return get_result_class(self.__class__).objects.filter(parent=self)
 
     def get_parent(self, update=False):
         """:returns: the parent node of the current node object."""
@@ -232,18 +238,18 @@ class AL_Node(Node):
         return newobj
 
     @classmethod
-    def _get_tree_recursively(cls, results, parent, depth):
+    def _get_tree_recursively(cls, results, parent, depth, use_default_manager=False):
         if parent:
-            nodes = parent.get_children()
+            nodes = parent.get_children(use_default_manager)
         else:
-            nodes = cls.get_root_nodes()
+            nodes = cls.get_root_nodes(use_default_manager)
         for node in nodes:
             node._cached_depth = depth
             results.append(node)
             cls._get_tree_recursively(results, node, depth + 1)
 
     @classmethod
-    def get_tree(cls, parent=None):
+    def get_tree(cls, parent=None, use_default_manager=False):
         """
         :returns: A list of nodes ordered as DFS, including the parent. If
                   no parent is given, the entire tree is returned.
@@ -254,7 +260,7 @@ class AL_Node(Node):
         else:
             depth = 1
             results = []
-        cls._get_tree_recursively(results, parent, depth)
+        cls._get_tree_recursively(results, parent, depth, use_default_manager)
         return results
 
     def get_descendants(self):
