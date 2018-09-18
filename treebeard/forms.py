@@ -112,8 +112,10 @@ class MoveNodeForm(forms.ModelForm):
             initial_.update(initial)
 
         super(MoveNodeForm, self).__init__(
-            data, files, auto_id, prefix, initial_, error_class, label_suffix, 
-            empty_permitted, instance, **kwargs)
+            data=data, files=files, auto_id=auto_id, prefix=prefix, 
+            initial=initial_, error_class=error_class, 
+            label_suffix=label_suffix, empty_permitted=empty_permitted, 
+            instance=instance, **kwargs)
 
     def _clean_cleaned_data(self):
         """ delete auxilary fields not belonging to node model """
