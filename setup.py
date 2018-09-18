@@ -4,7 +4,10 @@ from __future__ import unicode_literals
 
 import os
 from setuptools import setup, find_packages
-from treebeard import __version__
+try:
+    from treebeard import __version__
+except ImportError as err:
+    __version__="<unknown: %s>" % err
 import codecs
 
 
