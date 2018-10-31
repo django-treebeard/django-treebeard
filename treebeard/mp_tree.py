@@ -1088,7 +1088,7 @@ class MP_Node(Node):
             pass
         parentpath = self._get_basepath(self.path, depth - 1)
         self._cached_parent_obj = get_result_class(
-            self.__class__).objects.get(path=parentpath)
+            self.__class__)._default_manager.get(path=parentpath)
         return self._cached_parent_obj
 
     def move(self, target, pos=None):
