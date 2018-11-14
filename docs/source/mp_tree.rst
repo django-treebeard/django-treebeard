@@ -79,7 +79,7 @@ extra steps, materialized path is more efficient than other approaches.
         numval = models.IntegerField()
         strval = models.CharField(max_length=255)
 
-  Read the API reference of :class:`treebeard.Node` for info on methods
+  Read the API reference of :class:`treebeard.models.Node` for info on methods
   available in this class, or read the following section for methods with
   particular arguments or exceptions.
 
@@ -222,23 +222,23 @@ extra steps, materialized path is more efficient than other approaches.
 
   .. automethod:: add_root
 
-     See: :meth:`treebeard.Node.add_root`
+     See: :meth:`treebeard.models.Node.add_root`
 
   .. automethod:: add_child
 
-     See: :meth:`treebeard.Node.add_child`
+     See: :meth:`treebeard.models.Node.add_child`
 
   .. automethod:: add_sibling
 
-     See: :meth:`treebeard.Node.add_sibling`
+     See: :meth:`treebeard.models.Node.add_sibling`
 
   .. automethod:: move
 
-     See: :meth:`treebeard.Node.move`
+     See: :meth:`treebeard.models.Node.move`
 
   .. automethod:: get_tree
 
-     See: :meth:`treebeard.Node.get_tree`
+     See: :meth:`treebeard.models.Node.get_tree`
 
      .. note::
 

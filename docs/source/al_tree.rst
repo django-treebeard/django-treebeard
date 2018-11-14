@@ -94,13 +94,13 @@ slow reads. If you read more than you write, use
                desc = models.CharField(max_length=255)
 
 
-   Read the API reference of :class:`treebeard.Node` for info on methods
-   available in this class, or read the following section for methods with
-   particular arguments or exceptions.
+   Read the API reference of :class:`treebeard.models.Node` for info on
+   methods available in this class, or read the following section for methods
+   with particular arguments or exceptions.
    
    .. automethod:: get_depth
 
-        See: :meth:`treebeard.Node.get_depth`
+        See: :meth:`treebeard.models.Node.get_depth`
 
 .. autoclass:: AL_NodeManager
   :show-inheritance:
