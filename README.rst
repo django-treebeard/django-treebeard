@@ -20,7 +20,7 @@ Status
     :target: https://ci.appveyor.com/project/mvantellingen/django-treebeard
 
 .. image:: https://img.shields.io/pypi/v/django-treebeard.svg
-    :target: https://pypi.python.org/pypi/django-treebeard/
+    :target: https://pypi.org/project/django-treebeard/
 
 Features
 --------

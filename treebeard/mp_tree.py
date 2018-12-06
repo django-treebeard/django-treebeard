@@ -832,13 +832,17 @@ class MP_Node(Node):
             return cls.objects.all()
         if parent.is_leaf():
             return cls.objects.filter(pk=parent.pk)
-        return cls.objects.filter(path__startswith=parent.path,
-                                  depth__gte=parent.depth)
+        return cls.objects.filter(
+            path__startswith=parent.path,
+            depth__gte=parent.depth
+        ).order_by(
+            'path'
+        )
 
     @classmethod
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
-        return get_result_class(cls).objects.filter(depth=1)
+        return get_result_class(cls).objects.filter(depth=1).order_by('path')
 
     @classmethod
     def get_descendants_group_count(cls, parent=None):
@@ -919,7 +923,10 @@ class MP_Node(Node):
             itself.
         """
         qset = get_result_class(self.__class__).objects.filter(
-            depth=self.depth)
+            depth=self.depth
+        ).order_by(
+            'path'
+        )
         if self.depth > 1:
             # making sure the non-root nodes share a parent
             parentpath = self._get_basepath(self.path, self.depth - 1)
@@ -934,6 +941,8 @@ class MP_Node(Node):
         return get_result_class(self.__class__).objects.filter(
             depth=self.depth + 1,
             path__range=self._get_children_path_interval(self.path)
+        ).order_by(
+            'path'
         )
 
     def get_next_sibling(self):

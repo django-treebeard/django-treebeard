@@ -106,5 +106,5 @@ Read the :class:`treebeard.models.Node` API reference for detailed info.
 
 .. _`treebeard mercurial repository`:
    http://code.tabo.pe/django-treebeard
-.. _`latest treebeard version from PyPi`:
-   http://pypi.python.org/pypi/django-treebeard/
+.. _`latest treebeard version from PyPI`:
+   https://pypi.org/project/django-treebeard/
