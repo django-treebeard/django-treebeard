@@ -1054,6 +1054,9 @@ class MP_Node(Node):
         :returns: A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
         """
+        if self.is_root():
+            return get_result_class(self.__class__).objects.none()
+
         paths = [
             self.path[0:pos]
             for pos in range(0, len(self.path), self.steplen)[1:]
