@@ -1,3 +1,9 @@
+In development
+--------------
+
+* Added check to avoid unnecessary database query for MP_Node.get_ancestors() if the node is a root node.
+
+
 Release 4.3 (Apr 16, 2018)
 --------------------------
 
