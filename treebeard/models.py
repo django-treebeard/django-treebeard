@@ -449,7 +449,7 @@ class Node(models.Model):
         :returns: the parent node of the current node object.
             Caches the result in the object itself to help in loops.
 
-        :param update: Updates de cached value.
+        :param update: Updates the cached value.
         """
         raise NotImplementedError
 
