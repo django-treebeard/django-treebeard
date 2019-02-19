@@ -104,13 +104,13 @@ class Node(models.Model):
 
         # tree, iterative preorder
         added = []
-        # stack of nodes to analize
+        # stack of nodes to analyze
         stack = [(parent, node) for node in bulk_data[::-1]]
         foreign_keys = cls.get_foreign_keys()
 
         while stack:
             parent, node_struct = stack.pop()
-            # shallow copy of the data strucure so it doesn't persist...
+            # shallow copy of the data structure so it doesn't persist...
             node_data = node_struct['data'].copy()
             cls._process_foreign_keys(foreign_keys, node_data)
             if keep_ids:
