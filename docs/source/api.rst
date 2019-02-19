@@ -309,7 +309,7 @@ API
                     ]},
             ]
             # parent = None
-            MyNodeModel.load_data(data, None)
+            MyNodeModel.load_bulk(data, None)
 
      Will create:
 
