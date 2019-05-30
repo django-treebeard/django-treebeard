@@ -123,7 +123,9 @@ class MP_NodeQuerySet(models.query.QuerySet):
         # ids, and will deal with removing related objects
         if toremove:
             qset = get_result_class(self.model).objects.filter(reduce(operator.or_, toremove))
-            super(MP_NodeQuerySet, qset).delete()
+        else:
+            qset = get_result_class(self.model).objects.none()
+        return super(MP_NodeQuerySet, qset).delete()
 
 
 class MP_NodeManager(models.Manager):
