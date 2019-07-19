@@ -4,8 +4,8 @@ Running the Test Suite
 ``django-treebeard`` includes a comprehensive test suite. It is highly
 recommended that you run and update the test suite when you send patches.
 
-py.test
--------
+pytest
+------
 
 You will need `pytest`_ to run the test suite. It's included with the
 development dependencies:
@@ -18,7 +18,7 @@ Then just run the test suite:
 
 .. code-block:: console
 
-    $ py.test
+    $ pytest
 
 You can use all the features and plugins of pytest this way.
 
