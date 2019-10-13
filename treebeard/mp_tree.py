@@ -122,7 +122,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
         # Django will handle this as a SELECT and then a DELETE of
         # ids, and will deal with removing related objects
         if toremove:
-            qset = get_result_class(self.model).objects.filter(reduce(operator.or_, toremove))
+            qset = get_result_class(self.model).mp_objects.filter(reduce(operator.or_, toremove))
             super(MP_NodeQuerySet, qset).delete()
 
 
@@ -592,6 +592,7 @@ class MP_Node(Node):
     gap = 1
 
     objects = MP_NodeManager()
+    mp_objects = MP_NodeManager()
 
     numconv_obj_ = None
 
@@ -1093,6 +1094,10 @@ class MP_Node(Node):
            node's new position
         """
         return MP_MoveHandler(self, target, pos).process()
+
+    def delete(self):
+        """Removes a node and all it's descendants."""
+        self.__class__.mp_objects.filter(pk=self.pk).delete()
 
     @classmethod
     def _get_basepath(cls, path, depth):

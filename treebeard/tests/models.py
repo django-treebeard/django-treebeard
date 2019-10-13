@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-from treebeard.mp_tree import MP_Node
+from treebeard.mp_tree import MP_Node, MP_NodeManager
 from treebeard.al_tree import AL_Node
 from treebeard.ns_tree import NS_Node
 
@@ -50,6 +50,35 @@ class MP_TestNodeRelated(MP_Node):
 
 class MP_TestNodeInherited(MP_TestNode):
     extra_desc = models.CharField(max_length=255)
+
+
+class SafetyQueryset(models.query.QuerySet):
+    def delete(self, force_delete=False):
+        for obj in self.all():
+            obj.delete(force_delete=force_delete)
+
+
+class SafetyManager(MP_NodeManager):
+    _queryset_class = SafetyQueryset
+
+    def get_queryset(self):
+        return self._queryset_class(self.model, using=self._db)
+
+
+class SafetyMixin(models.Model):
+    objects = SafetyManager()
+
+    class Meta:
+        abstract = True
+
+    def delete(self, force_delete=False):
+        if force_delete:
+            super(SafetyMixin, self).delete()
+
+
+
+class SafeMP_TestNode(SafetyMixin, MP_Node):
+    pass
 
 
 class NS_TestNode(NS_Node):

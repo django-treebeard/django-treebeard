@@ -1776,6 +1776,20 @@ class TestInheritedModels(TestTreeBase):
             assert not base_model.objects.filter(desc=desc).exists()
         assert [node.desc for node in node2.get_descendants()] == ['22']
 
+    def test_safe_delete(self):
+        root = models.SafeMP_TestNode.add_root()
+        root.delete()
+        assert models.SafeMP_TestNode.objects.count() == 1
+        root.delete(force_delete=True)
+        assert models.SafeMP_TestNode.objects.count() == 0
+
+    def test_safe_delete_queryset(self):
+        models.SafeMP_TestNode.add_root()
+        models.SafeMP_TestNode.objects.all().delete()
+        assert models.SafeMP_TestNode.objects.count() == 1
+        models.SafeMP_TestNode.objects.all().delete(force_delete=True)
+        assert models.SafeMP_TestNode.objects.count() == 0
+
 
 class TestMP_TreeAlphabet(TestTreeBase):
     @pytest.mark.skipif(
