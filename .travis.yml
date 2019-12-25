@@ -9,11 +9,15 @@ services:
   - mysql
 
 addons:
-  postgresql: '11'
+  postgresql: '10'
   apt:
     packages:
-    - postgresql-11
-    - postgresql-client-11
+    - postgresql-10
+    - postgresql-client-10
+
+env:
+  global:
+  - PGPORT=5433
 
 matrix:
   include:
