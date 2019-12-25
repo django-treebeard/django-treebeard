@@ -105,6 +105,9 @@ matrix:
 install:
   - pip install tox codecov
 
+services:
+  - postgresql
+  - mysql
 
 # Create MySQL and Postgres databases
 before_script:
