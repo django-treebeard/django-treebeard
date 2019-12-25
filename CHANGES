@@ -1,8 +1,14 @@
-In development
---------------
+Release 4.3.1 (Dec 25, 2019)
+----------------------------
 
-* Added check to avoid unnecessary database query for MP_Node.get_ancestors() if the node is a root node.
-
+* Added check to avoid unnecessary database query for ``MP_Node.get_ancestors()``
+  if the node is a root node.
+* Drop support for Python-3.4.
+* Play more nicely with other form classes, that implement ``__init__(self, *args, **kwargs)``,
+  e.g. django-parler's ``TranslatableModelForm``, where `kwargs.get('instance')` is ``None``
+  when called from here.
+* Sorting on path on necessary queries, fixes some issues and stabilizes the whole MP section.
+* Add German translation strings.
 
 Release 4.3 (Apr 16, 2018)
 --------------------------
