@@ -2409,6 +2409,7 @@ class TestAdminTree(TestNonEmptyTree):
         # Add a unicode description
         model.add_root(desc='áéîøü')
         request = RequestFactory().get('/admin/tree/')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
         ModelAdmin = admin_factory(form_class)
@@ -2419,10 +2420,16 @@ class TestAdminTree(TestNonEmptyTree):
         m = UnicodeModelAdmin(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(request, model, list_display, list_display_links,
-                        m.list_filter, m.date_hierarchy, m.search_fields,
-                        m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+        if DJANGO_VERSION < (2, 1):
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m)
+        else:
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2445,16 +2452,23 @@ class TestAdminTree(TestNonEmptyTree):
         model = model_without_proxy
         # Filtered GET
         request = RequestFactory().get('/admin/tree/?desc=1')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(request, model, list_display, list_display_links,
-                        m.list_filter, m.date_hierarchy, m.search_fields,
-                        m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+        if DJANGO_VERSION < (2, 1):
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m)
+        else:
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2465,12 +2479,19 @@ class TestAdminTree(TestNonEmptyTree):
 
         # Not Filtered GET, it should ignore pagination
         request = RequestFactory().get('/admin/tree/?p=1')
+        request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(request, model, list_display, list_display_links,
-                        m.list_filter, m.date_hierarchy, m.search_fields,
-                        m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+        if DJANGO_VERSION < (2, 1):
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m)
+        else:
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2481,12 +2502,19 @@ class TestAdminTree(TestNonEmptyTree):
 
         # Not Filtered GET, it should ignore all
         request = RequestFactory().get('/admin/tree/?all=1')
+        request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(request, model, list_display, list_display_links,
-                        m.list_filter, m.date_hierarchy, m.search_fields,
-                        m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+        if DJANGO_VERSION < (2, 1):
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m)
+        else:
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2507,16 +2535,23 @@ class TestAdminTreeList(TestNonEmptyTree):
         """
         model = model_without_proxy
         request = RequestFactory().get('/admin/tree/')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(request, model, list_display, list_display_links,
-                        m.list_filter, m.date_hierarchy, m.search_fields,
-                        m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+        if DJANGO_VERSION < (2, 1):
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m)
+        else:
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2530,16 +2565,23 @@ class TestAdminTreeList(TestNonEmptyTree):
     def test_result_tree_list_with_action(self, model_without_proxy):
         model = model_without_proxy
         request = RequestFactory().get('/admin/tree/')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(request, model, list_display, list_display_links,
-                        m.list_filter, m.date_hierarchy, m.search_fields,
-                        m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+        if DJANGO_VERSION < (2, 1):
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m)
+        else:
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request,
@@ -2559,6 +2601,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         # Test t GET parameter with value id
         request = RequestFactory().get(
             '/admin/tree/?{0}=id'.format(TO_FIELD_VAR))
+        request.user = AnonymousUser()
         site = AdminSite()
         admin_register_all(site)
         form_class = movenodeform_factory(model)
@@ -2566,10 +2609,16 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(request, model, list_display, list_display_links,
-                        m.list_filter, m.date_hierarchy, m.search_fields,
-                        m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+        if DJANGO_VERSION < (2, 1):
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m)
+        else:
+            cl = ChangeList(request, model, list_display, list_display_links,
+                            m.list_filter, m.date_hierarchy, m.search_fields,
+                            m.list_select_related, m.list_per_page,
+                            m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
