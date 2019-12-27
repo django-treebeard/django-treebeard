@@ -3,7 +3,7 @@ django-treebeard
 ================
 
 **django-treebeard** is a library that implements efficient tree implementations
-for the Django Web Framework 1.8 and later.
+for the Django Web Framework 1.11 and later.
 
 It is written by Gustavo Picón and licensed under the Apache License 2.0.
 
