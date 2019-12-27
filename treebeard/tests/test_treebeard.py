@@ -8,7 +8,7 @@ import os
 from django import VERSION as DJANGO_VERSION
 from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.db.models import Q
 from django.template import Template, Context
@@ -2367,6 +2367,7 @@ class TestAdminTree(TestNonEmptyTree):
         """
         model = model_without_proxy
         request = RequestFactory().get('/admin/tree/')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
