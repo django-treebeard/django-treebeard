@@ -50,6 +50,6 @@ Supported versions
 
 **django-treebeard** officially supports
 
-* Django 1.8 - 2.0
+* Django 1.11 - 2.2
 * Python 2.7, 3.4, 3.5, 3.6
 * PostgreSQL, MySQL, SQLite database back-ends.
