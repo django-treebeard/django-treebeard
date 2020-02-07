@@ -24,6 +24,7 @@ from django.template import Library
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
+from django.templatetags.static import static
 
 
 if sys.version < '3':
@@ -257,22 +258,12 @@ def result_tree(context, cl, request):
     }
 
 
-def get_static_url():
-    """Return a base static url, always ending with a /"""
-    path = getattr(settings, 'STATIC_URL', None)
-    if not path:
-        path = getattr(settings, 'MEDIA_URL', None)
-    if not path:
-        path = '/'
-    return path
-
-
 @register.simple_tag
 def treebeard_css():
     """
     Template tag to print out the proper <link/> tag to include a custom .css
     """
-    css_file = urljoin(get_static_url(), 'treebeard/treebeard-admin.css')
+    css_file = static('treebeard/treebeard-admin.css')
     return format_html(
         """<link rel="stylesheet" type="text/css" href="{}"/>""",
         mark_safe(css_file)
@@ -284,9 +275,8 @@ def treebeard_js():
     """
     Template tag to print out the proper <script/> tag to include a custom .js
     """
-    path = get_static_url()
-    js_file = urljoin(path, 'treebeard/treebeard-admin.js')
-    jquery_ui = urljoin(path, 'treebeard/jquery-ui-1.8.5.custom.min.js')
+    js_file = statc('treebeard/treebeard-admin.js')
+    jquery_ui = static('treebeard/jquery-ui-1.8.5.custom.min.js')
 
     # Jquery UI is needed to call disableSelection() on drag and drop so
     # text selections arent marked while dragging a table row
