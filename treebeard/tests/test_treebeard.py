@@ -726,7 +726,6 @@ class TestAddChild(TestNonEmptyTree):
         with pytest.raises(NodeAlreadySaved):
             model.objects.get(desc='2').add_child(instance=child)
 
-    @pytest.mark.xfail(reason="Child post_save triggered before parent numchild updated")
     def test_add_child_post_save(self, model):
         try:
             @receiver(post_save, dispatch_uid='test_add_child_post_save')

@@ -385,15 +385,17 @@ class MP_AddChildHandler(MP_AddHandler):
         else:
             # adding the new child as the last one
             newobj.path = self.node.get_last_child()._inc_path()
-        # saving the instance before returning it
-        newobj.save()
-        newobj._cached_parent_obj = self.node
 
         get_result_class(self.node_cls).objects.filter(
             path=self.node.path).update(numchild=F('numchild')+1)
 
         # we increase the numchild value of the object in memory
         self.node.numchild += 1
+
+        # saving the instance before returning it
+        newobj._cached_parent_obj = self.node
+        newobj.save()
+
         return newobj
 
 
