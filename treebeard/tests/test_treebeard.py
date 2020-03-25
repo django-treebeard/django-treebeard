@@ -11,6 +11,8 @@ from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.db.models import Q
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.template import Template, Context
 from django.test import TestCase
 from django.test.client import RequestFactory
@@ -723,6 +725,23 @@ class TestAddChild(TestNonEmptyTree):
         child = model.objects.get(desc='21')
         with pytest.raises(NodeAlreadySaved):
             model.objects.get(desc='2').add_child(instance=child)
+
+    @pytest.mark.xfail(reason="Child post_save triggered before parent numchild updated")
+    def test_add_child_post_save(self, model):
+        try:
+            @receiver(post_save, dispatch_uid='test_add_child_post_save')
+            def on_post_save(instance, **kwargs):
+                parent = instance.get_parent()
+                parent.refresh_from_db()
+                assert parent.get_descendant_count() == 1
+
+            # It's important that we're testing a leaf node
+            parent = model.objects.get(desc='231')
+            assert parent.is_leaf()
+
+            parent.add_child(desc='2311')
+        finally:
+            post_save.disconnect(dispatch_uid='test_add_child_post_save')
 
 
 class TestAddSibling(TestNonEmptyTree):
