@@ -2073,6 +2073,14 @@ class TestMP_TreeFix(TestTreeBase):
         assert got == expected
         mpshort_model.find_problems()
 
+    def test_fix_tree_with_fix_paths(self, mpshort_model):
+        self.add_broken_test_data(mpshort_model)
+        mpshort_model.fix_tree(fix_paths=True)
+        got = self.got(mpshort_model)
+        expected = self.expected_no_holes[mpshort_model]
+        assert got == expected
+        mpshort_model.find_problems()
+
 
 class TestIssues(TestTreeBase):
     # test for http://code.google.com/p/django-treebeard/issues/detail?id=14
