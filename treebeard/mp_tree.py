@@ -7,7 +7,7 @@ if sys.version_info >= (3, 0):
     from functools import reduce
 
 from django.core import serializers
-from django.db import models, transaction, connection
+from django.db import models, transaction, connections
 from django.db.models import F, Q
 from django.utils.translation import ugettext_noop as _
 
@@ -67,6 +67,18 @@ def get_result_class(cls):
         return cls
     else:
         return base_class
+
+
+def quote_name(model):
+    db_name = model.objects.db_manager().db
+    connection = next((
+        x
+        for x in connections.all()
+        if x.alias == db_name
+    ), None)
+
+    name = get_result_class(model)._meta.db_table
+    return connection.ops.quote_name(name)
 
 
 class MP_NodeQuerySet(models.query.QuerySet):
@@ -150,8 +162,7 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
         """:returns: The sql needed the numchild value of a node"""
         sql = "UPDATE %s SET numchild=numchild%s1"\
               " WHERE path=%%s" % (
-                  connection.ops.quote_name(
-                      get_result_class(self.node_cls)._meta.db_table),
+                  quote_name(self.node_cls),
                   {'inc': '+', 'dec': '-'}[incdec])
         vals = [path]
         return sql, vals
@@ -270,9 +281,7 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
         """
 
         vendor = self.node_cls.get_database_vendor('write')
-        sql1 = "UPDATE %s SET" % (
-            connection.ops.quote_name(
-                get_result_class(self.node_cls)._meta.db_table), )
+        sql1 = "UPDATE %s SET" % (quote_name(self.node_cls),)
 
         # <3 "standard" sql
         if vendor == 'sqlite':
@@ -574,8 +583,8 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         """
         vendor = self.node_cls.get_database_vendor('write')
         sql = ("UPDATE %s SET depth=" + sql_length("path", vendor=vendor) + "/%%s WHERE path LIKE %%s") % (
-            connection.ops.quote_name(
-                get_result_class(self.node_cls)._meta.db_table), )
+            quote_name(self.node_cls),
+        )
         vals = [self.node_cls.steplen, path + '%']
         return sql, vals
 
@@ -780,7 +789,7 @@ class MP_Node(Node):
                 "UPDATE %s "
                 "SET depth=" + sql_length("path", vendor=vendor) + "/%%s "
                 "WHERE depth!=" + sql_length("path", vendor=vendor) + "/%%s"
-            ) % (connection.ops.quote_name(cls._meta.db_table), )
+            ) % (quote_name(cls), )
             vals = [cls.steplen, cls.steplen]
             cursor.execute(sql, vals)
 
@@ -796,7 +805,7 @@ class MP_Node(Node):
                     sql_concat("tbn1.path", "%%s", vendor=vendor) + ") AS real_numchild "
                     "FROM %(table)s AS tbn1 "
                     "HAVING tbn1.numchild != real_numchild"
-                ) % {'table': connection.ops.quote_name(cls._meta.db_table)}
+                ) % {'table': quote_name(cls)}
             else:
                 subquery = "(SELECT COUNT(1) FROM %(table)s AS tbn2"\
                            " WHERE tbn2.path LIKE " + sql_concat("tbn1.path", "%%s", vendor=vendor) + ")"
@@ -804,14 +813,14 @@ class MP_Node(Node):
                        " FROM %(table)s AS tbn1 WHERE tbn1.numchild != " +
                        subquery)
                 sql = sql % {
-                    'table': connection.ops.quote_name(cls._meta.db_table)}
+                    'table': quote_name(cls)}
                 # we include the subquery twice
                 vals *= 2
             cursor.execute(sql, vals)
             sql = "UPDATE %(table)s "\
                   "SET numchild=%%s "\
                   "WHERE path=%%s" % {
-                      'table': connection.ops.quote_name(cls._meta.db_table)}
+                      'table': quote_name(cls)}
             for node_data in cursor.fetchall():
                 vals = [node_data[2], node_data[0]]
                 cursor.execute(sql, vals)
@@ -898,7 +907,7 @@ class MP_Node(Node):
             ' ON t1.path=t2.subpath '
             ' ORDER BY t1.path'
         ) % {
-            'table': connection.ops.quote_name(cls._meta.db_table),
+            'table': quote_name(cls),
             'subpathlen': depth * cls.steplen,
             'depth': depth,
                 'extrand': extrand}
