@@ -3,7 +3,6 @@ Django settings for testing treebeard
 """
 
 import os
-import django
 
 
 def get_db_conf():
@@ -43,7 +42,7 @@ def get_db_conf():
             'NAME': 'master',
             'USER': 'sa',
             'PASSWORD': 'Password12!',
-            'HOST': '(local)\SQL2016',
+            'HOST': '(local)\\SQL2016',
             'PORT': '',
             'OPTIONS': {
                 'driver': 'SQL Server Native Client 11.0',
@@ -67,21 +66,9 @@ INSTALLED_APPS = [
 # This little hacks forces Django into the old syncdb behaviour,
 # creating models without migrations.
 
-if django.VERSION >= (1, 9):
-    MIGRATION_MODULES = {app.split('.')[-1]: None for app in INSTALLED_APPS}
-else:
-    class DisableMigrations(object):
+MIGRATION_MODULES = {app.split('.')[-1]: None for app in INSTALLED_APPS}
 
-        def __contains__(self, item):
-            return True
-
-        def __getitem__(self, item):
-            return "notmigrations"
-
-
-    MIGRATION_MODULES = DisableMigrations()
-
-MIDDLEWARE_CLASSES = [
+MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware'

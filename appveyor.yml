@@ -3,9 +3,12 @@ services:
 
 environment:
   matrix:
-    - TOXENV: py36-dj111-mssql
-    - TOXENV: py36-dj20-mssql
-    - TOXENV: py36-dj21-mssql
+    - TOXENV: py36-dj22-mssql
+    - TOXENV: py37-dj22-mssql
+    - TOXENV: py38-dj22-mssql
+    - TOXENV: py36-dj30-mssql
+    - TOXENV: py37-dj30-mssql
+    - TOXENV: py38-dj30-mssql
 
 matrix:
   fast_finish: true

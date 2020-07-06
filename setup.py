@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import os
 from setuptools import setup, find_packages
 from treebeard import __version__
@@ -26,7 +24,7 @@ setup_args = dict(
     include_package_data=True,
     description='Efficient tree implementations for Django',
     long_description=codecs.open(os.path.join(root_dir(), 'README.rst'), encoding='utf-8').read(),
-    install_requires=['Django>=1.8'],
+    install_requires=['Django>=2.2'],
     tests_require=['pytest'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -34,16 +32,13 @@ setup_args = dict(
         'License :: OSI Approved :: Apache Software License',
         'Environment :: Web Environment',
         'Framework :: Django',
-        'Framework :: Django :: 1.8',
-        'Framework :: Django :: 1.9',
-        'Framework :: Django :: 1.10',
-        'Framework :: Django :: 1.11',
-        'Framework :: Django :: 2.0',
+        'Framework :: Django :: 2.2',
+        'Framework :: Django :: 3.0',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Operating System :: OS Independent',
         'Topic :: Software Development :: Libraries',
         'Topic :: Utilities'])

@@ -6,75 +6,42 @@ nodes change list - @jjdelc
 """
 
 import datetime
-import sys
+from urllib.parse import urljoin
 
-import django
 from django.db import models
 from django.conf import settings
 from django.contrib.admin.templatetags.admin_list import (
     result_headers, result_hidden_fields)
-try:
-    from django.contrib.admin.utils import (
-        lookup_field, display_for_field, display_for_value)
-except ImportError:  # < Django 1.8
-    from django.contrib.admin.util import (
-        lookup_field, display_for_field, display_for_value)
+from django.contrib.admin.utils import (
+    lookup_field, display_for_field, display_for_value)
 from django.core.exceptions import ObjectDoesNotExist
 from django.template import Library
-from django.utils.html import conditional_escape
+from django.utils.encoding import force_str
+from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
-
-
-if sys.version < '3':
-    import codecs
-
-    def u(x):
-        return codecs.unicode_escape_decode(x)[0]
-else:
-    def u(x):
-        return x
-
-register = Library()
-
-if sys.version_info >= (3, 0):
-    from django.utils.encoding import force_str
-    from urllib.parse import urljoin
-else:
-    from django.utils.encoding import force_unicode as force_str
-    from urlparse import urljoin
-
-
-from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 
 from treebeard.templatetags import needs_checkboxes
 
 
+register = Library()
+
+
 def get_result_and_row_class(cl, field_name, result):
-    if django.VERSION >= (1, 9):
-        empty_value_display = cl.model_admin.get_empty_value_display()
-    else:
-        from django.contrib.admin.views.main import EMPTY_CHANGELIST_VALUE
-        empty_value_display = EMPTY_CHANGELIST_VALUE
+    empty_value_display = cl.model_admin.get_empty_value_display()
     row_classes = ['field-%s' % field_name]
     try:
         f, attr, value = lookup_field(field_name, result, cl.model_admin)
     except ObjectDoesNotExist:
         result_repr = empty_value_display
     else:
-        if django.VERSION >= (1, 9):
-            empty_value_display = getattr(
-                attr, 'empty_value_display', empty_value_display)
+        empty_value_display = getattr(attr, 'empty_value_display', empty_value_display)
         if f is None:
             if field_name == 'action_checkbox':
                 row_classes = ['action-checkbox']
             allow_tags = getattr(attr, 'allow_tags', False)
             boolean = getattr(attr, 'boolean', False)
-            if django.VERSION >= (1, 9):
-                result_repr = display_for_value(
-                    value, empty_value_display, boolean)
-            else:
-                result_repr = display_for_value(value, boolean)
+            result_repr = display_for_value(value, empty_value_display, boolean)
             # Strip HTML tags in the resulting text, except if the
             # function has an "allow_tags" attribute set to True.
             # WARNING: this will be deprecated in Django 2.0
@@ -83,19 +50,14 @@ def get_result_and_row_class(cl, field_name, result):
             if isinstance(value, (datetime.date, datetime.time)):
                 row_classes.append('nowrap')
         else:
-            related_field_name = 'rel' if django.VERSION <= (2, 0) else 'remote_field'
-            if isinstance(getattr(f, related_field_name), models.ManyToOneRel):
+            if isinstance(getattr(f, 'remote_field'), models.ManyToOneRel):
                 field_val = getattr(result, f.name)
                 if field_val is None:
                     result_repr = empty_value_display
                 else:
                     result_repr = field_val
             else:
-                if django.VERSION >= (1, 9):
-                    result_repr = display_for_field(
-                        value, f, empty_value_display)
-                else:
-                    result_repr = display_for_field(value, f)
+                result_repr = display_for_field(value, f, empty_value_display)
             if isinstance(f, (models.DateField, models.TimeField,
                               models.ForeignKey)):
                 row_classes.append('nowrap')
@@ -172,7 +134,7 @@ def items_for_result(cl, result, form):
                 ' onclick="opener.dismissRelatedLookupPopup(window, %s);'
                 ' return false;"')
             yield mark_safe(
-                u('%s<%s%s>%s %s <a href="%s"%s>%s</a></%s>') % (
+                '%s<%s%s>%s %s <a href="%s"%s>%s</a></%s>' % (
                     drag_handler, table_tag, row_class, spacer, collapse, url,
                     (cl.is_popup and onclickstr % result_id or ''),
                     conditional_escape(result_repr), table_tag))
@@ -190,10 +152,9 @@ def items_for_result(cl, result, form):
             ):
                 bf = form[field_name]
                 result_repr = mark_safe(force_str(bf.errors) + force_str(bf))
-            yield format_html(u('<td{0}>{1}</td>'), row_class, result_repr)
+            yield format_html('<td{0}>{1}</td>', row_class, result_repr)
     if form and not form[cl.model._meta.pk.name].is_hidden:
-        yield format_html(u('<td>{0}</td>'),
-                          force_str(form[cl.model._meta.pk.name]))
+        yield format_html('<td>{0}</td>', force_str(form[cl.model._meta.pk.name]))
 
 
 def get_parent_id(node):

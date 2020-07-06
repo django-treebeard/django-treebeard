@@ -6,11 +6,9 @@ Create a basic model for your tree. In this example we'll use a Materialized Pat
 .. code-block:: python
 
     from django.db import models
-    from django.utils.encoding import python_2_unicode_compatible
 
     from treebeard.mp_tree import MP_Node
 
-    @python_2_unicode_compatible
     class Category(MP_Node):
         name = models.CharField(max_length=30)
 
@@ -18,9 +16,6 @@ Create a basic model for your tree. In this example we'll use a Materialized Pat
 
         def __str__(self):
             return 'Category: {}'.format(self.name)
-
-This example works on Python 3 as well as on Python 2. If you don't need Python 2 support
-remove the ``@python_2_unicode_compatible`` decorator.
 
 
 Run syncdb:
