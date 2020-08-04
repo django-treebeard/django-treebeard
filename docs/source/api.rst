@@ -376,12 +376,12 @@ API
      .. code-block:: python
 
             [
-                (a,     {'open':True,  'close':[],    'level': 0})
-                (ab,    {'open':True,  'close':[],    'level': 1})
-                (aba,   {'open':True,  'close':[],    'level': 2})
-                (abb,   {'open':False, 'close':[],    'level': 2})
-                (abc,   {'open':False, 'close':[0,1], 'level': 2})
-                (ac,    {'open':False, 'close':[0],   'level': 1})
+                ('a',     {'open':True,  'close':[],    'level': 0}),
+                ('ab',    {'open':True,  'close':[],    'level': 1}),
+                ('aba',   {'open':True,  'close':[],    'level': 2}),
+                ('abb',   {'open':False, 'close':[],    'level': 2}),
+                ('abc',   {'open':False, 'close':[0], 'level': 2}),
+                ('ac',    {'open':False, 'close':[0,1],   'level': 1}),
             ]
 
      This can be used with a template like:
