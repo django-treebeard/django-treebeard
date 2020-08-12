@@ -105,8 +105,10 @@ class AL_Node(Node):
         self._cached_depth = depth
         return depth
 
-    def get_children(self):
+    def get_children(self, all_nodes=None):
         """:returns: A queryset of all the node's children"""
+        if all_nodes:
+            return all_nodes.filter(parent=self)
         return get_result_class(self.__class__).objects.filter(parent=self)
 
     def get_parent(self, update=False):
