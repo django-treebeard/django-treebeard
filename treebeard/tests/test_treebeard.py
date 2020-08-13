@@ -2759,3 +2759,17 @@ class TestTreeAdmin(TestNonEmptyTree):
                     ('4', 1, 1),
                     ('41', 2, 0)]
         assert self.got(model) == expected
+
+
+class TestMPFormPerformance(TestCase):
+
+    @classmethod
+    def setup_class(cls):
+        cls.model = models.MP_TestNode
+        cls.model.load_bulk(BASE_DATA)
+
+    def test_form_add_subtree_no_of_queries(self):
+        form_class = movenodeform_factory(self.model)
+        form = form_class()
+        with self.assertNumQueries(2):
+            form.mk_dropdown_tree(self.model)
