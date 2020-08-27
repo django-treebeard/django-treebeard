@@ -132,6 +132,36 @@ class MP_NodeManager(models.Manager):
     def get_queryset(self):
         """Sets the custom queryset as the default."""
         return MP_NodeQuerySet(self.model).order_by('path')
+    
+    def dump_bulk(self, parent=None, keep_fields=("path", "pk")):
+        """Dumps a tree branch to a python data structure."""
+
+        # Because of fix_tree, this method assumes that the depth
+        # and numchild properties in the nodes can be incorrect,
+        # so no helper methods are used
+        qset = self.get_queryset()
+        if parent:
+            qset = qset.filter(path__startswith=parent.path)
+        ret, lnk = [], {}
+        
+        for fields in qset.values(*keep_fields):
+            path = fields['path']
+            depth = int(len(path) / MP_Node.steplen)
+
+            newobj = {'data': fields}
+
+            if (not parent and depth == 1) or\
+               (parent and len(path) == len(parent.path)):
+                ret.append(newobj)
+            else:
+                parentpath = MP_Node._get_basepath(path, depth - 1)
+                parentobj = lnk[parentpath]
+                if 'children' not in parentobj:
+                    parentobj['children'] = []
+                parentobj['children'].append(newobj)
+            lnk[path] = newobj
+        return ret
+
 
 
 class MP_AddHandler(object):
