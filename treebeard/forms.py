@@ -174,23 +174,19 @@ class MoveNodeForm(forms.ModelForm):
     def mk_indent(level):
         return '&nbsp;&nbsp;&nbsp;&nbsp;' * (level - 1)
 
-    @classmethod
-    def add_subtree(cls, for_node, node, options, all_nodes=None):
+    def add_subtree(cls, for_node, node, options):
         """ Recursively build options tree. """
         if cls.is_loop_safe(for_node, node):
-            options.append((node.pk, mark_safe(cls.mk_indent(node.get_depth()) + str(node))))
-            for subnode in node.get_children(all_nodes):
-                cls.add_subtree(for_node, subnode, options, all_nodes)
+            for item, annotations in node.get_annotated_list(node):
+                options.append((item.pk, mark_safe(cls.mk_indent(annotations["level"]) + str(item))))
 
     @classmethod
-    def mk_dropdown_tree(cls, model, for_node=None, all_nodes=None):
+    def mk_dropdown_tree(cls, model, for_node=None):
         """ Creates a tree-like list of choices """
-        """ Read all nodes at once to avoid database duplicated hits"""
-        if all_nodes is None:
-            all_nodes = model.objects.all()
+
         options = [(0, _('-- root --'))]
         for node in model.get_root_nodes():
-            cls.add_subtree(for_node, node, options, all_nodes)
+            cls.add_subtree(for_node, node, options)
         return options
 
 

@@ -524,7 +524,7 @@ class NS_Node(Node):
                 ])
         return added
 
-    def get_children(self, all_nodes=None):
+    def get_children(self):
         """:returns: A queryset of all the node's children"""
         return self.get_descendants().filter(depth=self.depth + 1)
 

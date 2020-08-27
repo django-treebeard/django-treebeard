@@ -934,24 +934,16 @@ class MP_Node(Node):
                 path__range=self._get_children_path_interval(parentpath))
         return qset
 
-    def get_children(self, all_nodes=None):
+    def get_children(self):
         """:returns: A queryset of all the node's children"""
-        """all_nodes: If all nodes are prefetched and passed, 
-        it apply the filter to avoid hitting database"""
-
         if self.is_leaf():
             return get_result_class(self.__class__).objects.none()
-        if not all_nodes:
-            return get_result_class(self.__class__).objects.filter(
-                depth=self.depth + 1,
-                path__range=self._get_children_path_interval(self.path)
-            )
-        queryset = get_result_class(self.__class__).objects.none()
-        queryset._result_cache = list()
-        [queryset._result_cache.append(node) for node in all_nodes
-         if node.path.startswith(self.path) and node.depth == self.depth + 1]
-        queryset._result_cache.sort(key=lambda node: node.path, reverse=False)
-        return queryset
+        return get_result_class(self.__class__).objects.filter(
+            depth=self.depth + 1,
+            path__range=self._get_children_path_interval(self.path)
+        ).order_by(
+            'path'
+        )
 
     def get_next_sibling(self):
         """
