@@ -178,11 +178,8 @@ class MoveNodeForm(forms.ModelForm):
     def add_subtree(cls, for_node, node, options):
         """ Recursively build options tree. """
         if cls.is_loop_safe(for_node, node):
-            options.append(
-                (node.pk,
-                 mark_safe(cls.mk_indent(node.get_depth()) + escape(node))))
-            for subnode in node.get_children():
-                cls.add_subtree(for_node, subnode, options)
+            for item, annotations in node.get_annotated_list(node):
+                options.append((item.pk, mark_safe(cls.mk_indent(annotations["level"]) + str(item))))
 
     @classmethod
     def mk_dropdown_tree(cls, model, for_node=None):
