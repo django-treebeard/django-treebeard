@@ -174,6 +174,7 @@ class MoveNodeForm(forms.ModelForm):
     def mk_indent(level):
         return '&nbsp;&nbsp;&nbsp;&nbsp;' * (level - 1)
 
+    @staticmethod
     def add_subtree(cls, for_node, node, options):
         """ Recursively build options tree. """
         if cls.is_loop_safe(for_node, node):
