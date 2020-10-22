@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+import uuid
 
 from treebeard.mp_tree import MP_Node
 from treebeard.al_tree import AL_Node
@@ -50,6 +51,16 @@ class MP_TestNodeRelated(MP_Node):
 
 class MP_TestNodeInherited(MP_TestNode):
     extra_desc = models.CharField(max_length=255)
+
+
+class MP_TestNodeCustomId(MP_Node):
+    steplen = 3
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    desc = models.CharField(max_length=255)
+
+    def __str__(self):  # pragma: no cover
+        return 'Node %d' % self.pk
 
 
 class NS_TestNode(NS_Node):
