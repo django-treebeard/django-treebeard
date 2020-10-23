@@ -39,6 +39,8 @@ setup.py
 Download a release from the `treebeard download page`_ and unpack it, then
 run:
 
+.. _`treebeard download page`: https://github.com/django-treebeard/django-treebeard/releases
+
 .. code-block:: console
 
    $ python setup.py install
