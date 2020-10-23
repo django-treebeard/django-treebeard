@@ -2513,8 +2513,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         context = Context({'cl': cl,
                            'request': request})
         table_output = self.template.render(context)
-
-        output_template = '<li><a href="%i/" >Node %i</a>'
+        output_template = '<li><a href="%s/" >Node %i</a>'
         for object in model.objects.all():
             expected_output = output_template % (object.pk, object.pk)
             assert expected_output in table_output
@@ -2538,8 +2537,8 @@ class TestAdminTreeList(TestNonEmptyTree):
                            'action_form': True})
         table_output = self.template.render(context)
         output_template = ('<input type="checkbox" class="action-select" '
-                           'value="%i" name="_selected_action" />'
-                           '<a href="%i/" >Node %i</a>')
+                           'value="%s" name="_selected_action" />'
+                           '<a href="%s/" >Node %i</a>')
 
         for object in model.objects.all():
             expected_output = output_template % (object.pk, object.pk,
@@ -2566,7 +2565,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         context = Context({'cl': cl,
                            'request': request})
         table_output = self.template.render(context)
-        output_template = "opener.dismissRelatedLookupPopup(window, '%i');"
+        output_template = "opener.dismissRelatedLookupPopup(window, '%s');"
         for object in model.objects.all():
             expected_output = output_template % object.pk
             assert expected_output in table_output
