@@ -2356,9 +2356,9 @@ class TestAdminTreeTemplateTags(TestCase):
         expected = ('<script type="text/javascript" src="jsi18n"></script>'
                     '<script type="text/javascript" '
                     'src="' + static('treebeard/treebeard-admin.js') + '"></script>'
-                    '<script>(function($){{'
+                    '<script>(function($){'
                     'jQuery = $.noConflict(true);'
-                    '}})(django.jQuery);</script>'
+                    '})(django.jQuery);</script>'
                     '<script type="text/javascript" '
                     'src="' + static('treebeard/jquery-ui-1.8.5.custom.min.js') + '"></script>')
         assert expected == rendered
