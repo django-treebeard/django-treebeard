@@ -275,7 +275,7 @@ def treebeard_js():
     """
     Template tag to print out the proper <script/> tag to include a custom .js
     """
-    js_file = statc('treebeard/treebeard-admin.js')
+    js_file = static('treebeard/treebeard-admin.js')
     jquery_ui = static('treebeard/jquery-ui-1.8.5.custom.min.js')
 
     # Jquery UI is needed to call disableSelection() on drag and drop so
