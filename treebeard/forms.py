@@ -59,7 +59,6 @@ class MoveNodeForm(forms.ModelForm):
                                           coerce=int,
                                           label=_("Relative to"))
 
-
     def _get_position_ref_node(self, instance):
         if self.is_sorted:
             position = 'sorted-child'
@@ -100,9 +99,10 @@ class MoveNodeForm(forms.ModelForm):
         # update the '_ref_node_id' choices
         choices = self.mk_dropdown_tree(opts.model, for_node=instance)
         self.declared_fields['_ref_node_id'].choices = choices
+        # use the formfield `to_python` method to coerse the field for custom ids
         idFormField = opts.model._meta.get_field('id').formfield()
-        if idFormField:
-            self.declared_fields['_ref_node_id'].coerse = idFormField.to_python
+        self.declared_fields['_ref_node_id'].coerce = idFormField.to_python if idFormField else int
+
 
         # put initial data for these fields into a map, update the map with
         # initial data, and pass this new map to the parent constructor as

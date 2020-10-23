@@ -259,7 +259,7 @@ class MP_TestManyToManyWithUser(MP_Node):
     users = models.ManyToManyField(User)
 
 
-BASE_MODELS = AL_TestNode, MP_TestNode, NS_TestNode
+BASE_MODELS = AL_TestNode, MP_TestNode, NS_TestNode, MP_TestNodeCustomId
 PROXY_MODELS = AL_TestNode_Proxy, MP_TestNode_Proxy, NS_TestNode_Proxy
 SORTED_MODELS = AL_TestNodeSorted, MP_TestNodeSorted, NS_TestNodeSorted
 DEP_MODELS = AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep
