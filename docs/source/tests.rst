@@ -42,7 +42,7 @@ tox
 environments - permutations of:
 
   - Python 3.6, 3.7 and 3.8
-  - Django 2.2 and 3.0
+  - Django 2.2, 3.0 and 3.1
   - Sqlite, MySQL and PostgreSQL
 
 This means that the test suite will run 24 times to test every
