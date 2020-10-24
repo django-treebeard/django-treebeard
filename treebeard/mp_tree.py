@@ -306,7 +306,7 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
 
 class MP_AddRootHandler(MP_AddHandler):
     def __init__(self, cls, **kwargs):
-        super(MP_AddRootHandler, self).__init__()
+        super().__init__()
         self.cls = cls
         self.kwargs = kwargs
 
@@ -346,7 +346,7 @@ class MP_AddRootHandler(MP_AddHandler):
 
 class MP_AddChildHandler(MP_AddHandler):
     def __init__(self, node, **kwargs):
-        super(MP_AddChildHandler, self).__init__()
+        super().__init__()
         self.node = node
         self.node_cls = node.__class__
         self.kwargs = kwargs
@@ -399,7 +399,7 @@ class MP_AddChildHandler(MP_AddHandler):
 
 class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
     def __init__(self, node, pos, **kwargs):
-        super(MP_AddSiblingHandler, self).__init__()
+        super().__init__()
         self.node = node
         self.node_cls = node.__class__
         self.pos = pos
@@ -452,7 +452,7 @@ class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
 
 class MP_MoveHandler(MP_ComplexAddMoveHandler):
     def __init__(self, node, target, pos=None):
-        super(MP_MoveHandler, self).__init__()
+        super().__init__()
         self.node = node
         self.node_cls = node.__class__
         self.target = target

@@ -39,7 +39,7 @@ class AL_NodeManager(models.Manager):
             order_by = ['parent'] + list(self.model.node_order_by)
         else:
             order_by = ['parent', 'sib_order']
-        return super(AL_NodeManager, self).get_queryset().order_by(*order_by)
+        return super().get_queryset().order_by(*order_by)
 
 
 class AL_Node(Node):

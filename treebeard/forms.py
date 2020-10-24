@@ -111,10 +111,10 @@ class MoveNodeForm(forms.ModelForm):
         if initial is not None:
             initial_.update(initial)
 
-        super(MoveNodeForm, self).__init__(
-            data=data, files=files, auto_id=auto_id, prefix=prefix, 
-            initial=initial_, error_class=error_class, 
-            label_suffix=label_suffix, empty_permitted=empty_permitted, 
+        super().__init__(
+            data=data, files=files, auto_id=auto_id, prefix=prefix,
+            initial=initial_, error_class=error_class,
+            label_suffix=label_suffix, empty_permitted=empty_permitted,
             instance=instance, **kwargs)
 
     def _clean_cleaned_data(self):
@@ -159,7 +159,7 @@ class MoveNodeForm(forms.ModelForm):
                 self.instance.move(self._meta.model.get_first_root_node(), pos)
         # Reload the instance
         self.instance = self._meta.model.objects.get(pk=self.instance.pk)
-        super(MoveNodeForm, self).save(commit=commit)
+        super().save(commit=commit)
         return self.instance
 
     @staticmethod
