@@ -2,14 +2,12 @@
 
 import sys
 import operator
-
-if sys.version_info >= (3, 0):
-    from functools import reduce
+from functools import reduce
 
 from django.core import serializers
 from django.db import models, transaction, connection
 from django.db.models import F, Q
-from django.utils.translation import ugettext_noop as _
+from django.utils.translation import gettext_noop as _
 
 from treebeard.numconv import NumConv
 from treebeard.models import Node

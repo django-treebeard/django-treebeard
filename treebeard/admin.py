@@ -2,28 +2,18 @@
 
 import sys
 
-import django
-
 from django.conf import settings
 from django.conf.urls import url
 
 from django.contrib import admin, messages
+from django.contrib.admin.options import TO_FIELD_VAR
 from django.http import HttpResponse, HttpResponseBadRequest
-from django.utils.translation import ugettext_lazy as _
-if sys.version_info >= (3, 0):
-    from django.utils.encoding import force_str
-else:
-    from django.utils.encoding import force_unicode as force_str
+from django.utils.translation import gettext_lazy as _
+from django.utils.encoding import force_str
 
 from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
                                   InvalidMoveToDescendant, PathOverflow)
 from treebeard.al_tree import AL_Node
-
-
-try:
-    from django.contrib.admin.options import TO_FIELD_VAR
-except ImportError:
-    from django.contrib.admin.views.main import TO_FIELD_VAR
 
 
 class TreeAdmin(admin.ModelAdmin):
@@ -46,18 +36,15 @@ class TreeAdmin(admin.ModelAdmin):
             self.change_list_template = 'admin/tree_list.html'
         if extra_context is None:
             extra_context = {}
-        if django.VERSION < (1, 10):
-            request_context = 'django.core.context_processors.request' in settings.TEMPLATE_CONTEXT_PROCESSORS
-        else:
-            request_context = any(
-                map(
-                    lambda tmpl:
-                        tmpl.get('BACKEND', None) == 'django.template.backends.django.DjangoTemplates' and
-                        tmpl.get('APP_DIRS', False) and
-                        'django.template.context_processors.request' in tmpl.get('OPTIONS', {}).get('context_processors', []),
-                    settings.TEMPLATES
-                )
+        request_context = any(
+            map(
+                lambda tmpl:
+                    tmpl.get('BACKEND', None) == 'django.template.backends.django.DjangoTemplates' and
+                    tmpl.get('APP_DIRS', False) and
+                    'django.template.context_processors.request' in tmpl.get('OPTIONS', {}).get('context_processors', []),
+                settings.TEMPLATES
             )
+        )
         lacks_request = ('request' not in extra_context and not request_context)
         if lacks_request:
             extra_context['request'] = request
@@ -68,17 +55,12 @@ class TreeAdmin(admin.ModelAdmin):
         Adds a url to move nodes to this admin
         """
         urls = super(TreeAdmin, self).get_urls()
+        from django.views.i18n import JavaScriptCatalog
 
-        if django.VERSION < (1, 10):
-            from django.views.i18n import javascript_catalog
-            jsi18n_url = url(r'^jsi18n/$', javascript_catalog, {'packages': ('treebeard',)})
-        else:
-            from django.views.i18n import JavaScriptCatalog
-
-            jsi18n_url = url(r'^jsi18n/$',
-                JavaScriptCatalog.as_view(packages=['treebeard']),
-                name='javascript-catalog'
-            )
+        jsi18n_url = url(r'^jsi18n/$',
+            JavaScriptCatalog.as_view(packages=['treebeard']),
+            name='javascript-catalog'
+        )
 
         new_urls = [
             url('^move/$', self.admin_site.admin_view(self.move_node), ),

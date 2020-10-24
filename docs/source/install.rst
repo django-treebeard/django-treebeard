@@ -5,8 +5,7 @@ Installation
 Prerequisites
 -------------
 
-``django-treebeard`` needs at least **Python 2.7/3.4** to run, and
-**Django 1.8 or later**.
+``django-treebeard`` needs at least **Python 3.6** to run, and **Django 2.2 or later**.
 
 
 Installing
@@ -86,4 +85,3 @@ settings file.
 
 .. _`django-treebeard's PyPI page`:
    https://pypi.org/project/django-treebeard/
-

@@ -6,7 +6,7 @@ from django.forms.models import BaseModelForm, ErrorList, model_to_dict
 from django.forms.models import modelform_factory as django_modelform_factory
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from treebeard.al_tree import AL_Node
 from treebeard.mp_tree import MP_Node
