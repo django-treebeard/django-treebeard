@@ -41,7 +41,7 @@ tox
 ``django-treebeard`` uses `tox`_ to run the test suite in all the supported
 environments - permutations of:
 
-  - Python 3.5, 3.6, 3.7 and 3.8
+  - Python 3.6, 3.7 and 3.8
   - Django 2.2 and 3.0
   - Sqlite, MySQL and PostgreSQL
 
@@ -52,7 +52,7 @@ option in `tox`_, like:
 
 .. code-block:: console
 
-    $ tox -e py34-dj17-pgsql
+    $ tox -e py36-dj22-pgsql
 
 
 .. _pytest: http://pytest.org/
