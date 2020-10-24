@@ -3,11 +3,10 @@
 import sys
 
 from django.conf import settings
-from django.conf.urls import url
-
 from django.contrib import admin, messages
 from django.contrib.admin.options import TO_FIELD_VAR
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.urls import path
 from django.utils.translation import gettext_lazy as _
 from django.utils.encoding import force_str
 
@@ -57,13 +56,13 @@ class TreeAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         from django.views.i18n import JavaScriptCatalog
 
-        jsi18n_url = url(r'^jsi18n/$',
+        jsi18n_url = path('jsi18n/',
             JavaScriptCatalog.as_view(packages=['treebeard']),
             name='javascript-catalog'
         )
 
         new_urls = [
-            url('^move/$', self.admin_site.admin_view(self.move_node), ),
+            path('move/', self.admin_site.admin_view(self.move_node), ),
             jsi18n_url,
         ]
         return new_urls + urls
