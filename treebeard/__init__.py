@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 """
 See PEP 386 (https://www.python.org/dev/peps/pep-0386/)
 

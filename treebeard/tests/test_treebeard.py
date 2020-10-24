@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 """Unit/Functional tests"""
 
-from __future__ import unicode_literals
 import datetime
 import os
 
-from django import VERSION as DJANGO_VERSION
 from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import User, AnonymousUser
@@ -2382,16 +2380,10 @@ class TestAdminTree(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        if DJANGO_VERSION < (2, 1):
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m)
-        else:
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m, None)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2428,16 +2420,10 @@ class TestAdminTree(TestNonEmptyTree):
         m = UnicodeModelAdmin(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        if DJANGO_VERSION < (2, 1):
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m)
-        else:
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m, None)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2467,16 +2453,10 @@ class TestAdminTree(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        if DJANGO_VERSION < (2, 1):
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m)
-        else:
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m, None)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2490,16 +2470,10 @@ class TestAdminTree(TestNonEmptyTree):
         request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        if DJANGO_VERSION < (2, 1):
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m)
-        else:
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m, None)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2513,16 +2487,10 @@ class TestAdminTree(TestNonEmptyTree):
         request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        if DJANGO_VERSION < (2, 1):
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m)
-        else:
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m, None)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2550,16 +2518,10 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        if DJANGO_VERSION < (2, 1):
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m)
-        else:
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m, None)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2580,16 +2542,10 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        if DJANGO_VERSION < (2, 1):
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m)
-        else:
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m, None)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request,
@@ -2617,16 +2573,10 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        if DJANGO_VERSION < (2, 1):
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m)
-        else:
-            cl = ChangeList(request, model, list_display, list_display_links,
-                            m.list_filter, m.date_hierarchy, m.search_fields,
-                            m.list_select_related, m.list_per_page,
-                            m.list_max_show_all, m.list_editable, m, None)
+        cl = ChangeList(request, model, list_display, list_display_links,
+                        m.list_filter, m.date_hierarchy, m.search_fields,
+                        m.list_select_related, m.list_per_page,
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})

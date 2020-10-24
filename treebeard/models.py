@@ -1,12 +1,8 @@
 """Models and base API"""
 
-import sys
 import operator
+from functools import reduce
 
-if sys.version_info >= (3, 0):
-    from functools import reduce
-
-import django
 from django.db.models import Q
 from django.db import models, transaction, router, connections
 
@@ -26,7 +22,7 @@ class Node(models.Model):
         position, use :meth:`add_sibling` in an already existing root node
         instead.
 
-        :param \*\*kwargs: object creation data that will be passed to the
+        :param `**kwargs`: object creation data that will be passed to the
             inherited Node model
         :param instance: Instead of passing object creation data, you can
             pass an already-constructed (but not yet saved) model instance to
@@ -50,10 +46,7 @@ class Node(models.Model):
                 field.get_internal_type() == 'ForeignKey' and
                 field.name != 'parent'
             ):
-                if django.VERSION >= (1, 9):
-                    foreign_keys[field.name] = field.remote_field.model
-                else:
-                    foreign_keys[field.name] = field.rel.to
+                foreign_keys[field.name] = field.remote_field.model
         return foreign_keys
 
     @classmethod
@@ -368,7 +361,7 @@ class Node(models.Model):
         use the :meth:`add_sibling` method of an already existing
         child node instead.
 
-        :param \*\*kwargs:
+        :param `**kwargs`:
 
             Object creation data that will be passed to the inherited Node
             model
@@ -400,7 +393,7 @@ class Node(models.Model):
             - ``sorted-sibling``: the new node will be at the right position
               according to the value of node_order_by
 
-        :param \*\*kwargs:
+        :param `**kwargs`:
 
             Object creation data that will be passed to the inherited
             Node model

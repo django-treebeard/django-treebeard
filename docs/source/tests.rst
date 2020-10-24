@@ -39,27 +39,20 @@ tox
 ---
 
 ``django-treebeard`` uses `tox`_ to run the test suite in all the supported
-environments:
+environments - permutations of:
 
-    - py27-dj16-sqlite
-    - py27-dj16-mysql
-    - py27-dj16-pgsql
-    - py27-dj17-sqlite
-    - py27-dj17-mysql
-    - py27-dj17-pgsql
-    - py34-dj16-sqlite
-    - py34-dj16-pgsql
-    - py34-dj17-sqlite
-    - py34-dj17-pgsql
+  - Python 3.6, 3.7 and 3.8
+  - Django 2.2, 3.0 and 3.1
+  - Sqlite, MySQL and PostgreSQL
 
-This means that the test suite will run 10 times to test every
+This means that the test suite will run 24 times to test every
 environment supported by ``django-treebeard``. This takes a long time.
 If you want to test only one or a few environments, please use the `-e`
 option in `tox`_, like:
 
 .. code-block:: console
 
-    $ tox -e py34-dj17-pgsql
+    $ tox -e py36-dj22-pgsql
 
 
 .. _pytest: http://pytest.org/
