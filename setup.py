@@ -24,6 +24,7 @@ setup_args = dict(
     include_package_data=True,
     description='Efficient tree implementations for Django',
     long_description=codecs.open(os.path.join(root_dir(), 'README.rst'), encoding='utf-8').read(),
+    python_requires='>=3.6',
     install_requires=['Django>=2.2'],
     tests_require=['pytest'],
     classifiers=[
