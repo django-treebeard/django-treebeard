@@ -1,0 +1,7 @@
+# Do a dummy build so that AppVeyor doesn't fail
+# while we're waiting for it to be disconnected altogether
+
+branches:
+  only: []
+
+build: false  # i.e. do nut run msbuild
