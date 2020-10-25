@@ -14,6 +14,7 @@ from django.dispatch import receiver
 from django.template import Template, Context
 from django.test import TestCase
 from django.test.client import RequestFactory
+from django.templatetags.static import static
 import pytest
 
 from treebeard import numconv
@@ -21,7 +22,6 @@ from treebeard.admin import admin_factory, TO_FIELD_VAR
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy, NodeAlreadySaved
 from treebeard.forms import movenodeform_factory
-from treebeard.templatetags.admin_tree import get_static_url
 from treebeard.tests import models
 from treebeard.tests.admin import register_all as admin_register_all
 
@@ -2344,7 +2344,7 @@ class TestAdminTreeTemplateTags(TestCase):
         context = Context()
         rendered = template.render(context)
         expected = ('<link rel="stylesheet" type="text/css" '
-                    'href="/treebeard/treebeard-admin.css"/>')
+                    'href="' + static('treebeard/treebeard-admin.css') + '"/>')
         assert expected == rendered
 
     def test_treebeard_js(self):
@@ -2353,23 +2353,13 @@ class TestAdminTreeTemplateTags(TestCase):
         rendered = template.render(context)
         expected = ('<script type="text/javascript" src="jsi18n"></script>'
                     '<script type="text/javascript" '
-                    'src="/treebeard/treebeard-admin.js"></script>'
+                    'src="' + static('treebeard/treebeard-admin.js') + '"></script>'
                     '<script>(function($){'
                     'jQuery = $.noConflict(true);'
                     '})(django.jQuery);</script>'
                     '<script type="text/javascript" '
-                    'src="/treebeard/jquery-ui-1.8.5.custom.min.js"></script>')
+                    'src="' + static('treebeard/jquery-ui-1.8.5.custom.min.js') + '"></script>')
         assert expected == rendered
-
-    def test_get_static_url(self):
-        with self.settings(STATIC_URL=None, MEDIA_URL=None):
-            assert get_static_url() == '/'
-        with self.settings(STATIC_URL='/static/', MEDIA_URL=None):
-            assert get_static_url() == '/static/'
-        with self.settings(STATIC_URL=None, MEDIA_URL='/media/'):
-            assert get_static_url() == '/media/'
-        with self.settings(STATIC_URL='/static/', MEDIA_URL='/media/'):
-            assert get_static_url() == '/static/'
 
 
 class TestAdminTree(TestNonEmptyTree):
