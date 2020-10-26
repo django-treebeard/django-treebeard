@@ -123,7 +123,7 @@ class MoveNodeForm(forms.ModelForm):
 
     def _clean_cleaned_data(self):
         """ delete auxilary fields not belonging to node model """
-        reference_node_id = 0
+        reference_node_id = None
 
         if '_ref_node_id' in self.cleaned_data:
             reference_node_id = self.cleaned_data['_ref_node_id']
@@ -192,7 +192,7 @@ class MoveNodeForm(forms.ModelForm):
     def mk_dropdown_tree(cls, model, for_node=None):
         """ Creates a tree-like list of choices """
 
-        options = [(0, _('-- root --'))]
+        options = [(None, _('-- root --'))]
         for node in model.get_root_nodes():
             cls.add_subtree(for_node, node, options)
         return options
