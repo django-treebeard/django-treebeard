@@ -6,7 +6,8 @@ from functools import reduce
 
 from django.core import serializers
 from django.db import models, transaction, connection
-from django.db.models import F, Q
+from django.db.models import F, Q, Value
+from django.db.models.functions import Concat, Substr
 from django.utils.translation import gettext_noop as _
 
 from treebeard.numconv import NumConv
@@ -727,7 +728,7 @@ class MP_Node(Node):
         return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
 
     @classmethod
-    def fix_tree(cls, destructive=False):
+    def fix_tree(cls, destructive=False, fix_paths=False):
         """
         Solves some problems that can appear when transactions are not used and
         a piece of code breaks, leaving the tree in an inconsistent state.
@@ -743,79 +744,147 @@ class MP_Node(Node):
               ``node_order_by`` is modified after the node is inserted, the
               tree ordering will be inconsistent.
 
-        :param destructive:
+        :param fix_paths:
 
-            A boolean value. If True, a more agressive fix_tree method will be
-            attempted. If False (the default), it will use a safe (and fast!)
-            fix approach, but it will only solve the ``depth`` and
+            A boolean value. If True, a slower, more complex fix_tree method
+            will be attempted. If False (the default), it will use a safe (and
+            fast!) fix approach, but it will only solve the ``depth`` and
             ``numchild`` nodes, it won't fix the tree holes or broken path
             ordering.
 
-            .. warning::
+        :param destructive:
 
-               Currently what the ``destructive`` method does is:
-
-               1. Backup the tree with :meth:`dump_data`
-               2. Remove all nodes in the tree.
-               3. Restore the tree with :meth:`load_data`
-
-               So, even when the primary keys of your nodes will be preserved,
-               this method isn't foreign-key friendly. That needs complex
-               in-place tree reordering, not available at the moment (hint:
-               patches are welcome).
+            Deprecated; alias for ``fix_paths``.
         """
         cls = get_result_class(cls)
         vendor = cls.get_database_vendor('write')
 
-        if destructive:
-            dump = cls.dump_bulk(None, True)
-            cls.objects.all().delete()
-            cls.load_bulk(dump, None, True)
-        else:
-            cursor = cls._get_database_cursor('write')
+        cursor = cls._get_database_cursor('write')
 
-            # fix the depth field
-            # we need the WHERE to speed up postgres
+        # fix the depth field
+        # we need the WHERE to speed up postgres
+        sql = (
+            "UPDATE %s "
+            "SET depth=" + sql_length("path", vendor=vendor) + "/%%s "
+            "WHERE depth!=" + sql_length("path", vendor=vendor) + "/%%s"
+        ) % (connection.ops.quote_name(cls._meta.db_table), )
+        vals = [cls.steplen, cls.steplen]
+        cursor.execute(sql, vals)
+
+        # fix the numchild field
+        vals = ['_' * cls.steplen]
+        # the cake and sql portability are a lie
+        if cls.get_database_vendor('read') == 'mysql':
             sql = (
-                "UPDATE %s "
-                "SET depth=" + sql_length("path", vendor=vendor) + "/%%s "
-                "WHERE depth!=" + sql_length("path", vendor=vendor) + "/%%s"
-            ) % (connection.ops.quote_name(cls._meta.db_table), )
-            vals = [cls.steplen, cls.steplen]
-            cursor.execute(sql, vals)
-
-            # fix the numchild field
-            vals = ['_' * cls.steplen]
-            # the cake and sql portability are a lie
-            if cls.get_database_vendor('read') == 'mysql':
-                sql = (
-                    "SELECT tbn1.path, tbn1.numchild, ("
-                    "SELECT COUNT(1) "
-                    "FROM %(table)s AS tbn2 "
-                    "WHERE tbn2.path LIKE " +
-                    sql_concat("tbn1.path", "%%s", vendor=vendor) + ") AS real_numchild "
-                    "FROM %(table)s AS tbn1 "
-                    "HAVING tbn1.numchild != real_numchild"
-                ) % {'table': connection.ops.quote_name(cls._meta.db_table)}
-            else:
-                subquery = "(SELECT COUNT(1) FROM %(table)s AS tbn2"\
-                           " WHERE tbn2.path LIKE " + sql_concat("tbn1.path", "%%s", vendor=vendor) + ")"
-                sql = ("SELECT tbn1.path, tbn1.numchild, " + subquery +
-                       " FROM %(table)s AS tbn1 WHERE tbn1.numchild != " +
-                       subquery)
-                sql = sql % {
+                "SELECT tbn1.path, tbn1.numchild, ("
+                "SELECT COUNT(1) "
+                "FROM %(table)s AS tbn2 "
+                "WHERE tbn2.path LIKE " +
+                sql_concat("tbn1.path", "%%s", vendor=vendor) + ") AS real_numchild "
+                "FROM %(table)s AS tbn1 "
+                "HAVING tbn1.numchild != real_numchild"
+            ) % {'table': connection.ops.quote_name(cls._meta.db_table)}
+        else:
+            subquery = "(SELECT COUNT(1) FROM %(table)s AS tbn2"\
+                        " WHERE tbn2.path LIKE " + sql_concat("tbn1.path", "%%s", vendor=vendor) + ")"
+            sql = ("SELECT tbn1.path, tbn1.numchild, " + subquery +
+                    " FROM %(table)s AS tbn1 WHERE tbn1.numchild != " +
+                    subquery)
+            sql = sql % {
+                'table': connection.ops.quote_name(cls._meta.db_table)}
+            # we include the subquery twice
+            vals *= 2
+        cursor.execute(sql, vals)
+        sql = "UPDATE %(table)s "\
+                "SET numchild=%%s "\
+                "WHERE path=%%s" % {
                     'table': connection.ops.quote_name(cls._meta.db_table)}
-                # we include the subquery twice
-                vals *= 2
+        for node_data in cursor.fetchall():
+            vals = [node_data[2], node_data[0]]
             cursor.execute(sql, vals)
-            sql = "UPDATE %(table)s "\
-                  "SET numchild=%%s "\
-                  "WHERE path=%%s" % {
-                      'table': connection.ops.quote_name(cls._meta.db_table)}
-            for node_data in cursor.fetchall():
-                vals = [node_data[2], node_data[0]]
-                cursor.execute(sql, vals)
 
+        if fix_paths or destructive:
+            with transaction.atomic():
+                # To fix holes and mis-orderings in paths, we consider each non-leaf node in turn
+                # and ensure that its children's path values are consecutive (and in the order
+                # given by node_order_by, if applicable). children_to_fix is a queue of child sets
+                # that we know about but have not yet fixed, expressed as a tuple of
+                # (parent_path, depth). Since we're updating paths as we go, we must take care to
+                # only add items to this list after the corresponding parent node has been fixed
+                # (and is thus not going to change).
+
+                # Initially children_to_fix is the set of root nodes, i.e. ones with a path
+                # starting with '' and depth 1.
+                children_to_fix = [('', 1)]
+
+                while children_to_fix:
+                    parent_path, depth = children_to_fix.pop(0)
+
+                    children = cls.objects.filter(
+                        path__startswith=parent_path, depth=depth
+                    ).values('pk', 'path', 'depth', 'numchild')
+
+                    desired_sequence = children.order_by(*(cls.node_order_by or ['path']))
+
+                    # mapping of current path position (converted to numeric) to item
+                    actual_sequence = {}
+
+                    # highest numeric path position currently in use
+                    max_position = None
+
+                    # loop over items to populate actual_sequence and max_position
+                    for item in desired_sequence:
+                        actual_position = cls._str2int(item['path'][-cls.steplen:])
+                        actual_sequence[actual_position] = item
+                        if max_position is None or actual_position > max_position:
+                            max_position = actual_position
+
+                    # loop over items to perform path adjustments
+                    for (i, item) in enumerate(desired_sequence):
+                        desired_position = i + 1  # positions are 1-indexed
+                        actual_position = cls._str2int(item['path'][-cls.steplen:])
+                        if actual_position == desired_position:
+                            pass
+                        else:
+                            # if a node is already in the desired position, move that node
+                            # to max_position + 1 to get it out of the way
+                            occupant = actual_sequence.get(desired_position)
+                            if occupant:
+                                old_path = occupant['path']
+                                max_position += 1
+                                new_path = cls._get_path(parent_path, depth, max_position)
+                                if len(new_path) > len(old_path):
+                                    previous_max_path = cls._get_path(parent_path, depth, max_position - 1)
+                                    raise PathOverflow(_("Path Overflow from: '%s'" % (previous_max_path, )))
+
+                                cls._rewrite_node_path(old_path, new_path)
+                                # update actual_sequence to reflect the new position
+                                actual_sequence[max_position] = occupant
+                                del(actual_sequence[desired_position])
+                                occupant['path'] = new_path
+
+                            # move item into the (now vacated) desired position
+                            old_path = item['path']
+                            new_path = cls._get_path(parent_path, depth, desired_position)
+                            cls._rewrite_node_path(old_path, new_path)
+                            # update actual_sequence to reflect the new position
+                            actual_sequence[desired_position] = item
+                            del(actual_sequence[actual_position])
+                            item['path'] = new_path
+
+                        if item['numchild']:
+                            # this item has children to process, and we have now moved the parent
+                            # node into its final position, so it's safe to add to children_to_fix
+                            children_to_fix.append((item['path'], depth + 1))
+
+    @classmethod
+    def _rewrite_node_path(cls, old_path, new_path):
+        cls.objects.filter(path__startswith=old_path).update(
+            path=Concat(
+                Value(new_path),
+                Substr('path', len(old_path) + 1)
+            )
+        )
 
     @classmethod
     def get_tree(cls, parent=None):

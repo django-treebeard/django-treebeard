@@ -201,7 +201,7 @@ class MP_TestNodeSortedAutoNow(MP_Node):
 
 class MP_TestNodeShortPath(MP_Node):
     steplen = 1
-    alphabet = '01234'
+    alphabet = '012345678'
     desc = models.CharField(max_length=255)
 
     def __str__(self):  # pragma: no cover
@@ -231,7 +231,7 @@ class AL_TestNode_Proxy(AL_TestNode):
 
 class MP_TestSortedNodeShortPath(MP_Node):
     steplen = 1
-    alphabet = '01234'
+    alphabet = '012345678'
     desc = models.CharField(max_length=255)
 
     node_order_by = ['desc']
