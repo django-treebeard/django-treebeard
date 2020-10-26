@@ -10,10 +10,13 @@ Release logic:
  5. git push
  6. assure that all tests pass on https://travis-ci.org/django-treebeard/django-treebeard/builds/
  7. git push --tags
- 8. python setup.py sdist upload
- 9. bump the version, append ".dev0" to __version__
-10. git add treebeard/__init__.py
-11. git commit -m 'Start with <version>'
-12. git push
+ 8. pip install --upgrade pip wheel twine
+ 9. python setup.py clean --all
+ 9. python setup.py sdist bdist_wheel
+10. twine upload dist/*
+11. bump the version, append ".dev0" to __version__
+12. git add treebeard/__init__.py
+13. git commit -m 'Start with <version>'
+14. git push
 """
-__version__ = '4.3.1'
+__version__ = '4.4.0'
