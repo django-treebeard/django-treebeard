@@ -3,11 +3,10 @@
 import sys
 
 from django.conf import settings
-from django.conf.urls import url
-
 from django.contrib import admin, messages
 from django.contrib.admin.options import TO_FIELD_VAR
 from django.http import HttpResponse, HttpResponseBadRequest
+from django.urls import path
 from django.utils.translation import gettext_lazy as _
 from django.utils.encoding import force_str
 
@@ -26,7 +25,7 @@ class TreeAdmin(admin.ModelAdmin):
             # AL Trees return a list instead of a QuerySet for .get_tree()
             # So we're returning the regular .get_queryset cause we will use
             # the old admin
-            return super(TreeAdmin, self).get_queryset(request)
+            return super().get_queryset(request)
         else:
             return self.model.get_tree()
 
@@ -48,22 +47,22 @@ class TreeAdmin(admin.ModelAdmin):
         lacks_request = ('request' not in extra_context and not request_context)
         if lacks_request:
             extra_context['request'] = request
-        return super(TreeAdmin, self).changelist_view(request, extra_context)
+        return super().changelist_view(request, extra_context)
 
     def get_urls(self):
         """
         Adds a url to move nodes to this admin
         """
-        urls = super(TreeAdmin, self).get_urls()
+        urls = super().get_urls()
         from django.views.i18n import JavaScriptCatalog
 
-        jsi18n_url = url(r'^jsi18n/$',
+        jsi18n_url = path('jsi18n/',
             JavaScriptCatalog.as_view(packages=['treebeard']),
             name='javascript-catalog'
         )
 
         new_urls = [
-            url('^move/$', self.admin_site.admin_view(self.move_node), ),
+            path('move/', self.admin_site.admin_view(self.move_node), ),
             jsi18n_url,
         ]
         return new_urls + urls

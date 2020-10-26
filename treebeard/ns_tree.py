@@ -55,7 +55,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
             # we already know the children, let's call the default django
             # delete method and let it handle the removal of the user's
             # foreign keys...
-            super(NS_NodeQuerySet, self).delete()
+            super().delete()
             cursor = model._get_database_cursor('write')
 
             # Now closing the gap (Celko's trees book, page 62)
