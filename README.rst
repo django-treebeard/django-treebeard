@@ -16,6 +16,9 @@ Status
 .. image:: https://travis-ci.org/django-treebeard/django-treebeard.svg?branch=master
     :target: https://travis-ci.org/django-treebeard/django-treebeard
 
+.. image:: https://ci.appveyor.com/api/projects/status/mwbf062v68lhw05c?svg=true
+    :target: https://ci.appveyor.com/project/mvantellingen/django-treebeard
+
 .. image:: https://img.shields.io/pypi/v/django-treebeard.svg
     :target: https://pypi.org/project/django-treebeard/
 
