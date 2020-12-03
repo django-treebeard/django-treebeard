@@ -19,7 +19,13 @@ matrix:
       env: TOXENV=py36-dj22-sqlite
     - python: 3.7
       env: TOXENV=py37-dj22-sqlite
-
+     
+    # Django 2.2
+    - arch: ppc64le
+      python: 3.6
+      env: TOXENV=py36-dj22-sqlite
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj22-sqlite}
+      
     - python: 3.6
       env: TOXENV=py36-dj22-postgres
     - python: 3.7
@@ -79,6 +85,45 @@ matrix:
       env: TOXENV=py37-dj31-mysql
     - python: 3.8
       env: TOXENV=py38-dj31-mysql
+      
+    # Adding power support architecture
+    # Django 2.2
+    - {arch: "ppc64le", python: "3.6", env: TOXENV=py36-dj22-sqlite}
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj22-sqlite}
+      
+    - {arch: "ppc64le", python: "3.6", env: TOXENV=py36-dj22-postgres}
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj22-postgres}
+    - {arch: "ppc64le", python: "3.8", env: TOXENV=py38-dj22-postgres}
+
+    - {arch: "ppc64le", python: "3.6", env: TOXENV=py36-dj22-mysql}
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj22-mysql}
+    - {arch: "ppc64le", python: "3.8", env: TOXENV=py38-dj22-mysql}
+
+    # Django 3.0
+    - {arch: "ppc64le", python: "3.6", env: TOXENV=py36-dj30-sqlite}
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj30-sqlite}
+    - {arch: "ppc64le", python: "3.8", env: TOXENV=py38-dj30-sqlite}
+
+    - {arch: "ppc64le", python: "3.6", env: TOXENV=py36-dj30-postgres}
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj30-postgres}
+    - {arch: "ppc64le", python: "3.8", env: TOXENV=py38-dj30-postgres}
+
+    - {arch: "ppc64le", python: "3.6", env: TOXENV=py36-dj30-mysql}
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj30-mysql}
+    - {arch: "ppc64le", python: "3.8", env: TOXENV=py38-dj30-mysql}
+
+    # Django 3.1
+    - {arch: "ppc64le", python: "3.6", env: TOXENV=py36-dj31-sqlite}
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj31-sqlite}
+    - {arch: "ppc64le", python: "3.8", env: TOXENV=py38-dj31-sqlite}
+
+    - {arch: "ppc64le", python: "3.6", env: TOXENV=py36-dj31-postgres}
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj31-postgres}
+    - {arch: "ppc64le", python: "3.8", env: TOXENV=py38-dj31-postgres}
+
+    - {arch: "ppc64le", python: "3.6", env: TOXENV=py36-dj31-mysql}
+    - {arch: "ppc64le", python: "3.7", env: TOXENV=py37-dj31-mysql}
+    - {arch: "ppc64le", python: "3.8", env: TOXENV=py38-dj31-mysql}
 
 before_install:
   - sudo apt-get update
