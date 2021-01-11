@@ -1,3 +1,6 @@
 include CHANGES LICENSE NOTICE README.rst UPDATING MANIFEST.in
-recursive-include docs Makefile README.rst *.py *.rst
-recursive-include treebeard *.py *.html *.js *.css *.png
+recursive-include treebeard *.py
+recursive-include treebeard/static *
+recursive-include treebeard/templates *
+recursive-include treebeard/locale *
+recursive-include docs Makefile README.md make.bat *.py *.png *.rst

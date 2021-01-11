@@ -1,12 +1,12 @@
 Tutorial
 ========
 
-Create a basic model for your tree. In this example we'll use a Materialized
-Path tree:
+Create a basic model for your tree. In this example we'll use a Materialized Path tree:
 
 .. code-block:: python
 
     from django.db import models
+
     from treebeard.mp_tree import MP_Node
 
     class Category(MP_Node):
@@ -14,9 +14,8 @@ Path tree:
 
         node_order_by = ['name']
 
-        def __unicode__(self):
-            return 'Category: %s' % self.name
-
+        def __str__(self):
+            return 'Category: {}'.format(self.name)
 
 
 Run syncdb:
@@ -102,5 +101,5 @@ Read the :class:`treebeard.models.Node` API reference for detailed info.
 
 .. _`treebeard mercurial repository`:
    http://code.tabo.pe/django-treebeard
-.. _`latest treebeard version from PyPi`:
-   http://pypi.python.org/pypi/django-treebeard/
+.. _`latest treebeard version from PyPI`:
+   https://pypi.org/project/django-treebeard/

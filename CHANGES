@@ -1,3 +1,59 @@
+Release 4.3.1 (Dec 25, 2019)
+----------------------------
+
+* Added check to avoid unnecessary database query for ``MP_Node.get_ancestors()``
+  if the node is a root node.
+* Drop support for Python-3.4.
+* Play more nicely with other form classes, that implement ``__init__(self, *args, **kwargs)``,
+  e.g. django-parler's ``TranslatableModelForm``, where `kwargs.get('instance')` is ``None``
+  when called from here.
+* Sorting on path on necessary queries, fixes some issues and stabilizes the whole MP section.
+* Add German translation strings.
+
+Release 4.3 (Apr 16, 2018)
+--------------------------
+
+* Support for Django-2.0
+
+Release 4.2.2 (Mar 11, 2018)
+----------------------------
+
+* Bugfix issues #97: UnboundLocalError raised on treebeard admin
+
+Release 4.2.1 (Mar 9, 2018)
+----------------------------
+
+* Bugfix issues #90: admin change list view and jsi18n load for Django-1.11
+
+Release 4.2.0 (Dec 8, 2017)
+----------------------------
+
+* Support for Django-2.0
+
+Release 4.1.2 (Jun 22, 2017)
+----------------------------
+
+* Fixed MANIFEST.in for Debian packaging.
+
+
+Release 4.1.1 (May 24, 2017)
+----------------------------
+
+* Removed deprecated templatetag inclusion
+* Added support for Python-3.6
+* Added support for MS-SQL
+
+
+Release 4.1.0 (Nov 24, 2016)
+----------------------------
+
+* Add support for Django-1.10
+* Drop support for Django-1.7
+* Moved Repository from Bitbucket to GitHub
+* Moved documentation to https://django-treebeard.readthedocs.io/
+* Moved continuous integration to https://travis-ci.org/django-treebeard/django-treebeard
+
+
 Release 4.0.1 (May 1, 2016)
 ---------------------------
 

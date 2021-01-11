@@ -1,15 +1,12 @@
 """Nested Sets"""
 
-import sys
 import operator
-
-if sys.version_info >= (3, 0):
-    from functools import reduce
+from functools import reduce
 
 from django.core import serializers
 from django.db import connection, models, transaction
 from django.db.models import Q
-from django.utils.translation import ugettext_noop as _
+from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
 from treebeard.models import Node
@@ -58,7 +55,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
             # we already know the children, let's call the default django
             # delete method and let it handle the removal of the user's
             # foreign keys...
-            super(NS_NodeQuerySet, self).delete()
+            super().delete()
             cursor = model._get_database_cursor('write')
 
             # Now closing the gap (Celko's trees book, page 62)

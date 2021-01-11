@@ -1,0 +1,104 @@
+# Use the faster container-based infrastructure
+# https://docs.travis-ci.com/user/ci-environment/
+sudo: false
+
+language: python
+
+services:
+  - postgresql
+  - mysql
+
+addons:
+  postgresql: "11"
+
+matrix:
+  include:
+    #
+    # Django 2.2
+    - python: 3.6
+      env: TOXENV=py36-dj22-sqlite
+    - python: 3.7
+      env: TOXENV=py37-dj22-sqlite
+
+    - python: 3.6
+      env: TOXENV=py36-dj22-postgres
+    - python: 3.7
+      env: TOXENV=py37-dj22-postgres
+    - python: 3.8
+      env: TOXENV=py38-dj22-postgres
+
+    - python: 3.6
+      env: TOXENV=py36-dj22-mysql
+    - python: 3.7
+      env: TOXENV=py37-dj22-mysql
+    - python: 3.8
+      env: TOXENV=py38-dj22-mysql
+
+    #
+    # Django 3.0
+    - python: 3.6
+      env: TOXENV=py36-dj30-sqlite
+    - python: 3.7
+      env: TOXENV=py37-dj30-sqlite
+    - python: 3.8
+      env: TOXENV=py38-dj30-sqlite
+
+    - python: 3.6
+      env: TOXENV=py36-dj30-postgres
+    - python: 3.7
+      env: TOXENV=py37-dj30-postgres
+    - python: 3.8
+      env: TOXENV=py38-dj30-postgres
+
+    - python: 3.6
+      env: TOXENV=py36-dj30-mysql
+    - python: 3.7
+      env: TOXENV=py37-dj30-mysql
+    - python: 3.8
+      env: TOXENV=py38-dj30-mysql
+
+    #
+    # Django 3.1
+    - python: 3.6
+      env: TOXENV=py36-dj31-sqlite
+    - python: 3.7
+      env: TOXENV=py37-dj31-sqlite
+    - python: 3.8
+      env: TOXENV=py38-dj31-sqlite
+
+    - python: 3.6
+      env: TOXENV=py36-dj31-postgres
+    - python: 3.7
+      env: TOXENV=py37-dj31-postgres
+    - python: 3.8
+      env: TOXENV=py38-dj31-postgres
+
+    - python: 3.6
+      env: TOXENV=py36-dj31-mysql
+    - python: 3.7
+      env: TOXENV=py37-dj31-mysql
+    - python: 3.8
+      env: TOXENV=py38-dj31-mysql
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get --yes remove postgresql\*
+  - sudo apt-get install -y postgresql-11 postgresql-client-11
+  - sudo cp /etc/postgresql/{9.6,11}/main/pg_hba.conf
+  - sudo sed 's,port = 5433,port = 5432,' -i /etc/postgresql/11/main/postgresql.conf
+  - sudo service postgresql restart 11
+
+install:
+  - pip install tox codecov
+
+# Create MySQL and Postgres databases
+before_script:
+  - psql --version
+  - psql -c 'CREATE DATABASE travis_ci_test;' -U postgres
+  - mysql -e 'CREATE DATABASE IF NOT EXISTS travis_ci_test;' -uroot
+
+script: tox
+
+# Can discuss again if somebody wants them.
+notifications:
+  email: false

@@ -61,7 +61,7 @@ write/delete operations.
 
   .. automethod:: get_tree
 
-        See: :meth:`treebeard.Node.get_tree`
+        See: :meth:`treebeard.models.Node.get_tree`
 
         .. note::
 

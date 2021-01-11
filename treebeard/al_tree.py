@@ -2,7 +2,7 @@
 
 from django.core import serializers
 from django.db import models, transaction
-from django.utils.translation import ugettext_noop as _
+from django.utils.translation import gettext_noop as _
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
 from treebeard.models import Node
 
@@ -39,7 +39,7 @@ class AL_NodeManager(models.Manager):
             order_by = ['parent'] + list(self.model.node_order_by)
         else:
             order_by = ['parent', 'sib_order']
-        return super(AL_NodeManager, self).get_queryset().order_by(*order_by)
+        return super().get_queryset().order_by(*order_by)
 
 
 class AL_Node(Node):

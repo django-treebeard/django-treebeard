@@ -41,7 +41,7 @@
                     var node = new Node(this);
                     node.collapse();
                 }).hide();
-                // Swicth class to set the proprt expand/collapse icon
+                // Swicth class to set the property expand/collapse icon
                 $elem.find('a.collapse').removeClass('expanded').addClass('collapsed');
             },
             parent_node: function () {
@@ -51,7 +51,7 @@
             expand: function () {
                 // Display each kid (will display in collapsed state)
                 this.children().show();
-                // Swicth class to set the proprt expand/collapse icon
+                // Swicth class to set the property expand/collapse icon
                 $elem.find('a.collapse').removeClass('collapsed').addClass('expanded');
 
             },

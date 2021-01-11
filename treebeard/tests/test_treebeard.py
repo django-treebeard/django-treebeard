@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 """Unit/Functional tests"""
 
-from __future__ import with_statement, unicode_literals
 import datetime
 import os
 
 from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.db.models import Q
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.template import Template, Context
 from django.test import TestCase
 from django.test.client import RequestFactory
+from django.templatetags.static import static
 import pytest
 
 from treebeard import numconv
@@ -20,7 +22,6 @@ from treebeard.admin import admin_factory, TO_FIELD_VAR
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy, NodeAlreadySaved
 from treebeard.forms import movenodeform_factory
-from treebeard.templatetags.admin_tree import get_static_url
 from treebeard.tests import models
 from treebeard.tests.admin import register_all as admin_register_all
 
@@ -731,6 +732,22 @@ class TestAddChild(TestNonEmptyTree):
         child = model(id=999999, desc='natural key')
         result = model.objects.get(desc='2').add_child(instance=child)
         assert result == child
+
+    def test_add_child_post_save(self, model):
+        try:
+            @receiver(post_save, dispatch_uid='test_add_child_post_save')
+            def on_post_save(instance, **kwargs):
+                parent = instance.get_parent()
+                parent.refresh_from_db()
+                assert parent.get_descendant_count() == 1
+
+            # It's important that we're testing a leaf node
+            parent = model.objects.get(desc='231')
+            assert parent.is_leaf()
+
+            parent.add_child(desc='2311')
+        finally:
+            post_save.disconnect(dispatch_uid='test_add_child_post_save')
 
 
 class TestAddSibling(TestNonEmptyTree):
@@ -2074,6 +2091,14 @@ class TestMP_TreeFix(TestTreeBase):
         assert got == expected
         mpshort_model.find_problems()
 
+    def test_fix_tree_with_fix_paths(self, mpshort_model):
+        self.add_broken_test_data(mpshort_model)
+        mpshort_model.fix_tree(fix_paths=True)
+        got = self.got(mpshort_model)
+        expected = self.expected_no_holes[mpshort_model]
+        assert got == expected
+        mpshort_model.find_problems()
+
 
 class TestIssues(TestTreeBase):
     # test for http://code.google.com/p/django-treebeard/issues/detail?id=14
@@ -2364,7 +2389,7 @@ class TestAdminTreeTemplateTags(TestCase):
         context = Context()
         rendered = template.render(context)
         expected = ('<link rel="stylesheet" type="text/css" '
-                    'href="/treebeard/treebeard-admin.css"/>')
+                    'href="' + static('treebeard/treebeard-admin.css') + '"/>')
         assert expected == rendered
 
     def test_treebeard_js(self):
@@ -2373,23 +2398,13 @@ class TestAdminTreeTemplateTags(TestCase):
         rendered = template.render(context)
         expected = ('<script type="text/javascript" src="jsi18n"></script>'
                     '<script type="text/javascript" '
-                    'src="/treebeard/treebeard-admin.js"></script>'
+                    'src="' + static('treebeard/treebeard-admin.js') + '"></script>'
                     '<script>(function($){'
                     'jQuery = $.noConflict(true);'
                     '})(django.jQuery);</script>'
                     '<script type="text/javascript" '
-                    'src="/treebeard/jquery-ui-1.8.5.custom.min.js"></script>')
+                    'src="' + static('treebeard/jquery-ui-1.8.5.custom.min.js') + '"></script>')
         assert expected == rendered
-
-    def test_get_static_url(self):
-        with self.settings(STATIC_URL=None, MEDIA_URL=None):
-            assert get_static_url() == '/'
-        with self.settings(STATIC_URL='/static/', MEDIA_URL=None):
-            assert get_static_url() == '/static/'
-        with self.settings(STATIC_URL=None, MEDIA_URL='/media/'):
-            assert get_static_url() == '/media/'
-        with self.settings(STATIC_URL='/static/', MEDIA_URL='/media/'):
-            assert get_static_url() == '/static/'
 
 
 class TestAdminTree(TestNonEmptyTree):
@@ -2403,6 +2418,7 @@ class TestAdminTree(TestNonEmptyTree):
         """
         model = model_without_proxy
         request = RequestFactory().get('/admin/tree/')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
@@ -2412,7 +2428,7 @@ class TestAdminTree(TestNonEmptyTree):
         cl = ChangeList(request, model, list_display, list_display_links,
                         m.list_filter, m.date_hierarchy, m.search_fields,
                         m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2438,16 +2454,21 @@ class TestAdminTree(TestNonEmptyTree):
         # Add a unicode description
         model.add_root(desc='áéîøü')
         request = RequestFactory().get('/admin/tree/')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        m = admin_class(model, site)
+        ModelAdmin = admin_factory(form_class)
+
+        class UnicodeModelAdmin(ModelAdmin):
+            list_display = ('__str__', 'desc')
+
+        m = UnicodeModelAdmin(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(request, model, list_display, list_display_links,
                         m.list_filter, m.date_hierarchy, m.search_fields,
                         m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2470,6 +2491,7 @@ class TestAdminTree(TestNonEmptyTree):
         model = model_without_proxy
         # Filtered GET
         request = RequestFactory().get('/admin/tree/?desc=1')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
@@ -2479,7 +2501,7 @@ class TestAdminTree(TestNonEmptyTree):
         cl = ChangeList(request, model, list_display, list_display_links,
                         m.list_filter, m.date_hierarchy, m.search_fields,
                         m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2490,12 +2512,13 @@ class TestAdminTree(TestNonEmptyTree):
 
         # Not Filtered GET, it should ignore pagination
         request = RequestFactory().get('/admin/tree/?p=1')
+        request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(request, model, list_display, list_display_links,
                         m.list_filter, m.date_hierarchy, m.search_fields,
                         m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2506,12 +2529,13 @@ class TestAdminTree(TestNonEmptyTree):
 
         # Not Filtered GET, it should ignore all
         request = RequestFactory().get('/admin/tree/?all=1')
+        request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(request, model, list_display, list_display_links,
                         m.list_filter, m.date_hierarchy, m.search_fields,
                         m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2532,6 +2556,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         """
         model = model_without_proxy
         request = RequestFactory().get('/admin/tree/')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
@@ -2541,7 +2566,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         cl = ChangeList(request, model, list_display, list_display_links,
                         m.list_filter, m.date_hierarchy, m.search_fields,
                         m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})
@@ -2555,6 +2580,7 @@ class TestAdminTreeList(TestNonEmptyTree):
     def test_result_tree_list_with_action(self, model_without_proxy):
         model = model_without_proxy
         request = RequestFactory().get('/admin/tree/')
+        request.user = AnonymousUser()
         site = AdminSite()
         form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
@@ -2564,7 +2590,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         cl = ChangeList(request, model, list_display, list_display_links,
                         m.list_filter, m.date_hierarchy, m.search_fields,
                         m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request,
@@ -2584,6 +2610,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         # Test t GET parameter with value id
         request = RequestFactory().get(
             '/admin/tree/?{0}=id'.format(TO_FIELD_VAR))
+        request.user = AnonymousUser()
         site = AdminSite()
         admin_register_all(site)
         form_class = movenodeform_factory(model)
@@ -2594,7 +2621,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         cl = ChangeList(request, model, list_display, list_display_links,
                         m.list_filter, m.date_hierarchy, m.search_fields,
                         m.list_select_related, m.list_per_page,
-                        m.list_max_show_all, m.list_editable, m)
+                        m.list_max_show_all, m.list_editable, m, None)
         cl.formset = None
         context = Context({'cl': cl,
                            'request': request})

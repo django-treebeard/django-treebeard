@@ -6,7 +6,7 @@ from django.forms.models import BaseModelForm, ErrorList, model_to_dict
 from django.forms.models import modelform_factory as django_modelform_factory
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from treebeard.al_tree import AL_Node
 from treebeard.mp_tree import MP_Node
@@ -83,7 +83,7 @@ class MoveNodeForm(forms.ModelForm):
 
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
                  initial=None, error_class=ErrorList, label_suffix=':',
-                 empty_permitted=False, instance=None):
+                 empty_permitted=False, instance=None, **kwargs):
         opts = self._meta
         if opts.model is None:
             raise ValueError('ModelForm has no model class specified')
@@ -111,9 +111,11 @@ class MoveNodeForm(forms.ModelForm):
         if initial is not None:
             initial_.update(initial)
 
-        super(MoveNodeForm, self).__init__(
-            data, files, auto_id, prefix, initial_, error_class, label_suffix, 
-            empty_permitted, instance)
+        super().__init__(
+            data=data, files=files, auto_id=auto_id, prefix=prefix,
+            initial=initial_, error_class=error_class,
+            label_suffix=label_suffix, empty_permitted=empty_permitted,
+            instance=instance, **kwargs)
 
     def _clean_cleaned_data(self):
         """ delete auxilary fields not belonging to node model """
@@ -157,7 +159,7 @@ class MoveNodeForm(forms.ModelForm):
                 self.instance.move(self._meta.model.get_first_root_node(), pos)
         # Reload the instance
         self.instance = self._meta.model.objects.get(pk=self.instance.pk)
-        super(MoveNodeForm, self).save(commit=commit)
+        super().save(commit=commit)
         return self.instance
 
     @staticmethod
