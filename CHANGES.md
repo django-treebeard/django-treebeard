@@ -1,24 +1,27 @@
-Release 4.4 (Oct 26, 2020)
+Release 4.4 (Jan 13, 2021)
 ----------------------------
 
-* Implement a non-destructive path-fixing algorithm for ``MP_Node.fix_tree``.
-* Ensure ``post_save`` is triggered *after* the parent node is updated in ``MP_AddChildHandler``.
-* Fix static URL generation to use ``static`` template tag instead of constructing the URL manually.
+* Implement a non-destructive path-fixing algorithm for `MP_Node.fix_tree`.
+* Ensure `post_save` is triggered *after* the parent node is updated in `MP_AddChildHandler`.
+* Fix static URL generation to use `static` template tag instead of constructing the URL manually.
 * Declare support for Django 2.2, 3.0 and 3.1.
 * Drop support for Django 2.1 and lower.
 * Drop support for Python 2.7 and Python 3.5.
+* Increase performance for `MoveNodeForm` when using large trees.
+
 
 Release 4.3.1 (Dec 25, 2019)
 ----------------------------
 
-* Added check to avoid unnecessary database query for ``MP_Node.get_ancestors()``
+* Added check to avoid unnecessary database query for `MP_Node.get_ancestors()`
   if the node is a root node.
 * Drop support for Python-3.4.
-* Play more nicely with other form classes, that implement ``__init__(self, *args, **kwargs)``,
-  e.g. django-parler's ``TranslatableModelForm``, where `kwargs.get('instance')` is ``None``
+* Play more nicely with other form classes, that implement `__init__(self, *args, **kwargs)`,
+  e.g. django-parler's `TranslatableModelForm`, where `kwargs.get('instance')` is `None`
   when called from here.
 * Sorting on path on necessary queries, fixes some issues and stabilizes the whole MP section.
 * Add German translation strings.
+
 
 Release 4.3 (Apr 16, 2018)
 --------------------------
