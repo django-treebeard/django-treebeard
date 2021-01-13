@@ -12,7 +12,7 @@ It is written by Gustavo Picón and licensed under the Apache License
 [![Travis CI](https://travis-ci.org/django-treebeard/django-treebeard.svg?branch=master)](https://travis-ci.org/django-treebeard/django-treebeard)
 [![App Veyor](https://ci.appveyor.com/api/projects/status/mwbf062v68lhw05c?svg=true)](https://ci.appveyor.com/project/mvantellingen/django-treebeard)
 [![PyPI](https://img.shields.io/pypi/pyversions/django-treebeard.svg)]()
-[![PyPI version](https://img.shields.io/pypi/v/django-treebeard.svg)](https://https://pypi.python.org/pypi/django-treebeard)
+[![PyPI version](https://img.shields.io/pypi/v/django-treebeard.svg)](https://pypi.org/project/django-treebeard/)
 
 
 ## Features
