@@ -43,3 +43,15 @@ You can find the documentation in
 -   Django 2.2 - 3.1
 -   Python 3.6, 3.7, 3.8
 -   PostgreSQL, MySQL, SQLite database back-ends.
+<<<<<<< HEAD
+=======
+
+  [image]: https://readthedocs.org/projects/django-treebeard/badge/?version=latest
+  [1]: https://readthedocs.org/projects/django-treebeard/
+  [2]: https://travis-ci.org/django-treebeard/django-treebeard.svg?branch=master
+  [3]: https://travis-ci.org/django-treebeard/django-treebeard
+  [4]: https://ci.appveyor.com/api/projects/status/mwbf062v68lhw05c?svg=true
+  [5]: https://ci.appveyor.com/project/mvantellingen/django-treebeard
+  [6]: https://img.shields.io/pypi/v/django-treebeard.svg
+  [7]: https://pypi.org/project/django-treebeard/
+>>>>>>> 3a283dce8c930130bbd70825294601586737b962
