@@ -6,11 +6,8 @@ from treebeard import __version__
 import codecs
 
 
-def root_dir():
-    try:
-        return os.path.dirname(__file__)
-    except NameError:
-        return '.'
+with open('README.md') as fh:
+    long_description = fh.read()
 
 
 setup_args = dict(
@@ -23,7 +20,8 @@ setup_args = dict(
     packages=find_packages(exclude=['docs']),
     include_package_data=True,
     description='Efficient tree implementations for Django',
-    long_description=codecs.open(os.path.join(root_dir(), 'README.rst'), encoding='utf-8').read(),
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     python_requires='>=3.6',
     install_requires=['Django>=2.2'],
     tests_require=['pytest'],

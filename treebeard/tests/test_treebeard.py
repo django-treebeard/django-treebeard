@@ -2182,8 +2182,8 @@ class TestMoveNodeForm(TestNonEmptyTree):
 
     def test_form_leaf_node(self, model):
         nodes = list(model.get_tree())
-        node = nodes.pop()
         safe_parent_nodes = self._get_node_ids_and_depths(nodes)
+        node = nodes.pop()
         self._move_node_helper(node, safe_parent_nodes)
 
     def test_form_admin(self, model):
@@ -2762,3 +2762,16 @@ class TestTreeAdmin(TestNonEmptyTree):
                     ('4', 1, 1),
                     ('41', 2, 0)]
         assert self.got(model) == expected
+
+
+class TestMPFormPerformance(TestCase):
+    @classmethod
+    def setup_class(cls):
+        cls.model = models.MP_TestNode
+        cls.model.load_bulk(BASE_DATA)
+
+    def test_form_add_subtree_no_of_queries(self):
+        form_class = movenodeform_factory(self.model)
+        form = form_class()
+        with self.assertNumQueries(len(self.model.get_root_nodes()) + 1):
+            form.mk_dropdown_tree(self.model)
