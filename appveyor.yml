@@ -1,7 +1,7 @@
 image: Visual Studio 2019
 
 services:
-  - mssql2016
+  - mssql2019
 
 environment:
   matrix:
