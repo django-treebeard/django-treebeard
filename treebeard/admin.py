@@ -4,7 +4,6 @@ import sys
 
 from django.conf import settings
 from django.contrib import admin, messages
-from django.contrib.admin.options import TO_FIELD_VAR
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.urls import path
 from django.utils.translation import gettext_lazy as _

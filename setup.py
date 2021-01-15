@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
 from setuptools import setup, find_packages
 from treebeard import __version__
-import codecs
 
 
 with open('README.md') as fh:

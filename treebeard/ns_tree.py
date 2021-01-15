@@ -4,7 +4,7 @@ import operator
 from functools import reduce
 
 from django.core import serializers
-from django.db import connection, models, transaction
+from django.db import connection, models
 from django.db.models import Q
 from django.utils.translation import gettext_noop as _
 
@@ -330,7 +330,6 @@ class NS_Node(Node):
             cursor.execute(sql, params)
         newobj.save()
 
-
         return newobj
 
     def move(self, target, pos=None):
@@ -461,7 +460,6 @@ class NS_Node(Node):
         sql, params = cls._get_close_gap_sql(fromobj.lft,
                                              fromobj.rgt, fromobj.tree_id)
         cursor.execute(sql, params)
-
 
     @classmethod
     def _get_close_gap_sql(cls, drop_lft, drop_rgt, tree_id):

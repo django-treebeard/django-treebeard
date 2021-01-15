@@ -1,6 +1,5 @@
 """Materialized Path Trees"""
 
-import sys
 import operator
 from functools import reduce
 
@@ -920,7 +919,7 @@ class MP_Node(Node):
         of *descendants* in every sibling.
         """
 
-        #~
+        # ~
         # disclaimer: this is the FOURTH implementation I wrote for this
         # function. I really tried to make it return a queryset, but doing so
         # with a *single* query isn't trivial with Django's ORM.
@@ -940,7 +939,7 @@ class MP_Node(Node):
         #
         # If there is a better way to do this in an UNMODIFIED django 1.0, let
         # me know.
-        #~
+        # ~
 
         cls = get_result_class(cls)
         vendor = cls.get_database_vendor('write')
@@ -963,7 +962,7 @@ class MP_Node(Node):
             '   COUNT(1)-1 AS count '
             '   FROM %(table)s '
             '   WHERE depth >= %(depth)s %(extrand)s'
-            '   GROUP BY '+ subpath + ') AS t2 '
+            '   GROUP BY ' + subpath + ') AS t2 '
             ' ON t1.path=t2.subpath '
             ' ORDER BY t1.path'
         ) % {

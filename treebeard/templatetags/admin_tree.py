@@ -6,10 +6,8 @@ nodes change list - @jjdelc
 """
 
 import datetime
-from urllib.parse import urljoin
 
 from django.db import models
-from django.conf import settings
 from django.contrib.admin.templatetags.admin_list import (
     result_headers, result_hidden_fields)
 from django.contrib.admin.utils import (

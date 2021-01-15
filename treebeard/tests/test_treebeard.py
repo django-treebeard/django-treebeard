@@ -66,6 +66,7 @@ def _prepare_db_test(request):
 def idfn(fixture_value):
     return fixture_value.__name__
 
+
 @pytest.fixture(scope='function',
                 params=models.BASE_MODELS + models.PROXY_MODELS,
                 ids=idfn)
@@ -116,6 +117,7 @@ def mpalphabet_model(request):
 @pytest.fixture(scope='function', params=[models.MP_TestNodeSortedAutoNow], ids=idfn)
 def mpsortedautonow_model(request):
     return _prepare_db_test(request)
+
 
 @pytest.fixture(scope='function', params=[models.MP_TestNodeSmallStep])
 def mpsmallstep_model(request):

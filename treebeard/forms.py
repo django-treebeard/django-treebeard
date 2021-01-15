@@ -2,7 +2,7 @@
 
 from django import forms
 from django.db.models.query import QuerySet
-from django.forms.models import BaseModelForm, ErrorList, model_to_dict
+from django.forms.models import ErrorList
 from django.forms.models import modelform_factory as django_modelform_factory
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -100,7 +100,6 @@ class MoveNodeForm(forms.ModelForm):
         # use the formfield `to_python` method to coerse the field for custom ids
         idFormField = opts.model._meta.get_field('id').formfield()
         self.declared_fields['_ref_node_id'].coerce = idFormField.to_python if idFormField else int
-
 
         # put initial data for these fields into a map, update the map with
         # initial data, and pass this new map to the parent constructor as
