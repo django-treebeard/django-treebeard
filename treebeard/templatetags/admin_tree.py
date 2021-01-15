@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Templatetags for django-treebeard to add drag and drop capabilities to the
 nodes change list - @jjdelc

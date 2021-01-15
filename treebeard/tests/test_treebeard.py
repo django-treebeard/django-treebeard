@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Unit/Functional tests"""
 
 import datetime
@@ -15,10 +14,12 @@ from django.template import Template, Context
 from django.test import TestCase
 from django.test.client import RequestFactory
 from django.templatetags.static import static
+from django.contrib.admin.options import TO_FIELD_VAR
+
 import pytest
 
 from treebeard import numconv
-from treebeard.admin import admin_factory, TO_FIELD_VAR
+from treebeard.admin import admin_factory
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy, NodeAlreadySaved
 from treebeard.forms import movenodeform_factory
