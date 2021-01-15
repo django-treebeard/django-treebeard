@@ -2596,11 +2596,11 @@ class TestAdminTreeList(TestNonEmptyTree):
         table_output = self.template.render(context)
         output_template = ('<input type="checkbox" class="action-select" '
                            'value="%s" name="_selected_action" />'
-                           '<a href="%s/" >Node %s</a>')
+                           '<a href="%s/" >%s</a>')
 
         for object in model.objects.all():
             expected_output = output_template % (object.pk, object.pk,
-                                                 object.pk)
+                                                 str(object))
             assert expected_output in table_output
 
     def test_result_tree_list_with_get(self, model_without_proxy):
