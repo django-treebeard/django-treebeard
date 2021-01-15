@@ -42,7 +42,7 @@ def get_db_conf():
             'NAME': 'master',
             'USER': 'sa',
             'PASSWORD': 'Password12!',
-            'HOST': '(local)\\SQL2016',
+            'HOST': '(local)\\SQL2019',
             'PORT': '',
             'OPTIONS': {
                 'driver': 'SQL Server Native Client 11.0',
