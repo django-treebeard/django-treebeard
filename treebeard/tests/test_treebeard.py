@@ -2152,8 +2152,8 @@ class TestIssues(TestTreeBase):
 
 class TestMoveNodeForm(TestNonEmptyTree):
     def _get_nodes_list(self, nodes):
-        return [(pk, '%sNode %s' % ('&nbsp;' * 4 * (depth - 1), pk))
-                for pk, depth in nodes]
+        return [(pk, '%s%s' % ('&nbsp;' * 4 * (depth - 1), str))
+                for pk, str, depth in nodes]
 
     def _assert_nodes_in_choices(self, form, nodes):
         choices = form.fields['_ref_node_id'].choices
@@ -2170,25 +2170,25 @@ class TestMoveNodeForm(TestNonEmptyTree):
         nodes = self._get_nodes_list(safe_parent_nodes)
         self._assert_nodes_in_choices(form, nodes)
 
-    def _get_node_ids_and_depths(self, nodes):
-        return [(node.pk, node.get_depth()) for node in nodes]
+    def _get_node_ids_strs_and_depths(self, nodes):
+        return [(node.pk, str(node), node.get_depth()) for node in nodes]
 
     def test_form_root_node(self, model):
         nodes = list(model.get_tree())
         node = nodes.pop(0)
-        safe_parent_nodes = self._get_node_ids_and_depths(nodes)
+        safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
         self._move_node_helper(node, safe_parent_nodes)
 
     def test_form_leaf_node(self, model):
         nodes = list(model.get_tree())
-        safe_parent_nodes = self._get_node_ids_and_depths(nodes)
+        safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
         node = nodes.pop()
         self._move_node_helper(node, safe_parent_nodes)
 
     def test_form_admin(self, model):
         request = None
         nodes = list(model.get_tree())
-        safe_parent_nodes = self._get_node_ids_and_depths(nodes)
+        safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
         for node in model.objects.all():
             site = AdminSite()
             form_class = movenodeform_factory(model)
