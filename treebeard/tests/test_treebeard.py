@@ -163,7 +163,7 @@ class TestEmptyTree(TestTreeBase):
     def test_load_bulk_empty(self, model):
         ids = model.load_bulk(BASE_DATA)
         got_descs = [obj.desc
-                     for obj in model.objects.filter(id__in=ids)]
+                     for obj in model.objects.filter(pk__in=ids)]
         expected_descs = [x[0] for x in UNCHANGED]
         assert sorted(got_descs) == sorted(expected_descs)
         assert self.got(model) == UNCHANGED
@@ -238,7 +238,7 @@ class TestClassMethods(TestNonEmptyTree):
                     ('41', 2, 0)]
         expected_descs = ['1', '2', '21', '22', '23', '231', '24',
                           '3', '4', '41']
-        got_descs = [obj.desc for obj in model.objects.filter(id__in=ids)]
+        got_descs = [obj.desc for obj in model.objects.filter(pk__in=ids)]
         assert sorted(got_descs) == sorted(expected_descs)
         assert self.got(model) == expected
 
@@ -1981,7 +1981,7 @@ class TestMP_TreeFindProblems(TestTreeBase):
 
         def got(ids):
             return [o.path for o in
-                    mpalphabet_model.objects.filter(id__in=ids)]
+                    mpalphabet_model.objects.filter(pk__in=ids)]
 
         (evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild) = (
             mpalphabet_model.find_problems())
