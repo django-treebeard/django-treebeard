@@ -98,8 +98,8 @@ class MoveNodeForm(forms.ModelForm):
         choices = self.mk_dropdown_tree(opts.model, for_node=instance)
         self.declared_fields['_ref_node_id'].choices = choices
         # use the formfield `to_python` method to coerse the field for custom ids
-        idFormField = opts.model._meta.get_field('id').formfield()
-        self.declared_fields['_ref_node_id'].coerce = idFormField.to_python if idFormField else int
+        pkFormField = opts.model._meta.pk.formfield()
+        self.declared_fields['_ref_node_id'].coerce = pkFormField.to_python if pkFormField else int
 
         # put initial data for these fields into a map, update the map with
         # initial data, and pass this new map to the parent constructor as
