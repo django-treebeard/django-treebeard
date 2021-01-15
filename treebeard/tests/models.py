@@ -2,7 +2,6 @@ import uuid
 
 from django.db import models
 from django.contrib.auth.models import User
-import uuid
 
 from treebeard.mp_tree import MP_Node
 from treebeard.al_tree import AL_Node
