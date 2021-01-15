@@ -222,7 +222,11 @@ class MP_TestNodeShortPath(MP_Node):
 
 class MP_TestNodeUuid(MP_Node):
     steplen = 1
-    id = models.UUIDField(primary_key=True, default=uuid.uuid1, editable=False)
+    custom_id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid1,
+        editable=False
+    )
 
     desc = models.CharField(max_length=255)
 
