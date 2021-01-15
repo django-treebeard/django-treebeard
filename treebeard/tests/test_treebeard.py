@@ -2160,7 +2160,7 @@ class TestMoveNodeForm(TestNonEmptyTree):
 
     def _assert_nodes_in_choices(self, form, nodes):
         choices = form.fields['_ref_node_id'].choices
-        assert None == choices.pop(0)[0]
+        assert choices.pop(0)[0] is None
         assert nodes == [(choice[0], choice[1]) for choice in choices]
 
     def _move_node_helper(self, node, safe_parent_nodes):
