@@ -2438,7 +2438,7 @@ class TestAdminTree(TestNonEmptyTree):
         # All nodes are in the result tree
         for object in model.objects.all():
             url = cl.url_for_result(object)
-            node = '<a href="%s">Node %s</a>' % (url, object.pk)
+            node = '<a href="%s">%s</a>' % (url, str(object))
             assert node in table_output
         # Unfiltered
         assert '<input type="hidden" id="has-filters" value="0"/>' in \
@@ -2570,9 +2570,9 @@ class TestAdminTreeList(TestNonEmptyTree):
         context = Context({'cl': cl,
                            'request': request})
         table_output = self.template.render(context)
-        output_template = '<li><a href="%s/" >Node %s</a>'
+        output_template = '<li><a href="%s/" >%s</a>'
         for object in model.objects.all():
-            expected_output = output_template % (object.pk, object.pk)
+            expected_output = output_template % (object.pk, str(object))
             assert expected_output in table_output
 
     def test_result_tree_list_with_action(self, model_without_proxy):
