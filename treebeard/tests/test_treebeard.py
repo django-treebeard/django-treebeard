@@ -2608,9 +2608,10 @@ class TestAdminTreeList(TestNonEmptyTree):
 
     def test_result_tree_list_with_get(self, model_without_proxy):
         model = model_without_proxy
+        pk_field = model._meta.pk.attname
         # Test t GET parameter with value id
         request = RequestFactory().get(
-            '/admin/tree/?{0}=id'.format(TO_FIELD_VAR))
+            '/admin/tree/?{0}={1}'.format(TO_FIELD_VAR, pk_field))
         request.user = AnonymousUser()
         site = AdminSite()
         admin_register_all(site)
