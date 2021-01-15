@@ -161,7 +161,7 @@ class AL_Node(Node):
         return self.pk in [obj.pk for obj in node.get_descendants()]
 
     @classmethod
-    def dump_bulk(cls, parent=None, keep_ids=True):
+    def dump_bulk(cls, parent=None, keep_pks=True):
         """Dumps a tree branch to a python data structure."""
 
         serializable_cls = cls._get_serializable_model()
@@ -175,6 +175,7 @@ class AL_Node(Node):
         objs = serializable_cls.get_tree(parent)
 
         ret, lnk = [], {}
+        pk_field = cls._meta.pk.attname
         for node, pyobj in zip(objs, serializers.serialize('python', objs)):
             depth = node.get_depth()
             # django's serializer stores the attributes in 'fields'
@@ -185,12 +186,12 @@ class AL_Node(Node):
             if 'sib_order' in fields:
                 del fields['sib_order']
 
-            if 'id' in fields:
-                del fields['id']
+            if pk_field in fields:
+                del fields[pk_field]
 
             newobj = {'data': fields}
-            if keep_ids:
-                newobj['id'] = pyobj['pk']
+            if keep_pks:
+                newobj[pk_field] = pyobj['pk']
 
             if (not parent and depth == 1) or\
                (parent and depth == parent.get_depth()):

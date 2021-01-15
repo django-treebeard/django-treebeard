@@ -625,7 +625,7 @@ class MP_Node(Node):
         return MP_AddRootHandler(cls, **kwargs).process()
 
     @classmethod
-    def dump_bulk(cls, parent=None, keep_ids=True):
+    def dump_bulk(cls, parent=None, keep_pks=True):
         """Dumps a tree branch to a python data structure."""
 
         cls = get_result_class(cls)
@@ -637,6 +637,7 @@ class MP_Node(Node):
         if parent:
             qset = qset.filter(path__startswith=parent.path)
         ret, lnk = [], {}
+        pk_field = cls._meta.pk.attname
         for pyobj in serializers.serialize('python', qset):
             # django's serializer stores the attributes in 'fields'
             fields = pyobj['fields']
@@ -646,13 +647,13 @@ class MP_Node(Node):
             del fields['depth']
             del fields['path']
             del fields['numchild']
-            if 'id' in fields:
+            if pk_field in fields:
                 # this happens immediately after a load_bulk
-                del fields['id']
+                del fields[pk_field]
 
             newobj = {'data': fields}
-            if keep_ids:
-                newobj['id'] = pyobj['pk']
+            if keep_pks:
+                newobj[pk_field] = pyobj['pk']
 
             if (not parent and depth == 1) or\
                (parent and len(path) == len(parent.path)):
