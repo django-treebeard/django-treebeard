@@ -731,7 +731,7 @@ class TestAddChild(TestNonEmptyTree):
         If the model is using a natural primary key then it will be
         already set when the instance is inserted.
         """
-        child = model(id=999999, desc='natural key')
+        child = model(pk=999999, desc='natural key')
         result = model.objects.get(desc='2').add_child(instance=child)
         assert result == child
 
@@ -963,7 +963,7 @@ class TestAddSibling(TestNonEmptyTree):
         If the model is using a natural primary key then it will be
         already set when the instance is inserted.
         """
-        child = model(id=999999, desc='natural key')
+        child = model(pk=999999, desc='natural key')
         result = model.objects.get(desc='2').add_child(instance=child)
         assert result == child
 
