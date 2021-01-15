@@ -97,6 +97,10 @@ class MoveNodeForm(forms.ModelForm):
         # update the '_ref_node_id' choices
         choices = self.mk_dropdown_tree(opts.model, for_node=instance)
         self.declared_fields['_ref_node_id'].choices = choices
+        # use the formfield `to_python` method to coerse the field for custom ids
+        idFormField = opts.model._meta.get_field('id').formfield()
+        self.declared_fields['_ref_node_id'].coerce = idFormField.to_python if idFormField else int
+
 
         # put initial data for these fields into a map, update the map with
         # initial data, and pass this new map to the parent constructor as
@@ -117,7 +121,7 @@ class MoveNodeForm(forms.ModelForm):
 
     def _clean_cleaned_data(self):
         """ delete auxilary fields not belonging to node model """
-        reference_node_id = 0
+        reference_node_id = None
 
         if '_ref_node_id' in self.cleaned_data:
             if self.cleaned_data['_ref_node_id'] != '0':
@@ -134,7 +138,7 @@ class MoveNodeForm(forms.ModelForm):
     def save(self, commit=True):
         position_type, reference_node_id = self._clean_cleaned_data()
 
-        if self.instance.pk is None or self.instance._state.adding:
+        if self.instance._state.adding:
             cl_data = {}
             for field in self.cleaned_data:
                 if not isinstance(self.cleaned_data[field], (list, QuerySet)):
@@ -186,7 +190,7 @@ class MoveNodeForm(forms.ModelForm):
     def mk_dropdown_tree(cls, model, for_node=None):
         """ Creates a tree-like list of choices """
 
-        options = [(0, _('-- root --'))]
+        options = [(None, _('-- root --'))]
         for node in model.get_root_nodes():
             cls.add_subtree(for_node, node, options)
         return options

@@ -2157,7 +2157,7 @@ class TestMoveNodeForm(TestNonEmptyTree):
 
     def _assert_nodes_in_choices(self, form, nodes):
         choices = form.fields['_ref_node_id'].choices
-        assert 0 == choices.pop(0)[0]
+        assert None == choices.pop(0)[0]
         assert nodes == [(choice[0], choice[1]) for choice in choices]
 
     def _move_node_helper(self, node, safe_parent_nodes):
@@ -2570,8 +2570,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         context = Context({'cl': cl,
                            'request': request})
         table_output = self.template.render(context)
-
-        output_template = '<li><a href="%s/" >Node %s</a>'
+        output_template = '<li><a href="%s/" >Node %i</a>'
         for object in model.objects.all():
             expected_output = output_template % (object.pk, object.pk)
             assert expected_output in table_output
@@ -2597,7 +2596,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         table_output = self.template.render(context)
         output_template = ('<input type="checkbox" class="action-select" '
                            'value="%s" name="_selected_action" />'
-                           '<a href="%s/" >Node %s</a>')
+                           '<a href="%s/" >Node %i</a>')
 
         for object in model.objects.all():
             expected_output = output_template % (object.pk, object.pk,
