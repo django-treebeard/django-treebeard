@@ -250,7 +250,7 @@ class TestClassMethods(TestNonEmptyTree):
         assert all([type(o) == model for o in nodes])
 
     def test_dump_bulk_all(self, model):
-        assert model.dump_bulk(keep_ids=False) == BASE_DATA
+        assert model.dump_bulk(keep_pks=False) == BASE_DATA
 
     def test_get_tree_node(self, model):
         node = model.objects.get(desc='231')
@@ -319,10 +319,10 @@ class TestClassMethods(TestNonEmptyTree):
         assert got == expected
 
     def test_load_and_dump_bulk_keeping_ids(self, model):
-        exp = model.dump_bulk(keep_ids=True)
+        exp = model.dump_bulk(keep_pks=True)
         model.objects.all().delete()
         model.load_bulk(exp, None, True)
-        got = model.dump_bulk(keep_ids=True)
+        got = model.dump_bulk(keep_pks=True)
         assert got == exp
         # do we really have an unchaged tree after the dump/delete/load?
         got = [(o.desc, o.get_depth(), o.get_children_count())
@@ -350,7 +350,7 @@ class TestClassMethods(TestNonEmptyTree):
                 {'data': {'desc': '41', 'related': related.pk}},
             ]}]
         related_model.load_bulk(related_data)
-        got = related_model.dump_bulk(keep_ids=False)
+        got = related_model.dump_bulk(keep_pks=False)
         assert got == related_data
 
     def test_get_root_nodes(self, model):
