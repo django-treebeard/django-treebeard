@@ -625,7 +625,7 @@ class MP_Node(Node):
         return MP_AddRootHandler(cls, **kwargs).process()
 
     @classmethod
-    def dump_bulk(cls, parent=None, keep_pks=True):
+    def dump_bulk(cls, parent=None, keep_ids=True):
         """Dumps a tree branch to a python data structure."""
 
         cls = get_result_class(cls)
@@ -652,7 +652,7 @@ class MP_Node(Node):
                 del fields[pk_field]
 
             newobj = {'data': fields}
-            if keep_pks:
+            if keep_ids:
                 newobj[pk_field] = pyobj['pk']
 
             if (not parent and depth == 1) or\

@@ -483,7 +483,7 @@ class NS_Node(Node):
         return sql, []
 
     @classmethod
-    def load_bulk(cls, bulk_data, parent=None, keep_pks=False):
+    def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """Loads a list/dictionary structure to the tree."""
 
         cls = get_result_class(cls)
@@ -503,7 +503,7 @@ class NS_Node(Node):
             # shallow copy of the data strucure so it doesn't persist...
             node_data = node_struct['data'].copy()
             cls._process_foreign_keys(foreign_keys, node_data)
-            if keep_pks:
+            if keep_ids:
                 node_data[pk_field] = node_struct[pk_field]
             if parent_id:
                 parent = cls.objects.get(pk=parent_id)
@@ -553,7 +553,7 @@ class NS_Node(Node):
         return self.get_parent(True).get_children()
 
     @classmethod
-    def dump_bulk(cls, parent=None, keep_pks=True):
+    def dump_bulk(cls, parent=None, keep_ids=True):
         """Dumps a tree branch to a python data structure."""
         qset = cls._get_serializable_model().get_tree(parent)
         ret, lnk = [], {}
@@ -573,7 +573,7 @@ class NS_Node(Node):
                 del fields[pk_field]
 
             newobj = {'data': fields}
-            if keep_pks:
+            if keep_ids:
                 newobj[pk_field] = serobj['pk']
 
             if (not parent and depth == 1) or\
