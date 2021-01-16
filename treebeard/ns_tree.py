@@ -497,13 +497,14 @@ class NS_Node(Node):
         # stack of nodes to analize
         stack = [(parent_id, node) for node in bulk_data[::-1]]
         foreign_keys = cls.get_foreign_keys()
+        pk_field = cls._meta.pk.attname
         while stack:
             parent_id, node_struct = stack.pop()
             # shallow copy of the data strucure so it doesn't persist...
             node_data = node_struct['data'].copy()
             cls._process_foreign_keys(foreign_keys, node_data)
             if keep_ids:
-                node_data['id'] = node_struct['id']
+                node_data[pk_field] = node_struct[pk_field]
             if parent_id:
                 parent = cls.objects.get(pk=parent_id)
                 node_obj = parent.add_child(**node_data)
@@ -556,6 +557,7 @@ class NS_Node(Node):
         """Dumps a tree branch to a python data structure."""
         qset = cls._get_serializable_model().get_tree(parent)
         ret, lnk = [], {}
+        pk_field = cls._meta.pk.attname
         for pyobj in qset:
             serobj = serializers.serialize('python', [pyobj])[0]
             # django's serializer stores the attributes in 'fields'
@@ -566,13 +568,13 @@ class NS_Node(Node):
             del fields['rgt']
             del fields['depth']
             del fields['tree_id']
-            if 'id' in fields:
+            if pk_field in fields:
                 # this happens immediately after a load_bulk
-                del fields['id']
+                del fields[pk_field]
 
             newobj = {'data': fields}
             if keep_ids:
-                newobj['id'] = serobj['pk']
+                newobj[pk_field] = serobj['pk']
 
             if (not parent and depth == 1) or\
                (parent and depth == parent.depth):

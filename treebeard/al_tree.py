@@ -175,6 +175,7 @@ class AL_Node(Node):
         objs = serializable_cls.get_tree(parent)
 
         ret, lnk = [], {}
+        pk_field = cls._meta.pk.attname
         for node, pyobj in zip(objs, serializers.serialize('python', objs)):
             depth = node.get_depth()
             # django's serializer stores the attributes in 'fields'
@@ -185,12 +186,12 @@ class AL_Node(Node):
             if 'sib_order' in fields:
                 del fields['sib_order']
 
-            if 'id' in fields:
-                del fields['id']
+            if pk_field in fields:
+                del fields[pk_field]
 
             newobj = {'data': fields}
             if keep_ids:
-                newobj['id'] = pyobj['pk']
+                newobj[pk_field] = pyobj['pk']
 
             if (not parent and depth == 1) or\
                (parent and depth == parent.get_depth()):

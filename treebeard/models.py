@@ -87,9 +87,9 @@ class Node(models.Model):
 
         :param keep_ids:
 
-            If enabled, loads the nodes with the same id that are given in the
-            structure. Will error if there are nodes without id info or if the
-            ids are already used.
+            If enabled, loads the nodes with the same primary keys that are
+            given in the structure. Will error if there are nodes without
+            primary key info or if the primary keys are already used.
 
 
         :returns: A list of the added node ids.
@@ -100,6 +100,7 @@ class Node(models.Model):
         # stack of nodes to analyze
         stack = [(parent, node) for node in bulk_data[::-1]]
         foreign_keys = cls.get_foreign_keys()
+        pk_field = cls._meta.pk.attname
 
         while stack:
             parent, node_struct = stack.pop()
@@ -107,7 +108,7 @@ class Node(models.Model):
             node_data = node_struct['data'].copy()
             cls._process_foreign_keys(foreign_keys, node_data)
             if keep_ids:
-                node_data['id'] = node_struct['id']
+                node_data[pk_field] = node_struct[pk_field]
             if parent:
                 node_obj = parent.add_child(**node_data)
             else:
@@ -134,7 +135,7 @@ class Node(models.Model):
 
         :param keep_ids:
 
-            Stores the id value (primary key) of every node. Enabled by
+            Stores the pk value (primary key) of every node. Enabled by
             default.
 
         :returns: A python data structure, described with detail in

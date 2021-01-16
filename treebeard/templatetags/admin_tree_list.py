@@ -12,7 +12,8 @@ CHECKBOX_TMPL = ('<input type="checkbox" class="action-select" value="{}" '
 
 
 def _line(context, node, request):
-    if TO_FIELD_VAR in request.GET and request.GET[TO_FIELD_VAR] == 'id':
+    pk_field = node._meta.model._meta.pk.attname
+    if TO_FIELD_VAR in request.GET and request.GET[TO_FIELD_VAR] == pk_field:
         raw_id_fields = format_html("""
         onclick="opener.dismissRelatedLookupPopup(window, '{}'); return false;"
         """, mark_safe(node.pk))
