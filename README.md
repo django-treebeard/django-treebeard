@@ -1,7 +1,7 @@
 # django-treebeard
 
 **django-treebeard** is a library that implements efficient tree
-implementations for the Django Web Framework 1.11 and later.
+implementations for the Django Web Framework 2.2 and later.
 
 It is written by Gustavo Picón and licensed under the Apache License
 2.0.
@@ -41,5 +41,5 @@ You can find the documentation in
 **django-treebeard** officially supports
 
 -   Django 2.2 - 3.1
--   Python 3.6, 3.7, 3.8
--   PostgreSQL, MySQL, SQLite database back-ends.
+-   Python 3.6, 3.7, 3.8, 3.9
+-   PostgreSQL, MySQL, MSSQL, SQLite database back-ends.
