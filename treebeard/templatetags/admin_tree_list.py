@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-
 from django.template import Library
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.contrib.admin.options import TO_FIELD_VAR
+
 from treebeard.templatetags import needs_checkboxes
-from treebeard.admin import TO_FIELD_VAR
 
 
 register = Library()

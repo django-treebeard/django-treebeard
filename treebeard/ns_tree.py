@@ -4,7 +4,7 @@ import operator
 from functools import reduce
 
 from django.core import serializers
-from django.db import connection, models, transaction
+from django.db import connection, models
 from django.db.models import Q
 from django.utils.translation import gettext_noop as _
 
@@ -139,7 +139,7 @@ class NS_Node(Node):
         if len(kwargs) == 1 and 'instance' in kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
-            if newobj.pk:
+            if not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -206,7 +206,7 @@ class NS_Node(Node):
         if len(kwargs) == 1 and 'instance' in kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
-            if newobj.pk:
+            if not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -239,7 +239,7 @@ class NS_Node(Node):
         if len(kwargs) == 1 and 'instance' in kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = kwargs['instance']
-            if newobj.pk:
+            if not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -329,7 +329,6 @@ class NS_Node(Node):
             cursor = self._get_database_cursor('write')
             cursor.execute(sql, params)
         newobj.save()
-
 
         return newobj
 
@@ -461,7 +460,6 @@ class NS_Node(Node):
         sql, params = cls._get_close_gap_sql(fromobj.lft,
                                              fromobj.rgt, fromobj.tree_id)
         cursor.execute(sql, params)
-
 
     @classmethod
     def _get_close_gap_sql(cls, drop_lft, drop_rgt, tree_id):

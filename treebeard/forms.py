@@ -2,7 +2,7 @@
 
 from django import forms
 from django.db.models.query import QuerySet
-from django.forms.models import BaseModelForm, ErrorList, model_to_dict
+from django.forms.models import ErrorList
 from django.forms.models import modelform_factory as django_modelform_factory
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -55,9 +55,7 @@ class MoveNodeForm(forms.ModelForm):
 
     _position = forms.ChoiceField(required=True, label=_("Position"))
 
-    _ref_node_id = forms.TypedChoiceField(required=False,
-                                          coerce=int,
-                                          label=_("Relative to"))
+    _ref_node_id = forms.ChoiceField(required=False, label=_("Relative to"))
 
     def _get_position_ref_node(self, instance):
         if self.is_sorted:
@@ -99,6 +97,9 @@ class MoveNodeForm(forms.ModelForm):
         # update the '_ref_node_id' choices
         choices = self.mk_dropdown_tree(opts.model, for_node=instance)
         self.declared_fields['_ref_node_id'].choices = choices
+        # use the formfield `to_python` method to coerse the field for custom ids
+        idFormField = opts.model._meta.get_field('id').formfield()
+        self.declared_fields['_ref_node_id'].coerce = idFormField.to_python if idFormField else int
 
         # put initial data for these fields into a map, update the map with
         # initial data, and pass this new map to the parent constructor as
@@ -119,10 +120,13 @@ class MoveNodeForm(forms.ModelForm):
 
     def _clean_cleaned_data(self):
         """ delete auxilary fields not belonging to node model """
-        reference_node_id = 0
+        reference_node_id = None
 
         if '_ref_node_id' in self.cleaned_data:
-            reference_node_id = self.cleaned_data['_ref_node_id']
+            if self.cleaned_data['_ref_node_id'] != '0':
+                reference_node_id = self.cleaned_data['_ref_node_id']
+                if reference_node_id.isdigit():
+                    reference_node_id = int(reference_node_id)
             del self.cleaned_data['_ref_node_id']
 
         position_type = self.cleaned_data['_position']
@@ -133,7 +137,7 @@ class MoveNodeForm(forms.ModelForm):
     def save(self, commit=True):
         position_type, reference_node_id = self._clean_cleaned_data()
 
-        if self.instance.pk is None:
+        if self.instance._state.adding:
             cl_data = {}
             for field in self.cleaned_data:
                 if not isinstance(self.cleaned_data[field], (list, QuerySet)):
@@ -185,7 +189,7 @@ class MoveNodeForm(forms.ModelForm):
     def mk_dropdown_tree(cls, model, for_node=None):
         """ Creates a tree-like list of choices """
 
-        options = [(0, _('-- root --'))]
+        options = [(None, _('-- root --'))]
         for node in model.get_root_nodes():
             cls.add_subtree(for_node, node, options)
         return options

@@ -9,4 +9,3 @@ def needs_checkboxes(context):
         return action_form_var.resolve(context) is not None
     except VariableDoesNotExist:
         return False
-

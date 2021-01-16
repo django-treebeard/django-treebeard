@@ -1,17 +1,22 @@
-services:
-  - mssql2016
+image: Visual Studio 2019
+
+init:
+- net start MSSQL$SQL2019
 
 environment:
   matrix:
     - TOXENV: py36-dj22-mssql
     - TOXENV: py37-dj22-mssql
     - TOXENV: py38-dj22-mssql
+    - TOXENV: py39-dj22-mssql
     - TOXENV: py36-dj30-mssql
     - TOXENV: py37-dj30-mssql
     - TOXENV: py38-dj30-mssql
+    - TOXENV: py39-dj30-mssql
     - TOXENV: py36-dj31-mssql
     - TOXENV: py37-dj31-mssql
     - TOXENV: py38-dj31-mssql
+    - TOXENV: py39-dj31-mssql
 
 matrix:
   fast_finish: true

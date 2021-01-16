@@ -19,6 +19,10 @@ matrix:
       env: TOXENV=py36-dj22-sqlite
     - python: 3.7
       env: TOXENV=py37-dj22-sqlite
+    - python: 3.8
+      env: TOXENV=py38-dj22-sqlite
+    - python: 3.9
+      env: TOXENV=py39-dj22-sqlite
 
     - python: 3.6
       env: TOXENV=py36-dj22-postgres
@@ -26,6 +30,8 @@ matrix:
       env: TOXENV=py37-dj22-postgres
     - python: 3.8
       env: TOXENV=py38-dj22-postgres
+    - python: 3.9
+      env: TOXENV=py39-dj22-postgres
 
     - python: 3.6
       env: TOXENV=py36-dj22-mysql
@@ -33,6 +39,8 @@ matrix:
       env: TOXENV=py37-dj22-mysql
     - python: 3.8
       env: TOXENV=py38-dj22-mysql
+    - python: 3.9
+      env: TOXENV=py39-dj22-mysql
 
     #
     # Django 3.0
@@ -42,6 +50,8 @@ matrix:
       env: TOXENV=py37-dj30-sqlite
     - python: 3.8
       env: TOXENV=py38-dj30-sqlite
+    - python: 3.9
+      env: TOXENV=py39-dj30-sqlite
 
     - python: 3.6
       env: TOXENV=py36-dj30-postgres
@@ -49,6 +59,8 @@ matrix:
       env: TOXENV=py37-dj30-postgres
     - python: 3.8
       env: TOXENV=py38-dj30-postgres
+    - python: 3.9
+      env: TOXENV=py39-dj30-postgres
 
     - python: 3.6
       env: TOXENV=py36-dj30-mysql
@@ -56,6 +68,8 @@ matrix:
       env: TOXENV=py37-dj30-mysql
     - python: 3.8
       env: TOXENV=py38-dj30-mysql
+    - python: 3.9
+      env: TOXENV=py39-dj30-mysql
 
     #
     # Django 3.1
@@ -65,6 +79,8 @@ matrix:
       env: TOXENV=py37-dj31-sqlite
     - python: 3.8
       env: TOXENV=py38-dj31-sqlite
+    - python: 3.9
+      env: TOXENV=py39-dj31-sqlite
 
     - python: 3.6
       env: TOXENV=py36-dj31-postgres
@@ -72,6 +88,8 @@ matrix:
       env: TOXENV=py37-dj31-postgres
     - python: 3.8
       env: TOXENV=py38-dj31-postgres
+    - python: 3.9
+      env: TOXENV=py39-dj31-postgres
 
     - python: 3.6
       env: TOXENV=py36-dj31-mysql
@@ -79,6 +97,8 @@ matrix:
       env: TOXENV=py37-dj31-mysql
     - python: 3.8
       env: TOXENV=py38-dj31-mysql
+    - python: 3.9
+      env: TOXENV=py39-dj31-mysql
 
 before_install:
   - sudo apt-get update

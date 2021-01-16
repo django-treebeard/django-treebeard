@@ -1,6 +1,5 @@
 """Materialized Path Trees"""
 
-import sys
 import operator
 from functools import reduce
 
@@ -331,7 +330,7 @@ class MP_AddRootHandler(MP_AddHandler):
         if len(self.kwargs) == 1 and 'instance' in self.kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs['instance']
-            if newobj.pk:
+            if not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -363,7 +362,7 @@ class MP_AddChildHandler(MP_AddHandler):
         if len(self.kwargs) == 1 and 'instance' in self.kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs['instance']
-            if newobj.pk:
+            if not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -412,7 +411,7 @@ class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
         if len(self.kwargs) == 1 and 'instance' in self.kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs['instance']
-            if newobj.pk:
+            if not newobj._state.adding:
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
@@ -588,7 +587,7 @@ class MP_Node(Node):
     alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     node_order_by = []
     path = models.CharField(max_length=255, unique=True)
-    depth = models.PositiveIntegerField()
+    depth = models.PositiveIntegerField(default=1)
     numchild = models.PositiveIntegerField(default=0)
     gap = 1
 
@@ -920,7 +919,7 @@ class MP_Node(Node):
         of *descendants* in every sibling.
         """
 
-        #~
+        # ~
         # disclaimer: this is the FOURTH implementation I wrote for this
         # function. I really tried to make it return a queryset, but doing so
         # with a *single* query isn't trivial with Django's ORM.
@@ -940,7 +939,7 @@ class MP_Node(Node):
         #
         # If there is a better way to do this in an UNMODIFIED django 1.0, let
         # me know.
-        #~
+        # ~
 
         cls = get_result_class(cls)
         vendor = cls.get_database_vendor('write')
@@ -963,7 +962,7 @@ class MP_Node(Node):
             '   COUNT(1)-1 AS count '
             '   FROM %(table)s '
             '   WHERE depth >= %(depth)s %(extrand)s'
-            '   GROUP BY '+ subpath + ') AS t2 '
+            '   GROUP BY ' + subpath + ') AS t2 '
             ' ON t1.path=t2.subpath '
             ' ORDER BY t1.path'
         ) % {

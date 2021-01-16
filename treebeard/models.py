@@ -4,7 +4,7 @@ import operator
 from functools import reduce
 
 from django.db.models import Q
-from django.db import models, transaction, router, connections
+from django.db import models, router, connections
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
 

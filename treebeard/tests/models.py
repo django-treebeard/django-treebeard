@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -50,6 +52,16 @@ class MP_TestNodeRelated(MP_Node):
 
 class MP_TestNodeInherited(MP_TestNode):
     extra_desc = models.CharField(max_length=255)
+
+
+class MP_TestNodeCustomId(MP_Node):
+    steplen = 3
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    desc = models.CharField(max_length=255)
+
+    def __str__(self):  # pragma: no cover
+        return 'Node %d' % self.pk
 
 
 class NS_TestNode(NS_Node):
@@ -208,6 +220,16 @@ class MP_TestNodeShortPath(MP_Node):
         return 'Node %d' % self.pk
 
 
+class MP_TestNodeUuid(MP_Node):
+    steplen = 1
+    id = models.UUIDField(primary_key=True, default=uuid.uuid1, editable=False)
+
+    desc = models.CharField(max_length=255)
+
+    def __str__(self):  # pragma: no cover
+        return 'Node %s' % self.pk
+
+
 # This is how you change the default fields defined in a Django abstract class
 # (in this case, MP_Node), since Django doesn't allow overriding fields, only
 # mehods and attributes
@@ -248,7 +270,9 @@ class MP_TestManyToManyWithUser(MP_Node):
     users = models.ManyToManyField(User)
 
 
-BASE_MODELS = AL_TestNode, MP_TestNode, NS_TestNode
+BASE_MODELS = (
+    AL_TestNode, MP_TestNode, NS_TestNode, MP_TestNodeUuid, MP_TestNodeCustomId
+)
 PROXY_MODELS = AL_TestNode_Proxy, MP_TestNode_Proxy, NS_TestNode_Proxy
 SORTED_MODELS = AL_TestNodeSorted, MP_TestNodeSorted, NS_TestNodeSorted
 DEP_MODELS = AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Unit/Functional tests"""
 
 import datetime
@@ -15,10 +14,12 @@ from django.template import Template, Context
 from django.test import TestCase
 from django.test.client import RequestFactory
 from django.templatetags.static import static
+from django.contrib.admin.options import TO_FIELD_VAR
+
 import pytest
 
 from treebeard import numconv
-from treebeard.admin import admin_factory, TO_FIELD_VAR
+from treebeard.admin import admin_factory
 from treebeard.exceptions import InvalidPosition, InvalidMoveToDescendant,\
     PathOverflow, MissingNodeOrderBy, NodeAlreadySaved
 from treebeard.forms import movenodeform_factory
@@ -65,6 +66,7 @@ def _prepare_db_test(request):
 
 def idfn(fixture_value):
     return fixture_value.__name__
+
 
 @pytest.fixture(scope='function',
                 params=models.BASE_MODELS + models.PROXY_MODELS,
@@ -724,6 +726,15 @@ class TestAddChild(TestNonEmptyTree):
         with pytest.raises(NodeAlreadySaved):
             model.objects.get(desc='2').add_child(instance=child)
 
+    def test_add_child_with_pk_set(self, model):
+        """
+        If the model is using a natural primary key then it will be
+        already set when the instance is inserted.
+        """
+        child = model(id=999999, desc='natural key')
+        result = model.objects.get(desc='2').add_child(instance=child)
+        assert result == child
+
     def test_add_child_post_save(self, model):
         try:
             @receiver(post_save, dispatch_uid='test_add_child_post_save')
@@ -946,6 +957,15 @@ class TestAddSibling(TestNonEmptyTree):
         existing_node = model.objects.get(desc='4')
         with pytest.raises(NodeAlreadySaved):
             node_wchildren.add_sibling('last-sibling', instance=existing_node)
+
+    def test_add_child_with_pk_set(self, model):
+        """
+        If the model is using a natural primary key then it will be
+        already set when the instance is inserted.
+        """
+        child = model(id=999999, desc='natural key')
+        result = model.objects.get(desc='2').add_child(instance=child)
+        assert result == child
 
 
 class TestDelete(TestNonEmptyTree):
@@ -2135,12 +2155,12 @@ class TestIssues(TestTreeBase):
 
 class TestMoveNodeForm(TestNonEmptyTree):
     def _get_nodes_list(self, nodes):
-        return [(pk, '%sNode %d' % ('&nbsp;' * 4 * (depth - 1), pk))
-                for pk, depth in nodes]
+        return [(pk, '%s%s' % ('&nbsp;' * 4 * (depth - 1), str))
+                for pk, str, depth in nodes]
 
     def _assert_nodes_in_choices(self, form, nodes):
         choices = form.fields['_ref_node_id'].choices
-        assert 0 == choices.pop(0)[0]
+        assert choices.pop(0)[0] is None
         assert nodes == [(choice[0], choice[1]) for choice in choices]
 
     def _move_node_helper(self, node, safe_parent_nodes):
@@ -2153,25 +2173,25 @@ class TestMoveNodeForm(TestNonEmptyTree):
         nodes = self._get_nodes_list(safe_parent_nodes)
         self._assert_nodes_in_choices(form, nodes)
 
-    def _get_node_ids_and_depths(self, nodes):
-        return [(node.pk, node.get_depth()) for node in nodes]
+    def _get_node_ids_strs_and_depths(self, nodes):
+        return [(node.pk, str(node), node.get_depth()) for node in nodes]
 
     def test_form_root_node(self, model):
         nodes = list(model.get_tree())
         node = nodes.pop(0)
-        safe_parent_nodes = self._get_node_ids_and_depths(nodes)
+        safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
         self._move_node_helper(node, safe_parent_nodes)
 
     def test_form_leaf_node(self, model):
         nodes = list(model.get_tree())
-        safe_parent_nodes = self._get_node_ids_and_depths(nodes)
+        safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
         node = nodes.pop()
         self._move_node_helper(node, safe_parent_nodes)
 
     def test_form_admin(self, model):
         request = None
         nodes = list(model.get_tree())
-        safe_parent_nodes = self._get_node_ids_and_depths(nodes)
+        safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
         for node in model.objects.all():
             site = AdminSite()
             form_class = movenodeform_factory(model)
@@ -2345,6 +2365,25 @@ class TestForm(TestNonEmptyTree):
         assert form.save() is not None
         assert original_count < model.objects.all().count()
 
+    def test_save_new_with_pk_set(self, model):
+        """
+        If the model is using a natural primary key then it will be
+        already set when the instance is inserted.
+        """
+        original_count = model.objects.all().count()
+        assert original_count == 10
+        _position = 'first-child'
+        form_class = movenodeform_factory(model)
+        form = form_class(
+            data={'_position': _position, 'id': 999999, 'desc': 'New Form Test'})
+        assert form.is_valid()
+        # Fake a natural key by updating the instance directly, because
+        # the model form will have removed the id from cleaned data because
+        # it thinks it is an AutoField.
+        form.instance.id = 999999
+        assert form.save() is not None
+        assert original_count < model.objects.all().count()
+
 
 class TestAdminTreeTemplateTags(TestCase):
     def test_treebeard_css(self):
@@ -2402,7 +2441,7 @@ class TestAdminTree(TestNonEmptyTree):
         # All nodes are in the result tree
         for object in model.objects.all():
             url = cl.url_for_result(object)
-            node = '<a href="%s">Node %i</a>' % (url, object.pk)
+            node = '<a href="%s">%s</a>' % (url, str(object))
             assert node in table_output
         # Unfiltered
         assert '<input type="hidden" id="has-filters" value="0"/>' in \
@@ -2534,10 +2573,9 @@ class TestAdminTreeList(TestNonEmptyTree):
         context = Context({'cl': cl,
                            'request': request})
         table_output = self.template.render(context)
-
-        output_template = '<li><a href="%i/" >Node %i</a>'
+        output_template = '<li><a href="%s/" >%s</a>'
         for object in model.objects.all():
-            expected_output = output_template % (object.pk, object.pk)
+            expected_output = output_template % (object.pk, str(object))
             assert expected_output in table_output
 
     def test_result_tree_list_with_action(self, model_without_proxy):
@@ -2560,12 +2598,12 @@ class TestAdminTreeList(TestNonEmptyTree):
                            'action_form': True})
         table_output = self.template.render(context)
         output_template = ('<input type="checkbox" class="action-select" '
-                           'value="%i" name="_selected_action" />'
-                           '<a href="%i/" >Node %i</a>')
+                           'value="%s" name="_selected_action" />'
+                           '<a href="%s/" >%s</a>')
 
         for object in model.objects.all():
             expected_output = output_template % (object.pk, object.pk,
-                                                 object.pk)
+                                                 str(object))
             assert expected_output in table_output
 
     def test_result_tree_list_with_get(self, model_without_proxy):
@@ -2589,7 +2627,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         context = Context({'cl': cl,
                            'request': request})
         table_output = self.template.render(context)
-        output_template = "opener.dismissRelatedLookupPopup(window, '%i');"
+        output_template = "opener.dismissRelatedLookupPopup(window, '%s');"
         for object in model.objects.all():
             expected_output = output_template % object.pk
             assert expected_output in table_output
