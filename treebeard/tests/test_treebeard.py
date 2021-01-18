@@ -197,6 +197,15 @@ class TestEmptyTree(TestTreeBase):
         expected = []
         self._assert_get_annotated_list(model, expected)
 
+    def test_add_multiple_root_nodes_adds_sibling_leaves(self, model):
+        model.add_root(desc='1')
+        model.add_root(desc='2')
+        model.add_root(desc='3')
+        model.add_root(desc='4')
+        # these are all sibling root nodes (depth=1), and leaf nodes (children=0)
+        expected = [('1', 1, 0), ('2', 1, 0), ('3', 1, 0), ('4', 1, 0)]
+        assert self.got(model) == expected
+
 
 class TestNonEmptyTree(TestTreeBase):
 
