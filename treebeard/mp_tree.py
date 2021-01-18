@@ -272,15 +272,7 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
             connection.ops.quote_name(
                 get_result_class(self.node_cls)._meta.db_table), )
 
-        # <3 "standard" sql
-        if vendor == 'sqlite':
-            # I know that the third argument in SUBSTR (LENGTH(path)) is
-            # awful, but sqlite fails without it:
-            # OperationalError: wrong number of arguments to function substr()
-            # even when the documentation says that 2 arguments are valid:
-            # http://www.sqlite.org/lang_corefunc.html
-            sqlpath = "%s||SUBSTR(path, %s, LENGTH(path))"
-        elif vendor == 'mysql':
+        if vendor == 'mysql':
             # hooray for mysql ignoring standards in their default
             # configuration!
             # to make || work as it should, enable ansi mode
