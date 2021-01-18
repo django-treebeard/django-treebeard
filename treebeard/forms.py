@@ -162,7 +162,7 @@ class MoveNodeForm(forms.ModelForm):
                     pos = 'first-sibling'
                 self.instance.move(self._meta.model.get_first_root_node(), pos)
         # Reload the instance
-        self.instance = self._meta.model.objects.get(pk=self.instance.pk)
+        self.instance.refresh_from_db()
         super().save(commit=commit)
         return self.instance
 
