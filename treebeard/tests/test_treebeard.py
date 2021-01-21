@@ -209,14 +209,10 @@ class TestEmptyTree(TestTreeBase):
 
 class TestNonEmptyTree(TestTreeBase):
 
-    @classmethod
-    def setup_class(cls):
+    @pytest.fixture(autouse=True)
+    def _load_test_data(self):
         for model in models.BASE_MODELS:
             model.load_bulk(BASE_DATA)
-
-    @classmethod
-    def teardown_class(cls):
-        models.empty_models_tables(models.BASE_MODELS)
 
 
 class TestClassMethods(TestNonEmptyTree):
@@ -979,16 +975,13 @@ class TestAddSibling(TestNonEmptyTree):
 
 class TestDelete(TestNonEmptyTree):
 
-    @classmethod
-    def setup_class(cls):
-        TestNonEmptyTree.setup_class()
+    @pytest.fixture(autouse=True)
+    def _load_test_data(self):
+        for model in models.BASE_MODELS:
+            model.load_bulk(BASE_DATA)
         for model, dep_model in zip(models.BASE_MODELS, models.DEP_MODELS):
             for node in model.objects.all():
                 dep_model(node=node).save()
-
-    @classmethod
-    def teardown_class(cls):
-        models.empty_models_tables(models.DEP_MODELS + models.BASE_MODELS)
 
     def test_delete_leaf(self, model):
         model.objects.get(desc='231').delete()
@@ -1651,8 +1644,8 @@ class TestTreeSorted(TestTreeBase):
 
 class TestInheritedModels(TestTreeBase):
 
-    @classmethod
-    def setup_class(cls):
+    @pytest.fixture(autouse=True)
+    def _load_test_data(self):
         themodels = zip(models.BASE_MODELS, models.INHERITED_MODELS)
         for model, inherited_model in themodels:
             model.add_root(desc='1')
@@ -1667,11 +1660,6 @@ class TestInheritedModels(TestTreeBase):
 
             node3 = inherited_model(desc='3')
             model.add_root(instance=node3)
-
-    @classmethod
-    def teardown_class(cls):
-        # Will also empty INHERITED_MODELS by cascade
-        models.empty_models_tables(models.BASE_MODELS)
 
     def test_get_tree_all(self, inherited_model):
         got = [(o.desc, o.get_depth(), o.get_children_count())
@@ -1869,17 +1857,13 @@ class TestMP_TreeAlphabet(TestTreeBase):
 
 class TestHelpers(TestTreeBase):
 
-    @classmethod
-    def setup_class(cls):
+    @pytest.fixture(autouse=True)
+    def _load_test_data(self):
         for model in models.BASE_MODELS:
             model.load_bulk(BASE_DATA)
             for node in model.get_root_nodes():
                 model.load_bulk(BASE_DATA, node)
             model.add_root(desc='5')
-
-    @classmethod
-    def teardown_class(cls):
-        models.empty_models_tables(models.BASE_MODELS)
 
     def test_descendants_group_count_root(self, model):
         expected = [(o.desc, o.get_descendant_count())
@@ -2775,14 +2759,12 @@ class TestTreeAdmin(TestNonEmptyTree):
         assert self.got(model) == expected
 
 
-class TestMPFormPerformance(TestCase):
-    @classmethod
-    def setup_class(cls):
-        cls.model = models.MP_TestNode
-        cls.model.load_bulk(BASE_DATA)
+class TestMPFormPerformance(object):
 
-    def test_form_add_subtree_no_of_queries(self):
-        form_class = movenodeform_factory(self.model)
+    def test_form_add_subtree_no_of_queries(self, django_assert_num_queries):
+        model = models.MP_TestNode
+        model.load_bulk(BASE_DATA)
+        form_class = movenodeform_factory(model)
         form = form_class()
-        with self.assertNumQueries(len(self.model.get_root_nodes()) + 1):
-            form.mk_dropdown_tree(self.model)
+        with django_assert_num_queries(len(model.get_root_nodes()) + 1):
+            form.mk_dropdown_tree(model)

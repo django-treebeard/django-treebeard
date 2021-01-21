@@ -21,7 +21,13 @@ setup_args = dict(
     long_description_content_type='text/markdown',
     python_requires='>=3.6',
     install_requires=['Django>=2.2'],
-    tests_require=['pytest'],
+    tests_require=[
+        'pytest-django>=4.0,<5.0',
+
+        # adds cwd() to the pythonpath, so we can run tests without
+        # installing treebeard
+        'pytest-pythonpath>=0.7,<1.0'
+    ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
