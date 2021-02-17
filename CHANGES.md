@@ -1,3 +1,15 @@
+Release 4.5 (UNDER DEVELOPMENT)
+----------------------------
+
+* Add support for custom primary key fields with custom names.
+* Add support for Python 3.9.
+* Add support for MSSQL 2019.
+* Add Code of conduct
+* Removed outdated Sqlite workaround code
+* Remove last remains of Python 2.7 code
+* Use Pytest-django and fixtures for testing
+
+
 Release 4.4 (Jan 13, 2021)
 ----------------------------
 
