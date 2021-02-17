@@ -1,5 +1,5 @@
-Release 4.5 (UNDER DEVELOPMENT)
-----------------------------
+Release 4.5 (Feb 17, 2021)
+--------------------------
 
 * Add support for custom primary key fields with custom names.
 * Add support for Python 3.9.
