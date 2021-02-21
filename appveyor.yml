@@ -13,10 +13,12 @@ environment:
     - TOXENV: py37-dj30-mssql
     - TOXENV: py38-dj30-mssql
     - TOXENV: py39-dj30-mssql
-    - TOXENV: py36-dj31-mssql
-    - TOXENV: py37-dj31-mssql
-    - TOXENV: py38-dj31-mssql
-    - TOXENV: py39-dj31-mssql
+    # Tests for Django 3.1 and higher disabled because of https://github.com/ESSolutions/django-mssql-backend/pull/86
+    # TODO re-enable these after the fix is released.
+    # - TOXENV: py36-dj31-mssql
+    # - TOXENV: py37-dj31-mssql
+    # - TOXENV: py38-dj31-mssql
+    # - TOXENV: py39-dj31-mssql
 
 matrix:
   fast_finish: true
