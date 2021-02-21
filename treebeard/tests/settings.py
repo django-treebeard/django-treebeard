@@ -10,7 +10,7 @@ def get_db_conf():
     Configures database according to the DATABASE_ENGINE environment
     variable. Defaults to SQlite.
 
-    This method is used to let Travis run against different database backends.
+    This method is used to run tests against different database backends.
     """
     database_engine = os.environ.get('DATABASE_ENGINE', 'sqlite')
     if database_engine == 'sqlite':
@@ -20,21 +20,21 @@ def get_db_conf():
         }
     elif database_engine == 'psql':
         return {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': 'travis_ci_test',
-            'USER': 'postgres',
-            'PASSWORD': '',
-            'HOST': '127.0.0.1',
-            'PORT': '',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'treebeard',
+            'USER': os.environ.get('DATABASE_USER_POSTGRES', 'treebeard'),
+            'PASSWORD': os.environ.get('DATABASE_PASSWORD', ''),
+            'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
+            'PORT': os.environ.get('DATABASE_PORT_POSTGRES', ''),
         }
     elif database_engine == "mysql":
         return {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'travis_ci_test',
-            'USER': 'travis',
-            'PASSWORD': '',
-            'HOST': '127.0.0.1',
-            'PORT': '',
+            'NAME': 'treebeard',
+            'USER': os.environ.get('DATABASE_USER_MYSQL', 'treebeard'),
+            'PASSWORD': os.environ.get('DATABASE_PASSWORD', ''),
+            'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
+            'PORT': os.environ.get('DATABASE_PORT_MYSQL', ''),
         }
     elif database_engine == "mssql":
         return {

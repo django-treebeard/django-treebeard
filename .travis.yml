@@ -8,6 +8,11 @@ services:
   - postgresql
   - mysql
 
+env:
+  global:
+    - DATABASE_USER_POSTGRES: postgres
+    - DATABASE_USER_MYSQL: root
+
 addons:
   postgresql: "11"
 
@@ -110,12 +115,6 @@ before_install:
 
 install:
   - pip install tox codecov
-
-# Create MySQL and Postgres databases
-before_script:
-  - psql --version
-  - psql -c 'CREATE DATABASE travis_ci_test;' -U postgres
-  - mysql -e 'CREATE DATABASE IF NOT EXISTS travis_ci_test;' -uroot
 
 script: tox
 
