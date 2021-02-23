@@ -18,4 +18,4 @@ Release logic:
 13. git commit -m 'Start with <version>'
 14. git push
 """
-__version__ = '4.5'
+__version__ = '4.5.1'

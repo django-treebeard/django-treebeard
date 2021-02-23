@@ -1,3 +1,9 @@
+Release 4.5.1 (Feb 22, 2021)
+----------------------------
+
+* Removed unnecessary default in MP's depth field.
+
+
 Release 4.5 (Feb 17, 2021)
 --------------------------
 
