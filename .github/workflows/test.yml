@@ -10,13 +10,45 @@ on:
 
 jobs:
   test:
+    name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        tox-python-version: [39]
-        django-version: [3.1]
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    services:
+      postgres:
+        image: postgres:10
+        ports:
+          - 5432/tcp
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: treebeard
+          POSTGRES_DB: treebeard
+      mysql:
+        image: mysql:8.0
+        options: --health-cmd="mysqladmin ping" --health-interval 10s --health-timeout 5s --health-retries 5
+        env:
+          MYSQL_ROOT_PASSWORD: treebeard
+        ports:
+          - 3306/tcp
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox
+    - name: Run tests
+      env:
+        DATABASE_USER_POSTGRES: root
+        DATABASE_USER_MYSQL: root
+        DATABASE_PASSWORD: treebeard
+        DATABASE_HOST: 127.0.0.1
+        DATABASE_PORT_POSTGRES: ${{ job.services.postgres.ports[5432] }} # get randomly assigned published port
+        DATABASE_PORT_MYSQL: ${{ job.services.mysql.ports[3306] }} # get randomly assigned published port
+      run: tox -e "py-dj{22,30,31}-{sqlite,postgres,mysql}"

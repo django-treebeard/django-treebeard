@@ -9,7 +9,7 @@ It is written by Gustavo Picón and licensed under the Apache License
 ## Status
 
 [![Documentation Status](https://readthedocs.org/projects/django-treebeard/badge/?version=latest)](https://django-treebeard.readthedocs.io/en/latest/?badge=latest)
-[![Travis CI](https://travis-ci.org/django-treebeard/django-treebeard.svg?branch=master)](https://travis-ci.org/django-treebeard/django-treebeard)
+[![Tests](https://github.com/django-treebeard/django-treebeard/workflows/Tests/badge.svg)]()
 [![App Veyor](https://ci.appveyor.com/api/projects/status/mwbf062v68lhw05c?svg=true)](https://ci.appveyor.com/project/mvantellingen/django-treebeard)
 [![PyPI](https://img.shields.io/pypi/pyversions/django-treebeard.svg)]()
 [![PyPI version](https://img.shields.io/pypi/v/django-treebeard.svg)](https://pypi.org/project/django-treebeard/)
