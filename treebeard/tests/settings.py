@@ -64,11 +64,6 @@ INSTALLED_APPS = [
     'treebeard.tests'
 ]
 
-# This little hacks forces Django into the old syncdb behaviour,
-# creating models without migrations.
-
-MIGRATION_MODULES = {app.split('.')[-1]: None for app in INSTALLED_APPS}
-
 MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
