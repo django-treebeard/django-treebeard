@@ -114,7 +114,7 @@ before_install:
   - sudo service postgresql restart 11
 
 install:
-  - pip install tox codecov
+  - pip install tox
 
 script: tox
 
