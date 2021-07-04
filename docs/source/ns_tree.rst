@@ -65,7 +65,7 @@ write/delete operations.
 
         .. note::
 
-            This metod returns a queryset.
+            This method returns a queryset.
 
 
 .. autoclass:: NS_NodeManager
