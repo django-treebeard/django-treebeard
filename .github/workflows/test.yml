@@ -51,4 +51,4 @@ jobs:
         DATABASE_HOST: 127.0.0.1
         DATABASE_PORT_POSTGRES: ${{ job.services.postgres.ports[5432] }} # get randomly assigned published port
         DATABASE_PORT_MYSQL: ${{ job.services.mysql.ports[3306] }} # get randomly assigned published port
-      run: tox -e "py-dj{22,30,31}-{sqlite,postgres,mysql}"
+      run: tox -e "py-dj{22,30,31,32}-{sqlite,postgres,mysql}"

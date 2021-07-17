@@ -40,6 +40,6 @@ You can find the documentation in
 
 **django-treebeard** officially supports
 
--   Django 2.2 - 3.1
+-   Django 2.2 - 3.2
 -   Python 3.6, 3.7, 3.8, 3.9
 -   PostgreSQL, MySQL, MSSQL, SQLite database back-ends.
