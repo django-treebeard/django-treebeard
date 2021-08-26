@@ -18,11 +18,12 @@ Create a basic model for your tree. In this example we'll use a Materialized Pat
             return 'Category: {}'.format(self.name)
 
 
-Run syncdb:
+Create and apply migrations:
 
 .. code-block:: console
 
-    $ python manage.py syncdb
+    $ python manage.py makemigrations
+    $ python manage.py migrate
 
 
 Let's create some nodes:
