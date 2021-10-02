@@ -374,7 +374,7 @@ class MP_AddChildHandler(MP_AddHandler):
                       ' and UPDATE your database'))
         else:
             # adding the new child as the last one after checking if there is a Last Child
-            last_child = self.node.get_last_child():
+            last_child = self.node.get_last_child()
             newobj.path = (
                 last_child._inc_path()
                 if last_child is not None
