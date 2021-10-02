@@ -362,7 +362,8 @@ class MP_AddChildHandler(MP_AddHandler):
             newobj = self.node_cls(**self.kwargs)
 
         newobj.depth = self.node.depth + 1
-        if self.node.is_leaf():
+        last_child = self.node.get_last_child()
+        if last_child is None:
             # the node had no children, adding the first child
             newobj.path = self.node_cls._get_path(
                 self.node.path, newobj.depth, 1)
@@ -374,7 +375,7 @@ class MP_AddChildHandler(MP_AddHandler):
                       ' and UPDATE your database'))
         else:
             # adding the new child as the last one
-            newobj.path = self.node.get_last_child()._inc_path()
+            newobj.path = last_child._inc_path()
 
         get_result_class(self.node_cls).objects.filter(
             path=self.node.path).update(numchild=F('numchild')+1)
