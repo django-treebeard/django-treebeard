@@ -374,10 +374,12 @@ class MP_AddChildHandler(MP_AddHandler):
                       ' and UPDATE your database'))
         else:
             # adding the new child as the last one after checking if there is a Last Child
-            if self.node.get_last_child():
-                newobj.path = self.node.get_last_child()._inc_path()
-            else:
-                newobj.path = self.node.path + '0001'
+            last_child = self.node.get_last_child():
+            newobj.path = (
+                last_child._inc_path()
+                if last_child is not None
+                else self.node.path + '0001'
+            )
 
         get_result_class(self.node_cls).objects.filter(
             path=self.node.path).update(numchild=F('numchild')+1)
