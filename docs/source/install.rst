@@ -79,7 +79,7 @@ settings file.
    :django:setting:`TEMPLATE_DIRS`.
    Also you need to add
    ``django.template.context_processors.request``
-   to :django:setting:`TEMPLATES['OPTIONS']['contxt_processors']`
+   to :django:setting:`TEMPLATES['OPTIONS']['context_processors']`
    setting in your django settings file (see https://docs.djangoproject.com/en/1.11/ref/templates/upgrading/ for how to define this setting within the TEMPLATES settings). For more recent versions of Django, use ``django.core.context_processors.request`` instead.
 
 
