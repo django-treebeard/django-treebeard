@@ -544,8 +544,10 @@ class Node(models.Model):
 
     def get_sorted_pos_queryset(self, siblings, newobj):
         """
-        :returns: A queryset of the nodes that must be moved
-        to the right. Called only for Node models with :attr:`node_order_by`
+        :returns:
+
+            A queryset of the nodes that must be moved to the right.
+            Called only for Node models with :attr:`node_order_by`
 
         This function is based on _insertion_target_filters from django-mptt
         (BSD licensed) by Jonathan Buchanan:
