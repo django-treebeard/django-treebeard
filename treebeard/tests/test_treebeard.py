@@ -2553,6 +2553,14 @@ class TestForm(TestNonEmptyTree):
         assert form.save() is not None
         assert original_count < model.objects.all().count()
 
+    def test_save_instance(self, model):
+        form_class = movenodeform_factory(model)
+        form = form_class(data={'_position': 'first-child', 'desc': 'Test Instance'})
+        assert form.is_valid()
+        form.instance.desc = "Modified Instance"
+        instance = form.save()
+        assert instance.desc == "Modified Instance"
+
 
 class TestAdminTreeTemplateTags(TestCase):
     def test_treebeard_css(self):
