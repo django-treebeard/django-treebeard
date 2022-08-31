@@ -177,7 +177,7 @@ def results(cl):
 
 def check_empty_dict(GET_dict):
     """
-    Returns True if the GET querstring contains on values, but it can contain
+    Returns True if the GET query string contains on values, but it can contain
     empty keys.
     This is better than doing not bool(request.GET) as an empty key will return
     True
