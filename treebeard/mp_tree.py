@@ -297,15 +297,19 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
 
 
 class MP_AddRootHandler(MP_AddHandler):
-    def __init__(self, cls, **kwargs):
+    def __init__(self, cls, base_class, **kwargs):
         super().__init__()
+
+        # cls and base_class are both needed for proxy models.
+        # cls for creating the new root, and base_class for finding existing root nodes and setting path correctly
         self.cls = cls
+        self.base_class = base_class
         self.kwargs = kwargs
 
     def process(self):
 
         # do we have a root node already?
-        last_root = self.cls.get_last_root_node()
+        last_root = self.base_class.get_last_root_node()
 
         if last_root and last_root.node_order_by:
             # there are root nodes and node_order_by has been set
@@ -317,7 +321,7 @@ class MP_AddRootHandler(MP_AddHandler):
             newpath = last_root._inc_path()
         else:
             # adding the first root node
-            newpath = self.cls._get_path(None, 1, 1)
+            newpath = self.base_class._get_path(None, 1, 1)
 
         if len(self.kwargs) == 1 and 'instance' in self.kwargs:
             # adding the passed (unsaved) instance to the tree
@@ -326,7 +330,7 @@ class MP_AddRootHandler(MP_AddHandler):
                 raise NodeAlreadySaved("Attempted to add a tree node that is "\
                     "already in the database")
         else:
-            # creating the new object
+            # creating the new object (using actual class, in the case of proxy models)
             newobj = self.cls(**self.kwargs)
 
         newobj.depth = 1
@@ -614,7 +618,11 @@ class MP_Node(Node):
 
         :raise PathOverflow: when no more root objects can be added
         """
-        return MP_AddRootHandler(cls, **kwargs).process()
+
+        # base_class will usually be the same as cls, but will be different for proxy models
+        # both are needed by MP_AddRootHandler to properly add roots when working with multiple proxy models
+        base_class = cls._meta.get_field('path').model
+        return MP_AddRootHandler(cls, base_class, **kwargs).process()
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
