@@ -6,7 +6,7 @@ class InvalidPosition(Exception):
 
 
 class InvalidMoveToDescendant(Exception):
-    """Raised when attemping to move a node to one of it's descendants."""
+    """Raised when attempting to move a node to one of it's descendants."""
 
 
 class NodeAlreadySaved(Exception):

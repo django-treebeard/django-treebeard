@@ -345,7 +345,7 @@ class TestClassMethods(TestNonEmptyTree):
         model.load_bulk(exp, None, True)
         got = model.dump_bulk(keep_ids=True)
         assert got == exp
-        # do we really have an unchaged tree after the dump/delete/load?
+        # do we really have an unchanged tree after the dump/delete/load?
         got = [
             (o.desc, o.get_depth(), o.get_children_count()) for o in model.get_tree()
         ]

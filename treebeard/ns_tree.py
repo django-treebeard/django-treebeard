@@ -494,13 +494,13 @@ class NS_Node(Node):
             parent_id = parent.pk
         else:
             parent_id = None
-        # stack of nodes to analize
+        # stack of nodes to analyze
         stack = [(parent_id, node) for node in bulk_data[::-1]]
         foreign_keys = cls.get_foreign_keys()
         pk_field = cls._meta.pk.attname
         while stack:
             parent_id, node_struct = stack.pop()
-            # shallow copy of the data strucure so it doesn't persist...
+            # shallow copy of the data structure so it doesn't persist...
             node_data = node_struct['data'].copy()
             cls._process_foreign_keys(foreign_keys, node_data)
             if keep_ids:

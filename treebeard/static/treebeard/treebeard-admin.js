@@ -36,7 +36,7 @@
                 return $('tr[parent=' + node_id + ']');
             },
             collapse: function () {
-                // For each children, hide it's childrens and so on...
+                // For each children, hide it's children and so on...
                 $.each(this.children(),function () {
                     var node = new Node(this);
                     node.collapse();
@@ -144,7 +144,7 @@
                 $('tr', node.$elem.parent()).each(function (index, element) {
                     $row = $(element);
                     rtop = $row.offset().top;
-                    // The tooltop will display whether I'm droping the element as
+                    // The tooltip will display whether I'm dropping the element as
                     // child or sibling
                     $tooltip = $drag_line.find('span');
                     $tooltip.css({
