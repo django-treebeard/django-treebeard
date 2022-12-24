@@ -2571,34 +2571,6 @@ class TestForm(TestNonEmptyTree):
         assert instance.desc == "Modified Instance"
 
 
-class TestAdminTreeTemplateTags(TestCase):
-    def test_treebeard_css(self):
-        template = Template("{% load admin_tree %}{% treebeard_css %}")
-        context = Context()
-        rendered = template.render(context)
-        expected = (
-            '<link rel="stylesheet" type="text/css" '
-            'href="' + static("treebeard/treebeard-admin.css") + '"/>'
-        )
-        assert expected == rendered
-
-    def test_treebeard_js(self):
-        template = Template("{% load admin_tree %}{% treebeard_js %}")
-        context = Context()
-        rendered = template.render(context)
-        expected = (
-            '<script type="text/javascript" src="jsi18n"></script>'
-            '<script type="text/javascript" '
-            'src="' + static("treebeard/treebeard-admin.js") + '"></script>'
-            "<script>(function($){"
-            "jQuery = $.noConflict(true);"
-            "})(django.jQuery);</script>"
-            '<script type="text/javascript" '
-            'src="' + static("treebeard/jquery-ui-1.8.5.custom.min.js") + '"></script>'
-        )
-        assert expected == rendered
-
-
 @pytest.mark.django_db
 class TestAdminTree(TestNonEmptyTree):
     template = Template(

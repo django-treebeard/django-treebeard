@@ -1,15 +1,16 @@
 {# Used for MP and NS trees #}
 {% extends "admin/change_list.html" %}
-{% load admin_list admin_tree i18n %}
+{% load admin_list admin_tree static %}
 
 {% block extrastyle %}
     {{ block.super }}
-    {% treebeard_css %}
+    <link rel="stylesheet" type="text/css" href="{% static 'treebeard/treebeard-admin.css' %}" />
 {% endblock %}
 
 {% block extrahead %}
     {{ block.super }}
-    {% treebeard_js %}
+    <script src="{% url 'admin:jsi18n' %}"></script>
+    <script src="{% static 'treebeard/treebeard-admin.js' %}"></script>
 {% endblock %}
 
 {% block result_list %}
