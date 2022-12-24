@@ -7,7 +7,7 @@ Release logic:
  3. git commit -m 'Bump to <version>'
  4. git tag <version>
  5. git push
- 6. assure that all tests pass on https://travis-ci.org/django-treebeard/django-treebeard/builds/
+ 6. ensure that all tests pass on Github Actions
  7. git push --tags
  8. pip install --upgrade pip wheel twine
  9. python setup.py clean --all

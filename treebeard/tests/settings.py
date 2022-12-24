@@ -38,7 +38,7 @@ def get_db_conf():
         }
     elif database_engine == "mssql":
         return {
-            'ENGINE': 'sql_server.pyodbc',
+            'ENGINE': 'mssql',
             'NAME': 'master',
             'USER': 'sa',
             'PASSWORD': 'Password12!',
@@ -46,7 +46,6 @@ def get_db_conf():
             'PORT': '',
             'OPTIONS': {
                 'driver': 'SQL Server Native Client 11.0',
-                'MARS_Connection': 'True',
             },
         }
 

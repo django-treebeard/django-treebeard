@@ -42,18 +42,17 @@ tox
 ``django-treebeard`` uses `tox`_ to run the test suite in all the supported
 environments - permutations of:
 
-  - Python 3.6, 3.7, 3.8 and 3.9
-  - Django 2.2, 3.0 and 3.1
+  - Python 3.8 - 3.11
+  - Django 3.2, 4.0 and 4.1
   - Sqlite, MySQL, PostgreSQL and MSSQL
 
-This means that the test suite will run 24 times to test every
-environment supported by ``django-treebeard``. This takes a long time.
-If you want to test only one or a few environments, please use the `-e`
+This means that there are a lot of permutations, which takes a long time.
+If you want to test only one or a few environments, use the `-e`
 option in `tox`_, like:
 
 .. code-block:: console
 
-    $ tox -e py36-dj22-postgres
+    $ tox -e py39-dj32-postgres
 
 
 .. _pytest: http://pytest.org/
