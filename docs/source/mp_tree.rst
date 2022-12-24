@@ -155,45 +155,14 @@ extra steps, materialized path is more efficient than other approaches.
 
      .. note::
 
-       `django-treebeard` uses Django's abstract model inheritance, so:
+       `django-treebeard` uses Django's abstract model inheritance, so
+       to change the ``max_length`` value of the path in your model, you
+       have to redeclare the path field in your model:
 
-       1. To change the max_length value of the path in your model, you
-          can't just define it since you'd get a django exception, you have
-          to modify the already defined attribute:
+       .. code-block:: python
 
-          .. code-block:: python
-
-            class MyNodeModel(MP_Node):
-                pass
-
-            MyNodeModel._meta.get_field('path').max_length = 1024
-
-       2. You can't rely on Django's `auto_now` or auto_now_add properties in
-          date/datetime fields for sorting, you'll have to manually set the
-          value before creating a node:
-
-          .. code-block:: python
-
-            class TestNodeSortedAutoNow(MP_Node):
-                desc = models.CharField(max_length=255)
-                created = models.DateTimeField(auto_now_add=True)
-                node_order_by = ['created']
-
-            TestNodeSortedAutoNow.add_root(desc='foo',
-                                           created=datetime.datetime.now())
-
-          Also, you can use another method to define your auto_now_add, this
-          will also work normally:
-
-          .. code-block:: python
-
-            import datetime
-            class TestNodeSortedAutoNow(MP_Node):
-                desc = models.CharField(max_length=255)
-                created = models.DateTimeField(default=datetime.datetime.now)
-                node_order_by = ['created']
-
-            TestNodeSortedAutoNow.add_root(desc='foo')
+         class MyNodeModel(MP_Node):
+             path = models.CharField(max_length=1024, unique=True)
 
      .. note::
 
