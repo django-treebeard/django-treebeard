@@ -28,9 +28,7 @@ django-treebeard is:
 -   **Easy**: Uses Django Model Inheritance with abstract classes to
     define your own models.
 -   **Clean**: Testable and well tested code base. Code/branch test
-    coverage is above 96%. Test suite running on different versions of
-    Python and Django:
-    <https://travis-ci.org/django-treebeard/django-treebeard/>
+    coverage is above 96%.
 
 You can find the documentation in
 
@@ -40,6 +38,6 @@ You can find the documentation in
 
 **django-treebeard** officially supports
 
--   Django 2.2 - 3.2
--   Python 3.6, 3.7, 3.8, 3.9
+-   Django 3.2, 4.0, 4.1
+-   Python 3.8 - 3.11
 -   PostgreSQL, MySQL, MSSQL, SQLite database back-ends.

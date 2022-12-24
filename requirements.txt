@@ -6,4 +6,4 @@ ipdb
 django_extensions
 
 # Testing
-tox>=2.5
+tox>=4.0

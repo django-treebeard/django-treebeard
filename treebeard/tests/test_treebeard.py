@@ -15,6 +15,7 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 from django.templatetags.static import static
 from django.contrib.admin.options import TO_FIELD_VAR
+from django import VERSION as DJANGO_VERSION
 
 import pytest
 
@@ -138,6 +139,14 @@ def mpsmallstep_model(request):
 @pytest.fixture(scope="function", params=[models.MP_TestManyToManyWithUser])
 def mpm2muser_model(request):
     return request.param
+
+
+# Compat helper, and be dropped after Django 3.2 is dropped
+def get_changelist_args(*args):
+    new_args = list(args)
+    if DJANGO_VERSION > (4,):
+        new_args.append("")     # New search_help_text arg
+    return new_args
 
 
 class TestTreeBase(object):
@@ -2603,7 +2612,7 @@ class TestAdminTree(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2616,8 +2625,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2652,7 +2661,7 @@ class TestAdminTree(TestNonEmptyTree):
         m = UnicodeModelAdmin(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2665,8 +2674,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2693,7 +2702,7 @@ class TestAdminTree(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2706,8 +2715,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2719,7 +2728,7 @@ class TestAdminTree(TestNonEmptyTree):
         request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2732,8 +2741,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2745,7 +2754,7 @@ class TestAdminTree(TestNonEmptyTree):
         request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2758,8 +2767,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2788,7 +2797,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2801,8 +2810,8 @@ class TestAdminTreeList(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2821,7 +2830,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2834,8 +2843,8 @@ class TestAdminTreeList(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request, "action_form": True})
         table_output = self.template.render(context)
@@ -2864,7 +2873,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2877,8 +2886,8 @@ class TestAdminTreeList(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
