@@ -95,6 +95,8 @@ You can see the tree structure with code:
       {'close': [0], 'level': 2, 'open': False}),
      (<Category: Category: SSD>,
       {'close': [0, 1], 'level': 1, 'open': False})]
+    >>> Category.get_annotated_list_qs(Category.objects.filter(name__icontains='Hardware'))
+    [(<Category: Category: Computer Hardware>, {'open': True, 'close': [], 'level': 0})]
 
 
 
