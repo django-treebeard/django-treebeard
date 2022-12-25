@@ -149,7 +149,7 @@ def get_changelist_args(*args):
     return new_args
 
 
-class TestTreeBase(object):
+class TestTreeBase:
     def got(self, model):
         if model in [models.NS_TestNode, models.NS_TestNode_Proxy]:
             # this slows down nested sets tests quite a bit, but it has the
@@ -1048,15 +1048,16 @@ class TestDelete(TestTreeBase):
         params=zip(models.BASE_MODELS, models.DEP_MODELS),
         ids=lambda fv: f"base={fv[0].__name__} dep={fv[1].__name__}",
     )
-    def delete_model(request):
+    def delete_dep_model_pair(request):
         base_model, dep_model = request.param
         base_model.load_bulk(BASE_DATA)
         for node in base_model.objects.all():
             dep_model(node=node).save()
-        return base_model
+        return base_model, dep_model
 
-    def test_delete_leaf(self, delete_model):
-        delete_model.objects.get(desc="231").delete()
+    def test_delete_leaf(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.get(desc="231").delete()
         expected = [
             ("1", 1, 0),
             ("2", 1, 4),
@@ -1069,9 +1070,11 @@ class TestDelete(TestTreeBase):
             ("41", 2, 0),
         ]
         assert self.got(delete_model) == expected
+        assert result == (2, {delete_model._meta.label: 1, dep_model._meta.label: 1})
 
-    def test_delete_node(self, delete_model):
-        delete_model.objects.get(desc="23").delete()
+    def test_delete_node(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.get(desc="23").delete()
         expected = [
             ("1", 1, 0),
             ("2", 1, 3),
@@ -1083,40 +1086,53 @@ class TestDelete(TestTreeBase):
             ("41", 2, 0),
         ]
         assert self.got(delete_model) == expected
+        assert result == (4, {delete_model._meta.label: 2, dep_model._meta.label: 2})
 
-    def test_delete_root(self, delete_model):
-        delete_model.objects.get(desc="2").delete()
+    def test_delete_root(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.get(desc="2").delete()
         expected = [("1", 1, 0), ("3", 1, 0), ("4", 1, 1), ("41", 2, 0)]
         assert self.got(delete_model) == expected
+        assert result == (12, {delete_model._meta.label: 6, dep_model._meta.label: 6})
 
-    def test_delete_filter_root_nodes(self, delete_model):
-        delete_model.objects.filter(desc__in=("2", "3")).delete()
+    def test_delete_filter_root_nodes(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.filter(desc__in=("2", "3")).delete()
         expected = [("1", 1, 0), ("4", 1, 1), ("41", 2, 0)]
         assert self.got(delete_model) == expected
+        assert result == (14, {delete_model._meta.label: 7, dep_model._meta.label: 7})
 
-    def test_delete_filter_children(self, delete_model):
-        delete_model.objects.filter(desc__in=("2", "23", "231")).delete()
+    def test_delete_filter_children(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.filter(desc__in=("2", "23", "231")).delete()
         expected = [("1", 1, 0), ("3", 1, 0), ("4", 1, 1), ("41", 2, 0)]
         assert self.got(delete_model) == expected
+        assert result == (12, {delete_model._meta.label: 6, dep_model._meta.label: 6})
 
-    def test_delete_nonexistant_nodes(self, delete_model):
-        delete_model.objects.filter(desc__in=("ZZZ", "XXX")).delete()
+    def test_delete_nonexistant_nodes(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.filter(desc__in=("ZZZ", "XXX")).delete()
         assert self.got(delete_model) == UNCHANGED
+        assert result == (0, {})
 
-    def test_delete_same_node_twice(self, delete_model):
-        delete_model.objects.filter(desc__in=("2", "2")).delete()
+    def test_delete_same_node_twice(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.filter(desc__in=("2", "2")).delete()
         expected = [("1", 1, 0), ("3", 1, 0), ("4", 1, 1), ("41", 2, 0)]
         assert self.got(delete_model) == expected
+        assert result == (12, {delete_model._meta.label: 6, dep_model._meta.label: 6})
 
-    def test_delete_all_root_nodes(self, delete_model):
-        delete_model.get_root_nodes().delete()
-        count = delete_model.objects.count()
-        assert count == 0
+    def test_delete_all_root_nodes(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.get_root_nodes().delete()
+        assert result == (20, {delete_model._meta.label: 10, dep_model._meta.label: 10})
+        assert delete_model.objects.count() == 0
 
-    def test_delete_all_nodes(self, delete_model):
-        delete_model.objects.all().delete()
-        count = delete_model.objects.count()
-        assert count == 0
+    def test_delete_all_nodes(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.all().delete()
+        assert result == (20, {delete_model._meta.label: 10, dep_model._meta.label: 10})
+        assert delete_model.objects.count() == 0
 
 
 @pytest.mark.django_db

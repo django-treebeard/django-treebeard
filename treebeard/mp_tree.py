@@ -74,12 +74,13 @@ class MP_NodeQuerySet(models.query.QuerySet):
     Needed only for the custom delete method.
     """
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         """
         Custom delete method, will remove all descendant nodes to ensure a
         consistent tree (no orphans)
 
-        :returns: ``None``
+        :returns: tuple of the number of objects deleted and a dictionary 
+                  with the number of deletions per object type
         """
         # we'll have to manually run through all the nodes that are going
         # to be deleted and remove nodes from the list if an ancestor is
@@ -119,10 +120,15 @@ class MP_NodeQuerySet(models.query.QuerySet):
 
         # Django will handle this as a SELECT and then a DELETE of
         # ids, and will deal with removing related objects
+        model = get_result_class(self.model)
         if toremove:
-            qset = get_result_class(self.model).objects.filter(reduce(operator.or_, toremove))
-            super(MP_NodeQuerySet, qset).delete()
+            qset = model.objects.filter(reduce(operator.or_, toremove))
+        else:
+            qset = model.objects.none()
+        return super(MP_NodeQuerySet, qset).delete(*args, **kwargs)
 
+    delete.alters_data = True
+    delete.queryset_only = True
 
 class MP_NodeManager(models.Manager):
     """Custom manager for nodes in a Materialized Path tree."""
