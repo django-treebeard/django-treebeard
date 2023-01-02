@@ -1,4 +1,4 @@
-Release 4.6 (in development)
+Release 4.6 (Jan 2, 2023)
 ----------------------------
 
 * Drop support for Django 3.1 and lower.
@@ -12,6 +12,7 @@ Release 4.6 (in development)
   keyword arguments which are passed to the parent method.
 * Set `alters_data` and `queryset_only` attributes on the `delete()` methods for all node classes
   to prevent them being used in an unwanted context (e.g., in Django templates).
+* Drop dependency on jQuery UI in the admin.
 
 Release 4.5.1 (Feb 22, 2021)
 ----------------------------
