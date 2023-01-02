@@ -1973,6 +1973,7 @@ class TestInheritedModels(TestTreeBase):
         assert [node.desc for node in node2.get_descendants()] == ["22"]
 
 
+@pytest.mark.django_db
 class TestMP_TreeAlphabet(TestTreeBase):
     @pytest.mark.skipif(
         not os.getenv("TREEBEARD_TEST_ALPHABET", False),
