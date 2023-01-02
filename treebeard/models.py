@@ -499,9 +499,12 @@ class Node(models.Model):
         """
         raise NotImplementedError
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         """Removes a node and all it's descendants."""
-        self.__class__.objects.filter(pk=self.pk).delete()
+        return self.__class__.objects.filter(pk=self.pk).delete(*args, **kwargs)
+
+    delete.alters_data = True
+    delete.queryset_only = True
 
     def _prepare_pos_var(self, pos, method_name, valid_pos, valid_sorted_pos):
         if pos is None:

@@ -36,6 +36,17 @@ def get_result_class(cls):
         return base_class
 
 
+def merge_deleted_counters(c1, c2):
+    """
+    Merge return values from Django's Queryset.delete() method.
+    """
+    object_counts = {
+        key: c1[1].get(key, 0) + c2[1].get(key, 0) 
+        for key in set(c1[1]) | set(c2[1])
+    }
+    return (c1[0] + c2[0], object_counts)
+
+
 class NS_NodeQuerySet(models.query.QuerySet):
     """
     Custom queryset for the tree node manager.
@@ -43,19 +54,25 @@ class NS_NodeQuerySet(models.query.QuerySet):
     Needed only for the customized delete method.
     """
 
-    def delete(self, removed_ranges=None):
+    def delete(self, *args, removed_ranges=None, deleted_counter=None, **kwargs):
         """
         Custom delete method, will remove all descendant nodes to ensure a
         consistent tree (no orphans)
 
-        :returns: ``None``
+        :returns: tuple of the number of objects deleted and a dictionary 
+                  with the number of deletions per object type
         """
         model = get_result_class(self.model)
+
+        if deleted_counter is None:
+            deleted_counter = (0, {})
+
         if removed_ranges is not None:
             # we already know the children, let's call the default django
             # delete method and let it handle the removal of the user's
             # foreign keys...
-            super().delete()
+            result = super().delete(*args, **kwargs)
+            deleted_counter = merge_deleted_counters(deleted_counter, result)
             cursor = model._get_database_cursor('write')
 
             # Now closing the gap (Celko's trees book, page 62)
@@ -92,10 +109,14 @@ class NS_NodeQuerySet(models.query.QuerySet):
                                 Q(tree_id=node.tree_id))
                 ranges.append((node.tree_id, node.lft, node.rgt))
             if toremove:
-                model.objects.filter(
+                deleted_counter = model.objects.filter(
                     reduce(operator.or_,
                            toremove)
-                ).delete(removed_ranges=ranges)
+                ).delete(removed_ranges=ranges, deleted_counter=deleted_counter)
+        return deleted_counter
+
+    delete.alters_data = True
+    delete.queryset_only = True
 
 
 class NS_NodeManager(models.Manager):
