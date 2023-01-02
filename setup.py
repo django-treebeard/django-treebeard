@@ -19,7 +19,7 @@ setup_args = dict(
     description='Efficient tree implementations for Django',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     install_requires=['Django>=3.2'],
     tests_require=[
         'pytest-django>=4.0,<5.0',
