@@ -3044,3 +3044,24 @@ class TestMPFormPerformance(object):
         form = form_class()
         with django_assert_num_queries(len(model.get_root_nodes()) + 1):
             form.mk_dropdown_tree(model)
+
+
+@pytest.mark.django_db
+class TestMP_TreeDescendantsPerformance(TestTreeBase):
+    def test_get_descendants_no_of_queries(self, django_assert_num_queries):
+        model = models.MP_TestNode
+        model.load_bulk(BASE_DATA)
+
+        data = [
+            ("2", 1),
+            ("23", 1),
+            ("231", 0),
+            ("1", 0),
+            ("4", 1),
+        ]
+
+        for desc, expected in data:
+            node = model.objects.get(desc=desc)
+            with django_assert_num_queries(expected):
+                # converting to list to force queryset evaluation
+                list(node.get_descendants())

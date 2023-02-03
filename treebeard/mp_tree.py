@@ -1027,6 +1027,8 @@ class MP_Node(Node):
         :returns: A queryset of all the node's descendants as DFS, doesn't
             include the node itself
         """
+        if self.is_leaf():
+            return get_result_class(self.__class__).objects.none()
         return self.__class__.get_tree(self).exclude(pk=self.pk)
 
     def get_prev_sibling(self):
