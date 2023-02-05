@@ -2893,6 +2893,41 @@ class TestAdminTreeList(TestNonEmptyTree):
             expected_output = output_template % object.pk
             assert expected_output in table_output
 
+    def test_result_tree_list_escapes_labels(self, model_with_unicode):
+        """
+        Verifies that inclusion tag result_list generates a table when with
+        default ModelAdmin settings.
+        """
+        object = model_with_unicode.add_root(desc="<>")
+        request = RequestFactory().get("/admin/tree/")
+        request.user = AnonymousUser()
+        site = AdminSite()
+        form_class = movenodeform_factory(model_with_unicode)
+        admin_class = admin_factory(form_class)
+        m = admin_class(model_with_unicode, site)
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(*get_changelist_args(
+            request,
+            model_with_unicode,
+            list_display,
+            list_display_links,
+            m.list_filter,
+            m.date_hierarchy,
+            m.search_fields,
+            m.list_select_related,
+            m.list_per_page,
+            m.list_max_show_all,
+            m.list_editable,
+            m,
+            [],
+        ))
+        cl.formset = None
+        context = Context({"cl": cl, "request": request})
+        table_output = self.template.render(context)
+        expected_output = f'<li><a href="{object.pk}/" >&lt;&gt;</a>'
+        assert expected_output in table_output
+
 
 @pytest.mark.django_db
 class TestTreeAdmin(TestNonEmptyTree):
