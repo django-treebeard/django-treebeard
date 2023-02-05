@@ -1,3 +1,10 @@
+Release 4.6.1 (Feb 5, 2023)
+----------------------------
+
+* Fix unescaped string representation of `AL_Node` models in the Django admin. 
+  Thanks to goodguyandy for reporting the issue.
+* Optimise `MP_Node.get_descendants` to avoid database queries when called on a leaf node.
+
 Release 4.6 (Jan 2, 2023)
 ----------------------------
 
