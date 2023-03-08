@@ -34,9 +34,9 @@ Let's create some nodes:
     >>> get = lambda node_id: Category.objects.get(pk=node_id)
     >>> root = Category.add_root(name='Computer Hardware')
     >>> node = get(root.pk).add_child(name='Memory')
-    >>> get(node.pk).add_sibling(name='Hard Drives')
+    >>> get(root.pk).add_sibling(name='Hard Drives')
     <Category: Category: Hard Drives>
-    >>> get(node.pk).add_sibling(name='SSD')
+    >>> get(root.pk).add_sibling(name='SSD')
     <Category: Category: SSD>
     >>> get(node.pk).add_child(name='Desktop Memory')
     <Category: Category: Desktop Memory>
