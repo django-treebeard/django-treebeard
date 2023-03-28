@@ -30,4 +30,5 @@ include/
 lib/
 distribute*
 share/
+venv/
 .DS_store

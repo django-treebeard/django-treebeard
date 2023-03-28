@@ -1,3 +1,26 @@
+Release 4.6.1 (Feb 5, 2023)
+----------------------------
+
+* Fix unescaped string representation of `AL_Node` models in the Django admin. 
+  Thanks to goodguyandy for reporting the issue.
+* Optimise `MP_Node.get_descendants` to avoid database queries when called on a leaf node.
+
+Release 4.6 (Jan 2, 2023)
+----------------------------
+
+* Drop support for Django 3.1 and lower.
+* Add support for Django 4.0 and 4.1.
+* Drop support for Python 3.7 and lower.
+* Add support for Python 3.10 and Python 3.11.
+* Change the return value of `delete()` for all node classes to be consistent with Django,
+  and return a tuple of the number of objects deleted and a dictionary with the number of 
+  deletions per object type.
+* Change the `delete()` methods for all node classes to accept arbitrary positional and 
+  keyword arguments which are passed to the parent method.
+* Set `alters_data` and `queryset_only` attributes on the `delete()` methods for all node classes
+  to prevent them being used in an unwanted context (e.g., in Django templates).
+* Drop dependency on jQuery UI in the admin.
+
 Release 4.5.1 (Feb 22, 2021)
 ----------------------------
 

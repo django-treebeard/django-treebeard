@@ -15,6 +15,7 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 from django.templatetags.static import static
 from django.contrib.admin.options import TO_FIELD_VAR
+from django import VERSION as DJANGO_VERSION
 
 import pytest
 
@@ -140,7 +141,15 @@ def mpm2muser_model(request):
     return request.param
 
 
-class TestTreeBase(object):
+# Compat helper, and be dropped after Django 3.2 is dropped
+def get_changelist_args(*args):
+    new_args = list(args)
+    if DJANGO_VERSION > (4,):
+        new_args.append("")     # New search_help_text arg
+    return new_args
+
+
+class TestTreeBase:
     def got(self, model):
         if model in [models.NS_TestNode, models.NS_TestNode_Proxy]:
             # this slows down nested sets tests quite a bit, but it has the
@@ -345,7 +354,7 @@ class TestClassMethods(TestNonEmptyTree):
         model.load_bulk(exp, None, True)
         got = model.dump_bulk(keep_ids=True)
         assert got == exp
-        # do we really have an unchaged tree after the dump/delete/load?
+        # do we really have an unchanged tree after the dump/delete/load?
         got = [
             (o.desc, o.get_depth(), o.get_children_count()) for o in model.get_tree()
         ]
@@ -1039,15 +1048,16 @@ class TestDelete(TestTreeBase):
         params=zip(models.BASE_MODELS, models.DEP_MODELS),
         ids=lambda fv: f"base={fv[0].__name__} dep={fv[1].__name__}",
     )
-    def delete_model(request):
+    def delete_dep_model_pair(request):
         base_model, dep_model = request.param
         base_model.load_bulk(BASE_DATA)
         for node in base_model.objects.all():
             dep_model(node=node).save()
-        return base_model
+        return base_model, dep_model
 
-    def test_delete_leaf(self, delete_model):
-        delete_model.objects.get(desc="231").delete()
+    def test_delete_leaf(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.get(desc="231").delete()
         expected = [
             ("1", 1, 0),
             ("2", 1, 4),
@@ -1060,9 +1070,11 @@ class TestDelete(TestTreeBase):
             ("41", 2, 0),
         ]
         assert self.got(delete_model) == expected
+        assert result == (2, {delete_model._meta.label: 1, dep_model._meta.label: 1})
 
-    def test_delete_node(self, delete_model):
-        delete_model.objects.get(desc="23").delete()
+    def test_delete_node(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.get(desc="23").delete()
         expected = [
             ("1", 1, 0),
             ("2", 1, 3),
@@ -1074,40 +1086,53 @@ class TestDelete(TestTreeBase):
             ("41", 2, 0),
         ]
         assert self.got(delete_model) == expected
+        assert result == (4, {delete_model._meta.label: 2, dep_model._meta.label: 2})
 
-    def test_delete_root(self, delete_model):
-        delete_model.objects.get(desc="2").delete()
+    def test_delete_root(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.get(desc="2").delete()
         expected = [("1", 1, 0), ("3", 1, 0), ("4", 1, 1), ("41", 2, 0)]
         assert self.got(delete_model) == expected
+        assert result == (12, {delete_model._meta.label: 6, dep_model._meta.label: 6})
 
-    def test_delete_filter_root_nodes(self, delete_model):
-        delete_model.objects.filter(desc__in=("2", "3")).delete()
+    def test_delete_filter_root_nodes(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.filter(desc__in=("2", "3")).delete()
         expected = [("1", 1, 0), ("4", 1, 1), ("41", 2, 0)]
         assert self.got(delete_model) == expected
+        assert result == (14, {delete_model._meta.label: 7, dep_model._meta.label: 7})
 
-    def test_delete_filter_children(self, delete_model):
-        delete_model.objects.filter(desc__in=("2", "23", "231")).delete()
+    def test_delete_filter_children(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.filter(desc__in=("2", "23", "231")).delete()
         expected = [("1", 1, 0), ("3", 1, 0), ("4", 1, 1), ("41", 2, 0)]
         assert self.got(delete_model) == expected
+        assert result == (12, {delete_model._meta.label: 6, dep_model._meta.label: 6})
 
-    def test_delete_nonexistant_nodes(self, delete_model):
-        delete_model.objects.filter(desc__in=("ZZZ", "XXX")).delete()
+    def test_delete_nonexistant_nodes(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.filter(desc__in=("ZZZ", "XXX")).delete()
         assert self.got(delete_model) == UNCHANGED
+        assert result == (0, {})
 
-    def test_delete_same_node_twice(self, delete_model):
-        delete_model.objects.filter(desc__in=("2", "2")).delete()
+    def test_delete_same_node_twice(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.filter(desc__in=("2", "2")).delete()
         expected = [("1", 1, 0), ("3", 1, 0), ("4", 1, 1), ("41", 2, 0)]
         assert self.got(delete_model) == expected
+        assert result == (12, {delete_model._meta.label: 6, dep_model._meta.label: 6})
 
-    def test_delete_all_root_nodes(self, delete_model):
-        delete_model.get_root_nodes().delete()
-        count = delete_model.objects.count()
-        assert count == 0
+    def test_delete_all_root_nodes(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.get_root_nodes().delete()
+        assert result == (20, {delete_model._meta.label: 10, dep_model._meta.label: 10})
+        assert delete_model.objects.count() == 0
 
-    def test_delete_all_nodes(self, delete_model):
-        delete_model.objects.all().delete()
-        count = delete_model.objects.count()
-        assert count == 0
+    def test_delete_all_nodes(self, delete_dep_model_pair):
+        delete_model, dep_model = delete_dep_model_pair
+        result = delete_model.objects.all().delete()
+        assert result == (20, {delete_model._meta.label: 10, dep_model._meta.label: 10})
+        assert delete_model.objects.count() == 0
 
 
 @pytest.mark.django_db
@@ -1948,6 +1973,7 @@ class TestInheritedModels(TestTreeBase):
         assert [node.desc for node in node2.get_descendants()] == ["22"]
 
 
+@pytest.mark.django_db
 class TestMP_TreeAlphabet(TestTreeBase):
     @pytest.mark.skipif(
         not os.getenv("TREEBEARD_TEST_ALPHABET", False),
@@ -2553,33 +2579,13 @@ class TestForm(TestNonEmptyTree):
         assert form.save() is not None
         assert original_count < model.objects.all().count()
 
-
-class TestAdminTreeTemplateTags(TestCase):
-    def test_treebeard_css(self):
-        template = Template("{% load admin_tree %}{% treebeard_css %}")
-        context = Context()
-        rendered = template.render(context)
-        expected = (
-            '<link rel="stylesheet" type="text/css" '
-            'href="' + static("treebeard/treebeard-admin.css") + '"/>'
-        )
-        assert expected == rendered
-
-    def test_treebeard_js(self):
-        template = Template("{% load admin_tree %}{% treebeard_js %}")
-        context = Context()
-        rendered = template.render(context)
-        expected = (
-            '<script type="text/javascript" src="jsi18n"></script>'
-            '<script type="text/javascript" '
-            'src="' + static("treebeard/treebeard-admin.js") + '"></script>'
-            "<script>(function($){"
-            "jQuery = $.noConflict(true);"
-            "})(django.jQuery);</script>"
-            '<script type="text/javascript" '
-            'src="' + static("treebeard/jquery-ui-1.8.5.custom.min.js") + '"></script>'
-        )
-        assert expected == rendered
+    def test_save_instance(self, model):
+        form_class = movenodeform_factory(model)
+        form = form_class(data={'_position': 'first-child', 'desc': 'Test Instance'})
+        assert form.is_valid()
+        form.instance.desc = "Modified Instance"
+        instance = form.save()
+        assert instance.desc == "Modified Instance"
 
 
 @pytest.mark.django_db
@@ -2603,7 +2609,7 @@ class TestAdminTree(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2616,8 +2622,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2652,7 +2658,7 @@ class TestAdminTree(TestNonEmptyTree):
         m = UnicodeModelAdmin(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2665,8 +2671,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2693,7 +2699,7 @@ class TestAdminTree(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2706,8 +2712,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2719,7 +2725,7 @@ class TestAdminTree(TestNonEmptyTree):
         request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2732,8 +2738,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2745,7 +2751,7 @@ class TestAdminTree(TestNonEmptyTree):
         request.user = AnonymousUser()
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2758,8 +2764,8 @@ class TestAdminTree(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2788,7 +2794,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2801,8 +2807,8 @@ class TestAdminTreeList(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2821,7 +2827,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2834,8 +2840,8 @@ class TestAdminTreeList(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request, "action_form": True})
         table_output = self.template.render(context)
@@ -2864,7 +2870,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
+        cl = ChangeList(*get_changelist_args(
             request,
             model,
             list_display,
@@ -2877,8 +2883,8 @@ class TestAdminTreeList(TestNonEmptyTree):
             m.list_max_show_all,
             m.list_editable,
             m,
-            None,
-        )
+            [],
+        ))
         cl.formset = None
         context = Context({"cl": cl, "request": request})
         table_output = self.template.render(context)
@@ -2886,6 +2892,41 @@ class TestAdminTreeList(TestNonEmptyTree):
         for object in model.objects.all():
             expected_output = output_template % object.pk
             assert expected_output in table_output
+
+    def test_result_tree_list_escapes_labels(self, model_with_unicode):
+        """
+        Verifies that inclusion tag result_list generates a table when with
+        default ModelAdmin settings.
+        """
+        object = model_with_unicode.add_root(desc="<>")
+        request = RequestFactory().get("/admin/tree/")
+        request.user = AnonymousUser()
+        site = AdminSite()
+        form_class = movenodeform_factory(model_with_unicode)
+        admin_class = admin_factory(form_class)
+        m = admin_class(model_with_unicode, site)
+        list_display = m.get_list_display(request)
+        list_display_links = m.get_list_display_links(request, list_display)
+        cl = ChangeList(*get_changelist_args(
+            request,
+            model_with_unicode,
+            list_display,
+            list_display_links,
+            m.list_filter,
+            m.date_hierarchy,
+            m.search_fields,
+            m.list_select_related,
+            m.list_per_page,
+            m.list_max_show_all,
+            m.list_editable,
+            m,
+            [],
+        ))
+        cl.formset = None
+        context = Context({"cl": cl, "request": request})
+        table_output = self.template.render(context)
+        expected_output = f'<li><a href="{object.pk}/" >&lt;&gt;</a>'
+        assert expected_output in table_output
 
 
 @pytest.mark.django_db
@@ -3038,3 +3079,24 @@ class TestMPFormPerformance(object):
         form = form_class()
         with django_assert_num_queries(len(model.get_root_nodes()) + 1):
             form.mk_dropdown_tree(model)
+
+
+@pytest.mark.django_db
+class TestMP_TreeDescendantsPerformance(TestTreeBase):
+    def test_get_descendants_no_of_queries(self, django_assert_num_queries):
+        model = models.MP_TestNode
+        model.load_bulk(BASE_DATA)
+
+        data = [
+            ("2", 1),
+            ("23", 1),
+            ("231", 0),
+            ("1", 0),
+            ("4", 1),
+        ]
+
+        for desc, expected in data:
+            node = model.objects.get(desc=desc)
+            with django_assert_num_queries(expected):
+                # converting to list to force queryset evaluation
+                list(node.get_descendants())

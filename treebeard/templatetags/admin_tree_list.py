@@ -16,15 +16,15 @@ def _line(context, node, request):
     if TO_FIELD_VAR in request.GET and request.GET[TO_FIELD_VAR] == pk_field:
         raw_id_fields = format_html("""
         onclick="opener.dismissRelatedLookupPopup(window, '{}'); return false;"
-        """, mark_safe(node.pk))
+        """, node.pk)
     else:
         raw_id_fields = ''
     output = ''
     if needs_checkboxes(context):
-        output += format_html(CHECKBOX_TMPL, mark_safe(node.pk))
+        output += format_html(CHECKBOX_TMPL, node.pk)
     return output + format_html(
         '<a href="{}/" {}>{}</a>',
-        mark_safe(node.pk), mark_safe(raw_id_fields), mark_safe(str(node)))
+        node.pk, mark_safe(raw_id_fields), str(node))
 
 
 def _subtree(context, node, request):

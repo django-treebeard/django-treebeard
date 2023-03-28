@@ -9,6 +9,24 @@
 
     RECENTLY_FADE_DURATION = 2000;
 
+    // Add jQuery util for disabling selection
+    // Originally taken from jquery-ui (where it is deprecated)
+    // https://api.jqueryui.com/disableSelection/
+    $.fn.extend( {
+        disableSelection: ( function() {
+            var eventType = "onselectstart" in document.createElement( "div" ) ? "selectstart" : "mousedown";
+            return function() {
+                return this.on( eventType + ".ui-disableSelection", function( event ) {
+                    event.preventDefault();
+                } );
+            };
+        } )(),
+    
+        enableSelection: function() {
+            return this.off( ".ui-disableSelection" );
+        }
+    } );
+
 // This is the basic Node class, which handles UI tree operations for each 'row'
     var Node = function (elem) {
         var $elem = $(elem);
@@ -36,7 +54,7 @@
                 return $('tr[parent=' + node_id + ']');
             },
             collapse: function () {
-                // For each children, hide it's childrens and so on...
+                // For each children, hide it's children and so on...
                 $.each(this.children(),function () {
                     var node = new Node(this);
                     node.collapse();
@@ -78,7 +96,7 @@
                 if (document.cookie && document.cookie != '') {
                     var cookies = document.cookie.split(';');
                     for (var i = 0; i < cookies.length; i++) {
-                        var cookie = jQuery.trim(cookies[i]);
+                        var cookie = $.trim(cookies[i]);
                         // Does this cookie string begin with the name we want?
                         if (cookie.substring(0, name.length + 1) == (name + '=')) {
                             cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
@@ -144,7 +162,7 @@
                 $('tr', node.$elem.parent()).each(function (index, element) {
                     $row = $(element);
                     rtop = $row.offset().top;
-                    // The tooltop will display whether I'm droping the element as
+                    // The tooltip will display whether I'm dropping the element as
                     // child or sibling
                     $tooltip = $drag_line.find('span');
                     $tooltip.css({

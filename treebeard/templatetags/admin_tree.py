@@ -17,7 +17,6 @@ from django.utils.encoding import force_str
 from django.utils.html import conditional_escape, format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
-from django.templatetags.static import static
 
 from treebeard.templatetags import needs_checkboxes
 
@@ -177,7 +176,7 @@ def results(cl):
 
 def check_empty_dict(GET_dict):
     """
-    Returns True if the GET querstring contains on values, but it can contain
+    Returns True if the GET query string contains on values, but it can contain
     empty keys.
     This is better than doing not bool(request.GET) as an empty key will return
     True
@@ -214,37 +213,3 @@ def result_tree(context, cl, request):
         'result_headers': headers,
         'results': list(results(cl)),
     }
-
-
-@register.simple_tag
-def treebeard_css():
-    """
-    Template tag to print out the proper <link/> tag to include a custom .css
-    """
-    css_file = static('treebeard/treebeard-admin.css')
-    return format_html(
-        """<link rel="stylesheet" type="text/css" href="{}"/>""",
-        mark_safe(css_file)
-    )
-
-
-@register.simple_tag
-def treebeard_js():
-    """
-    Template tag to print out the proper <script/> tag to include a custom .js
-    """
-    js_file = static('treebeard/treebeard-admin.js')
-    jquery_ui = static('treebeard/jquery-ui-1.8.5.custom.min.js')
-
-    # Jquery UI is needed to call disableSelection() on drag and drop so
-    # text selections arent marked while dragging a table row
-    # http://www.lokkju.com/blog/archives/143
-    TEMPLATE = (
-        '<script type="text/javascript" src="{}"></script>'
-        '<script type="text/javascript" src="{}"></script>'
-        '<script>'
-            '(function($){{jQuery = $.noConflict(true);}})(django.jQuery);'
-        '</script>'
-        '<script type="text/javascript" src="{}"></script>')
-    return format_html(
-        TEMPLATE, "jsi18n", mark_safe(js_file), mark_safe(jquery_ui))

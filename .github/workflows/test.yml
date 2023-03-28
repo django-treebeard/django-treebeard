@@ -15,10 +15,14 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.8, 3.9, "3.10", 3.11]
+        django-version: [32, 40, 41]
+        exclude:
+          - django-version: 32
+            python-version: 3.11
     services:
       postgres:
-        image: postgres:10
+        image: postgres:13
         ports:
           - 5432/tcp
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
@@ -51,4 +55,7 @@ jobs:
         DATABASE_HOST: 127.0.0.1
         DATABASE_PORT_POSTGRES: ${{ job.services.postgres.ports[5432] }} # get randomly assigned published port
         DATABASE_PORT_MYSQL: ${{ job.services.mysql.ports[3306] }} # get randomly assigned published port
-      run: tox -e "py-dj{22,30,31,32}-{sqlite,postgres,mysql}"
+      run: |
+        tox -e "py-dj${{ matrix.django-version }}-sqlite"
+        tox -e "py-dj${{ matrix.django-version }}-postgres"
+        tox -e "py-dj${{ matrix.django-version }}-mysql"
