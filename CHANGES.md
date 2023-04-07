@@ -1,3 +1,9 @@
+Release 4.7 (Apr 7, 2023)
+----------------------------
+
+* Drop support for Django 4.0.
+* Add support for Django 4.2.
+
 Release 4.6.1 (Feb 5, 2023)
 ----------------------------
 
