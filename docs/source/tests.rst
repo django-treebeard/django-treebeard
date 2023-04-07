@@ -43,7 +43,7 @@ tox
 environments - permutations of:
 
   - Python 3.8 - 3.11
-  - Django 3.2, 4.0 and 4.1
+  - Django 3.2, 4.1 and 4.2
   - Sqlite, MySQL, PostgreSQL and MSSQL
 
 This means that there are a lot of permutations, which takes a long time.
