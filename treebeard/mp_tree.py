@@ -42,6 +42,12 @@ def sql_substr(field, pos, length=None, **kwargs):
         function = 'SUBSTRING({field}, {pos}, {length})'
     return function.format(field=field, pos=pos, length=length)
 
+def sql_cast_to_int(expr, field):
+    # vendor = field.model.get_database_vendor('write')
+    # if vendor == 'some_db_that_does_not_have_CAST_function':
+    #     return 'CAST_LIKE_FUNCTION_OF_THAT_VENDOR({} AS {})'.format(expr, type_name)
+    type_name = field.db_type(field.model._get_database_connection('write'))
+    return 'CAST({} AS {})'.format(expr, type_name)
 
 def get_result_class(cls):
     """
@@ -294,7 +300,8 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
             # done in another query
             # doesn't even work with sql_mode='ANSI,TRADITIONAL'
             # TODO: FIND OUT WHY?!?? right now I'm just blaming mysql
-            sql2.append(("depth=" + sql_length("%s", vendor=vendor) + "/%%s") % (sqlpath, ))
+            model_field = self.node_cls._meta.get_field("depth")
+            sql2.append(("depth=" + sql_cast_to_int(sql_length("%s", vendor=vendor) + "/%%s", field=model_field)) % (sqlpath, ))
             vals.extend([newpath, len(oldpath) + 1, self.node_cls.steplen])
         sql3 = "WHERE path LIKE %s"
         vals.extend([oldpath + '%'])
