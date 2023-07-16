@@ -211,7 +211,7 @@ extra steps, materialized path is more efficient than other approaches.
 
      .. note::
 
-        This metod returns a queryset.
+        This method returns a queryset.
 
   .. automethod:: find_problems
 
