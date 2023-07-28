@@ -633,11 +633,13 @@ class NS_Node(Node):
             tree_id=parent.tree_id,
             lft__range=(parent.lft, parent.rgt - 1))
 
-    def get_descendants(self):
+    def get_descendants(self, include_self=False):
         """
         :returns: A queryset of all the node's descendants as DFS, doesn't
-            include the node itself
+            include the node itself if `include_self` is `False`
         """
+        if include_self:
+            return self.__class__.get_tree(self)
         if self.is_leaf():
             return get_result_class(self.__class__).objects.none()
         return self.__class__.get_tree(self).exclude(pk=self.pk)
