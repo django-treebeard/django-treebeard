@@ -258,11 +258,13 @@ class AL_Node(Node):
         cls._get_tree_recursively(results, parent, depth)
         return results
 
-    def get_descendants(self):
+    def get_descendants(self, include_self=False):
         """
         :returns: A *list* of all the node's descendants, doesn't
-            include the node itself
+            include the node itself if `include_self` is False
         """
+        if include_self:
+            return self.__class__.get_tree(self)
         return self.__class__.get_tree(parent=self)[1:]
 
     def get_descendant_count(self):
