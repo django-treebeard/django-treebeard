@@ -552,7 +552,9 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
                 self.pos = 'first-sibling'
                 siblings = get_result_class(self.node_cls).objects.none()
             else:
-                self.target = self.target.get_last_child()
+                target_last_child = self.target.get_last_child()
+                if target_last_child is not None:
+                    self.target = target_last_child
                 self.pos = {
                     'first-child': 'first-sibling',
                     'last-child': 'last-sibling',
