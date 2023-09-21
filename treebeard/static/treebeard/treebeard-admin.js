@@ -6,6 +6,7 @@
     RECENTLY_MOVED_FADEOUT = '#FFFFFF';
     ABORT_COLOR = '#EECCCC';
     DRAG_LINE_COLOR = '#AA00AA';
+    MOVE_NODE_ENDPOINT = 'move/';
 
     RECENTLY_FADE_DURATION = 2000;
 
@@ -226,7 +227,7 @@
                             // Call $.ajax so we can handle the error
                             // On Drop, make an XHR call to perform the node move
                             $.ajax({
-                                url: window.MOVE_NODE_ENDPOINT,
+                                url: MOVE_NODE_ENDPOINT,
                                 type: 'POST',
                                 data: {
                                     node_id: node.node_id,
