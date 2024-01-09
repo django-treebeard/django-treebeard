@@ -10,7 +10,7 @@
 {% block extrahead %}
     {{ block.super }}
     <script src="{% url 'admin:jsi18n' %}"></script>
-    <script src="{% static 'treebeard/treebeard-admin.js' %}"></script>
+    <script data-csrftoken="{{ csrf_token }}" src="{% static 'treebeard/treebeard-admin.js' %}"></script>
 {% endblock %}
 
 {% block result_list %}
