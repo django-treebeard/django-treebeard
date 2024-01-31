@@ -6,8 +6,11 @@
     RECENTLY_MOVED_FADEOUT = '#FFFFFF';
     ABORT_COLOR = '#EECCCC';
     DRAG_LINE_COLOR = '#AA00AA';
+    MOVE_NODE_ENDPOINT = 'move/';
 
     RECENTLY_FADE_DURATION = 2000;
+
+    CSRF_TOKEN = document.currentScript.dataset.csrftoken;
 
     // Add jQuery util for disabling selection
     // Originally taken from jquery-ui (where it is deprecated)
@@ -87,33 +90,12 @@
     };
 
     $(document).ready(function () {
-
-        // begin csrf token code
-        // Taken from http://docs.djangoproject.com/en/dev/ref/contrib/csrf/#ajax
         $(document).ajaxSend(function (event, xhr, settings) {
-            function getCookie(name) {
-                var cookieValue = null;
-                if (document.cookie && document.cookie != '') {
-                    var cookies = document.cookie.split(';');
-                    for (var i = 0; i < cookies.length; i++) {
-                        var cookie = $.trim(cookies[i]);
-                        // Does this cookie string begin with the name we want?
-                        if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
-                        }
-                    }
-                }
-                return cookieValue;
-            }
-
             if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
                 // Only send the token to relative URLs i.e. locally.
-                xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+                xhr.setRequestHeader("X-CSRFToken", CSRF_TOKEN);
             }
         });
-        // end csrf token code
-
 
         // Don't activate drag or collapse if GET filters are set on the page
         if ($('#has-filters').val() === "1") {
@@ -226,7 +208,7 @@
                             // Call $.ajax so we can handle the error
                             // On Drop, make an XHR call to perform the node move
                             $.ajax({
-                                url: window.MOVE_NODE_ENDPOINT,
+                                url: MOVE_NODE_ENDPOINT,
                                 type: 'POST',
                                 data: {
                                     node_id: node.node_id,

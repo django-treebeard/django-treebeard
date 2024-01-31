@@ -38,6 +38,6 @@ You can find the documentation in
 
 **django-treebeard** officially supports
 
--   Django 3.2, 4.1, 4.2
--   Python 3.8 - 3.11
+-   Django 3.2, 4.1, 4.2, 5.0
+-   Python 3.8 - 3.12
 -   PostgreSQL, MySQL, MSSQL, SQLite database back-ends.

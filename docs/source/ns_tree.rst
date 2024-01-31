@@ -78,4 +78,4 @@ write/delete operations.
 
 .. _`Joe Celko`: http://en.wikipedia.org/wiki/Joe_Celko
 .. _`Trees and Hierarchies in SQL for Smarties`:
-  http://www.elsevier.com/wps/product/cws_home/702605
+  https://shop.elsevier.com/books/joe-celkos-trees-and-hierarchies-in-sql-for-smarties/celko/978-0-12-387733-8
