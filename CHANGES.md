@@ -1,3 +1,9 @@
+Release 4.7.1 (Jan 31, 2024)
+----------------------------
+* Fix: Allow usage of CSRF_COOKIE_HTTPONLY setting.
+* Add support for Django-5.0.
+
+
 Release 4.7 (Apr 7, 2023)
 ----------------------------
 
