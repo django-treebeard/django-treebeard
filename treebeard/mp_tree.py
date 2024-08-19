@@ -79,7 +79,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
         Custom delete method, will remove all descendant nodes to ensure a
         consistent tree (no orphans)
 
-        :returns: tuple of the number of objects deleted and a dictionary 
+        :returns: tuple of the number of objects deleted and a dictionary
                   with the number of deletions per object type
         """
         # we'll have to manually run through all the nodes that are going
@@ -631,7 +631,7 @@ class MP_Node(Node):
         # Because of fix_tree, this method assumes that the depth
         # and numchild properties in the nodes can be incorrect,
         # so no helper methods are used
-        qset = cls._get_serializable_model().objects.all()
+        qset = cls._get_serializable_model().objects.all().order_by("depth", "path")
         if parent:
             qset = qset.filter(path__startswith=parent.path)
         ret, lnk = [], {}
