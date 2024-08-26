@@ -378,4 +378,22 @@ class Migration(migrations.Migration):
             },
             bases=('tests.ns_testnode',),
         ),
+        migrations.CreateModel(
+            name="MP_RegressionIssue219",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("path", models.CharField(max_length=255, unique=True)),
+                ("depth", models.PositiveIntegerField()),
+                ("numchild", models.PositiveIntegerField(default=0)),
+                ("name", models.CharField(max_length=255)),
+            ],
+        ),
     ]
