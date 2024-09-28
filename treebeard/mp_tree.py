@@ -587,7 +587,6 @@ class MP_Node(Node):
     path = models.CharField(max_length=255, unique=True)
     depth = models.PositiveIntegerField()
     numchild = models.PositiveIntegerField(default=0)
-    gap = 1
 
     objects = MP_NodeManager()
 
