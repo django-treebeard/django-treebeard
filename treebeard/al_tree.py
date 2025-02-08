@@ -158,7 +158,7 @@ class AL_Node(Node):
         :returns: ``True`` if the node if a descendant of another node given
             as an argument, else, returns ``False``
         """
-        return self.pk in [obj.pk for obj in node.get_descendants()]
+        return self.pk in (obj.pk for obj in node.get_descendants())
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
