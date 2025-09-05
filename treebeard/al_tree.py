@@ -48,6 +48,11 @@ class AL_Node(Node):
     objects = AL_NodeManager()
     node_order_by = None
 
+    _cached_attributes = (
+        *Node._cached_attributes,
+        "_cached_depth",
+    )
+
     @classmethod
     def add_root(cls, **kwargs):
         """Adds a root node to the tree."""

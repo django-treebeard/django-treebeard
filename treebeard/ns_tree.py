@@ -138,6 +138,11 @@ class NS_Node(Node):
 
     objects = NS_NodeManager()
 
+    _cached_attributes = (
+        *Node._cached_attributes,
+        "_cached_parent_obj",
+    )
+
     @classmethod
     def add_root(cls, **kwargs):
         """Adds a root node to the tree."""

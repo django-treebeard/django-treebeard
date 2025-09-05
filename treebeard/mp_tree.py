@@ -592,6 +592,11 @@ class MP_Node(Node):
 
     numconv_obj_ = None
 
+    _cached_attributes = (
+        *Node._cached_attributes,
+        "_cached_parent_obj",
+    )
+
     @classmethod
     def _int2str(cls, num):
         return cls.numconv_obj().int2str(num)
