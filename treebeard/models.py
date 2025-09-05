@@ -1,6 +1,7 @@
 """Models and base API"""
 
 import operator
+from contextlib import suppress
 from functools import reduce
 
 from django.db.models import Q
@@ -13,6 +14,7 @@ class Node(models.Model):
     """Node class"""
 
     _db_connection = None
+    _cached_attributes = ()
 
     @classmethod
     def add_root(cls, **kwargs):  # pragma: no cover
@@ -568,6 +570,15 @@ class Node(models.Model):
             )
             fields.append((field, value))
         return siblings.filter(reduce(operator.or_, filters))
+
+    def _clear_cached_attributes(self):
+        for attr in self._cached_attributes:
+            with suppress(AttributeError):
+                delattr(self, attr)
+
+    def refresh_from_db(self, *args, **kwargs):
+        super().refresh_from_db(*args, **kwargs)
+        self._clear_cached_attributes()
 
     @classmethod
     def get_annotated_list_qs(cls, qs):

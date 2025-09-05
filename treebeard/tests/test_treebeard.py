@@ -3128,3 +3128,23 @@ class TestRegression:
             models.MP_RegressionIssue219.dump_bulk()
         except KeyError:
             pytest.fail("It should not have raised an KeyError")
+
+
+@pytest.mark.django_db
+class TestRefreshFromDb:
+    def test_get_parent(self, model):
+        parent1 = model.objects.get(desc=2)
+        parent2 = model.objects.get(desc=4)
+        node = model.objects.get(desc=21)
+        assert node.get_parent() == parent1
+        node.move(parent2, pos="last-child")
+        node.refresh_from_db()
+        assert node.get_parent() == parent2
+
+    def test_get_depth(self, model):
+        node = model.objects.get(desc=1)
+        new_parent = model.objects.get(desc=2)
+        assert node.get_depth() == 1
+        node.move(new_parent, pos="last-child")
+        node.refresh_from_db()
+        assert node.get_depth() == 2
