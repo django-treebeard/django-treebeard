@@ -660,6 +660,19 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             assert [node.desc for node in nodes] == expected
             assert all([type(node) == model for node in nodes])
 
+    def test_get_descendants_include_self(self, model):
+        data = [
+            ("2", ["2", "21", "22", "23", "231", "24"]),
+            ("23", ["23", "231"]),
+            ("231", ["231"]),
+            ("1", ["1"]),
+            ("4", ["4", "41"]),
+        ]
+        for desc, expected in data:
+            nodes = model.objects.get(desc=desc).get_descendants(include_self=True)
+            assert [node.desc for node in nodes] == expected
+            assert all([type(node) == model for node in nodes])
+
     def test_get_descendant_count(self, model):
         data = [
             ("2", 5),
