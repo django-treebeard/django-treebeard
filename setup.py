@@ -19,8 +19,8 @@ setup_args = dict(
     description='Efficient tree implementations for Django',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    python_requires='>=3.8',
-    install_requires=['Django>=3.2'],
+    python_requires='>=3.10',
+    install_requires=['Django>=4.2'],
     tests_require=[
         'pytest-django>=4.0,<5.0',
 
@@ -39,11 +39,10 @@ setup_args = dict(
         'Framework :: Django :: 4.2',
         'Framework :: Django :: 5.0',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13',
         'Operating System :: OS Independent',
         'Topic :: Software Development :: Libraries',
         'Topic :: Utilities'])

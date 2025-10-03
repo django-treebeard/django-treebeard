@@ -9,7 +9,7 @@ It is written by Gustavo Picón and licensed under the Apache License
 ## Status
 
 [![Documentation Status](https://readthedocs.org/projects/django-treebeard/badge/?version=latest)](https://django-treebeard.readthedocs.io/en/latest/?badge=latest)
-[![Tests](https://github.com/django-treebeard/django-treebeard/workflows/Tests/badge.svg)]()
+[![Tests](https://github.com/django-treebeard/django-treebeard/actions/workflows/test.yml/badge.svg)]()
 [![App Veyor](https://ci.appveyor.com/api/projects/status/mwbf062v68lhw05c?svg=true)](https://ci.appveyor.com/project/mvantellingen/django-treebeard)
 [![PyPI](https://img.shields.io/pypi/pyversions/django-treebeard.svg)]()
 [![PyPI version](https://img.shields.io/pypi/v/django-treebeard.svg)](https://pypi.org/project/django-treebeard/)
@@ -38,6 +38,6 @@ You can find the documentation in
 
 **django-treebeard** officially supports
 
--   Django 3.2, 4.1, 4.2, 5.0
--   Python 3.8 - 3.12
+-   Django 4.2 and higher
+-   Python 3.10 and higher
 -   PostgreSQL, MySQL, MSSQL, SQLite database back-ends.

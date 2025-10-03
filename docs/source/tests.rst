@@ -42,8 +42,8 @@ tox
 ``django-treebeard`` uses `tox`_ to run the test suite in all the supported
 environments - permutations of:
 
-  - Python 3.8 - 3.11
-  - Django 3.2, 4.1 and 4.2
+  - Python 3.10 - 3.13
+  - Django 4.2, to 5.2
   - Sqlite, MySQL, PostgreSQL and MSSQL
 
 This means that there are a lot of permutations, which takes a long time.

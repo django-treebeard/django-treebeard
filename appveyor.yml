@@ -9,16 +9,16 @@ branches:
 
 environment:
   matrix:
-    - TOXENV: py38-dj32-mssql
-    - TOXENV: py39-dj32-mssql
+    - TOXENV: py312-dj52-mssql
+    - TOXENV: py312-dj52-mssql
 
 matrix:
   fast_finish: true
 
 install:
-  - C:\Python36\python -m pip install tox
+  - C:\Python312\python -m pip install tox
 
 build: false  # Not a C# project
 
 test_script:
-  - C:\Python36\scripts\tox
+  - C:\Python312\scripts\tox
