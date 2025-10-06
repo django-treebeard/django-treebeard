@@ -42,10 +42,11 @@ def get_db_conf():
             'NAME': 'master',
             'USER': 'sa',
             'PASSWORD': 'Password12!',
-            'HOST': '(local)\\SQL2019',
-            'PORT': '',
+            'HOST': 'localhost',
+            'PORT': os.environ.get('DATABASE_PORT_MSSQL', ''),
             'OPTIONS': {
-                'driver': 'SQL Server Native Client 11.0',
+                'driver': 'ODBC Driver 18 for SQL Server',
+                'extra_params': 'Trusted_Connection=no;TrustServerCertificate=yes'
             },
         }
 
