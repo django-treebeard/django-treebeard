@@ -20,11 +20,9 @@ jobs:
       fail-fast: true
       matrix:
         python-version: ["3.10", 3.11, 3.12, 3.13]
-        django-version: [42, 50, 51, 52]
+        django-version: [42, 51, 52]
         exclude:
           - django-version: 42
-            python-version: 3.13
-          - django-version: 50
             python-version: 3.13
     services:
       postgres:
