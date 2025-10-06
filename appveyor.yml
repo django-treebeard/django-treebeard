@@ -1,24 +1,8 @@
-image: Visual Studio 2019
-
-init:
-- net start MSSQL$SQL2019
+# TODO: remove this file after unlinking AppVeyor webhook
 
 branches:
   only:
     - master
 
-environment:
-  matrix:
-    - TOXENV: py312-dj52-mssql
-    - TOXENV: py312-dj52-mssql
-
-matrix:
-  fast_finish: true
-
-install:
-  - C:\Python312\python -m pip install tox
-
-build: false  # Not a C# project
-
-test_script:
-  - C:\Python312\scripts\tox
+build: false
+test: false
