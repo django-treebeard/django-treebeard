@@ -2,7 +2,7 @@
 """
 import os
 
-os.environ["DJANGO_SETTINGS_MODULE"] = "treebeard.tests.settings"
+os.environ["DJANGO_SETTINGS_MODULE"] = "tests.settings"
 
 import django
 

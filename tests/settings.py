@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.messages',
     'treebeard',
-    'treebeard.tests'
+    'tests',
 ]
 
 MIDDLEWARE = [
@@ -70,7 +70,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware'
 ]
 
-ROOT_URLCONF = 'treebeard.tests.urls'
+ROOT_URLCONF = 'tests.urls'
 
 TEMPLATES = [
     {

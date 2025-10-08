@@ -29,8 +29,8 @@ from treebeard.exceptions import (
     NodeAlreadySaved,
 )
 from treebeard.forms import movenodeform_factory
-from treebeard.tests import models
-from treebeard.tests.admin import register_all as admin_register_all
+from tests import models
+from tests.admin import register_all as admin_register_all
 
 
 admin_register_all()
