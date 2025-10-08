@@ -13,13 +13,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Python ${{ matrix.python-version }}
+  test-sqlite:
+    name: SQlite, Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10", 3.11, 3.12, 3.13]
+        python-version: ["3.10", 3.13]
+        django-version: [42, 51, 52]
+        exclude:
+          - django-version: 42
+            python-version: 3.13
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    - name: Install dependencies
+      run: pip install tox
+    - name: Run tests
+      run: tox -e "py-dj${{ matrix.django-version }}-sqlite"
+  test-postgres:
+    name: Postgres, Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.10", 3.13]
         django-version: [42, 51, 52]
         exclude:
           - django-version: 42
@@ -34,6 +56,34 @@ jobs:
           POSTGRES_USER: root
           POSTGRES_PASSWORD: treebeard
           POSTGRES_DB: treebeard
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    - name: Install dependencies
+      run: pip install tox
+    - name: Run tests
+      env:
+        DATABASE_USER_POSTGRES: root
+        DATABASE_PASSWORD: treebeard
+        DATABASE_HOST: 127.0.0.1
+        DATABASE_PORT_POSTGRES: ${{ job.services.postgres.ports[5432] }} # get randomly assigned published port
+      run: tox -e "py-dj${{ matrix.django-version }}-postgres"
+  test-mysql:
+    name: MySQL, Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.10", 3.13]
+        django-version: [42, 51, 52]
+        exclude:
+          - django-version: 42
+            python-version: 3.13
+    services:
       mysql:
         image: mysql:8.0
         options: --health-cmd="mysqladmin ping" --health-interval 10s --health-timeout 5s --health-retries 5
@@ -41,6 +91,34 @@ jobs:
           MYSQL_ROOT_PASSWORD: treebeard
         ports:
           - 3306/tcp
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    - name: Install dependencies
+      run: pip install tox
+    - name: Run tests
+      env:
+        DATABASE_USER_MYSQL: root
+        DATABASE_PASSWORD: treebeard
+        DATABASE_HOST: 127.0.0.1
+        DATABASE_PORT_MYSQL: ${{ job.services.mysql.ports[3306] }} # get randomly assigned published port
+      run: tox -e "py-dj${{ matrix.django-version }}-mysql"
+  test-mssql:
+    name: MSSQL, Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.10", 3.13]
+        django-version: [42, 51, 52]
+        exclude:
+          - django-version: 42
+            python-version: 3.13
+    services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2019-latest
         env:
@@ -51,13 +129,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox
+      run: pip install tox
     - name: Install ODBC driver for MSSQL
       run: |
         curl -sSL -O https://packages.microsoft.com/config/ubuntu/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2)/packages-microsoft-prod.deb  
@@ -66,15 +143,5 @@ jobs:
         sudo ACCEPT_EULA=Y apt-get install msodbcsql18 mssql-tools18 -y
     - name: Run tests
       env:
-        DATABASE_USER_POSTGRES: root
-        DATABASE_USER_MYSQL: root
-        DATABASE_PASSWORD: treebeard
-        DATABASE_HOST: 127.0.0.1
-        DATABASE_PORT_POSTGRES: ${{ job.services.postgres.ports[5432] }} # get randomly assigned published port
-        DATABASE_PORT_MYSQL: ${{ job.services.mysql.ports[3306] }} # get randomly assigned published port
         DATABASE_PORT_MSSQL: ${{ job.services.mssql.ports[1433] }} # get randomly assigned published port
-      run: |
-        tox -e "py-dj${{ matrix.django-version }}-sqlite"
-        tox -e "py-dj${{ matrix.django-version }}-postgres"
-        tox -e "py-dj${{ matrix.django-version }}-mysql"
-        tox -e "py-dj${{ matrix.django-version }}-mssql"
+      run: tox -e "py-dj${{ matrix.django-version }}-mssql"
