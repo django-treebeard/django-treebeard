@@ -1,8 +1,0 @@
-# TODO: remove this file after unlinking AppVeyor webhook
-
-branches:
-  only:
-    - master
-
-build: false
-test: false
