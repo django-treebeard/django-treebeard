@@ -14,7 +14,7 @@ setup_args = dict(
     author='Gustavo Picon',
     author_email='tabo@tabo.pe',
     license='Apache License 2.0',
-    packages=find_packages(exclude=['docs']),
+    packages=find_packages(include=['treebeard']),
     include_package_data=True,
     description='Efficient tree implementations for Django',
     long_description=long_description,
