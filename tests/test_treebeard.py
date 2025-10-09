@@ -7,6 +7,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -2946,21 +2947,14 @@ class TestAdminTreeList(TestNonEmptyTree):
 class TestTreeAdmin(TestNonEmptyTree):
     site = AdminSite()
 
-    def _create_superuser(self, username):
-        return User.objects.create(username=username, is_superuser=True)
+    def _create_user(self, username, **kwargs):
+        return User.objects.create(username=username, **kwargs)
 
-    def _mocked_authenticated_request(self, url, user):
-        request_factory = RequestFactory()
-        request = request_factory.get(url)
-        request.user = user
-        return request
-
-    def _mocked_request(self, data):
-        request_factory = RequestFactory()
-        request = request_factory.post("/", data=data)
-        setattr(request, "session", "session")
-        messages = FallbackStorage(request)
-        setattr(request, "_messages", messages)
+    def _mocked_request(self, data, user=None):
+        request = RequestFactory().post("/", data=data)
+        request.session = {}
+        request.user = user or AnonymousUser()
+        request._messages = FallbackStorage(request)
         return request
 
     def _get_admin_obj(self, model_class):
@@ -2969,8 +2963,8 @@ class TestTreeAdmin(TestNonEmptyTree):
         return admin_class(model_class, self.site)
 
     def test_changelist_view(self):
-        tmp_user = self._create_superuser("changelist_tmp")
-        request = self._mocked_authenticated_request("/", tmp_user)
+        request = RequestFactory().get("/")
+        request.user = self._create_user("changelist_tmp", is_superuser=True)
         admin_obj = self._get_admin_obj(models.AL_TestNode)
         admin_obj.changelist_view(request)
         assert admin_obj.change_list_template == "admin/tree_list.html"
@@ -2989,9 +2983,11 @@ class TestTreeAdmin(TestNonEmptyTree):
         request = self._mocked_request(data={})
         response = admin_obj.move_node(request)
         assert response.status_code == 400
+        assert response.content.decode() == "Malformed POST params"
         request = self._mocked_request(data={"node_id": 1})
         response = admin_obj.move_node(request)
         assert response.status_code == 400
+        assert response.content.decode() == "Malformed POST params"
 
     def test_move_node_validate_valueerror(self, model):
         admin_obj = self._get_admin_obj(model)
@@ -3000,6 +2996,7 @@ class TestTreeAdmin(TestNonEmptyTree):
         )
         response = admin_obj.move_node(request)
         assert response.status_code == 400
+        assert response.content.decode() == "Malformed POST params"
 
     def test_move_validate_missing_nodeorderby(self, model):
         node = model.objects.get(desc="231")
@@ -3034,13 +3031,36 @@ class TestTreeAdmin(TestNonEmptyTree):
         )
         assert response.status_code == 400
 
+    def test_move_requires_change_permission(self, model):
+        node = model.objects.get(desc="231")
+        target = model.objects.get(desc="2")
+
+        admin_obj = self._get_admin_obj(model)
+
+        # User without permission
+        missing_perm_request = self._mocked_request(
+            data={"node_id": node.pk, "sibling_id": target.pk, "as_child": 0},
+            user=self._create_user("no_change_perm"),
+        )
+        with pytest.raises(PermissionDenied):
+            admin_obj.move_node(missing_perm_request)
+        
+        # User with permission
+        has_perm_request = self._mocked_request(
+            data={"node_id": node.pk, "sibling_id": target.pk, "as_child": 0},
+            user=self._create_user("superuser", is_superuser=True),
+        )
+        response = admin_obj.move_node(has_perm_request)
+        assert response.status_code == 200
+    
     def test_move_left(self, model):
         node = model.objects.get(desc="231")
         target = model.objects.get(desc="2")
 
         admin_obj = self._get_admin_obj(model)
         request = self._mocked_request(
-            data={"node_id": node.pk, "sibling_id": target.pk, "as_child": 0}
+            data={"node_id": node.pk, "sibling_id": target.pk, "as_child": 0},
+            user=self._create_user("tmp", is_superuser=True),
         )
         response = admin_obj.move_node(request)
         assert response.status_code == 200
@@ -3064,7 +3084,8 @@ class TestTreeAdmin(TestNonEmptyTree):
 
         admin_obj = self._get_admin_obj(model)
         request = self._mocked_request(
-            data={"node_id": node.pk, "sibling_id": target.pk, "as_child": 1}
+            data={"node_id": node.pk, "sibling_id": target.pk, "as_child": 1},
+            user=self._create_user("tmp", is_superuser=True)
         )
         response = admin_obj.move_node(request)
         assert response.status_code == 200
