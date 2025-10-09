@@ -32,6 +32,7 @@
             </tbody>
         </table>
         <input type="hidden" id="has-filters" value="{{ filtered|yesno:"1,0" }}"/>
+        <input type="hidden" id="has-change-permission" value="{{ has_change_permission|yesno:"1,0" }}"/>
     </div>
 {% endif %}
 
