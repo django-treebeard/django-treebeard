@@ -208,6 +208,7 @@ def result_tree(context, cl, request):
         'class_attrib': mark_safe(' class="oder-grabber"')
     })
     return {
+        'has_change_permission': context['has_change_permission'],
         'filtered': not check_empty_dict(request.GET),
         'result_hidden_fields': list(result_hidden_fields(cl)),
         'result_headers': headers,

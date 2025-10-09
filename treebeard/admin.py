@@ -4,6 +4,7 @@ import sys
 
 from django.conf import settings
 from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.urls import path
 from django.utils.translation import gettext_lazy as _
@@ -46,6 +47,8 @@ class TreeAdmin(admin.ModelAdmin):
         lacks_request = ('request' not in extra_context and not request_context)
         if lacks_request:
             extra_context['request'] = request
+
+        extra_context['has_change_permission'] = self.has_change_permission(request)
         return super().changelist_view(request, extra_context)
 
     def get_urls(self):
@@ -103,6 +106,12 @@ class TreeAdmin(admin.ModelAdmin):
             return HttpResponseBadRequest('Malformed POST params')
 
         node = self.get_node(node_id)
+
+        if not self.has_change_permission(request, node):
+            # The JS will trigger a page reload on error. This message will be displayed after reload.
+            messages.error(request, _('You do not have permission to change this object.'))
+            raise PermissionDenied
+
         target = self.get_node(target_id)
         is_sorted = True if node.node_order_by else False
 

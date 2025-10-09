@@ -97,8 +97,8 @@
             }
         });
 
-        // Don't activate drag or collapse if GET filters are set on the page
-        if ($('#has-filters').val() === "1") {
+        // Don't activate drag or collapse if GET filters are set on the page, or if user has no change permission
+        if ($('#has-filters').val() === "1" || $('#has-change-permission').val() === "0") {
             return;
         }
 
