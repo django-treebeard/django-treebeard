@@ -1,40 +1,15 @@
 /* Treebeard Admin */
 
-#roots {
-    margin: 0;
-    padding: 0;
-}
-
-#roots li {
-    list-style: none;
-    padding: 5px !important;
-    line-height: 13px;
-    border-bottom: 1px solid #EEE;
-}
-
-#roots li a {
-    font-weight: bold;
-    font-size: 12px;
-}
-
-#roots li input {
-    margin: 0 5px;
-}
-
-.oder-grabber {
-    width: 1.5em;
-    text-align: center;
-}
-
-.drag-handler span {
+.drag-handler {
     width: 16px;
     background: transparent url(expand-collapse.png) no-repeat left -48px;
     height: 16px;
-    margin: 0 5px;
+    margin: 0 10px;
     display: inline-block;
+    vertical-align: middle;
 }
 
-.drag-handler span.active {
+.drag-handler.active {
     background: transparent url(expand-collapse.png) no-repeat left -32px;
     cursor: move;
 }
@@ -77,7 +52,3 @@
     border: 1px solid #000;
     vertical-align: center;
 }
-
-/*tr:target { I'm handling the highlight with js to have more control
-background-color: #FF0;
-}*/
