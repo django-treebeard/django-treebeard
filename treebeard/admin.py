@@ -15,6 +15,19 @@ from treebeard.exceptions import (InvalidPosition, MissingNodeOrderBy,
 from treebeard.al_tree import AL_Node
 
 
+def check_empty_dict(GET_dict):
+    """
+    Returns True if the GET query string contains no values, but it can contain
+    empty keys.
+    This is better than doing not bool(request.GET) as an empty key will return True
+    """
+    for k, v in GET_dict.items():
+        # Don't disable on p(age) or 'all' GET param
+        if v and (k not in ['p', 'all']):
+           return False
+    return True
+
+
 class TreeAdmin(admin.ModelAdmin):
     """Django Admin class for treebeard."""
 
@@ -49,6 +62,7 @@ class TreeAdmin(admin.ModelAdmin):
             extra_context['request'] = request
 
         extra_context['has_change_permission'] = self.has_change_permission(request)
+        extra_context['filtered'] = not check_empty_dict(request.GET)
         return super().changelist_view(request, extra_context)
 
     def get_urls(self):
@@ -122,6 +136,7 @@ class TreeAdmin(admin.ModelAdmin):
             (False, False): 'left',
         }[as_child, is_sorted]
         return self.try_to_move_node(as_child, node, pos, request, target)
+
 
 
 def admin_factory(form_class):
