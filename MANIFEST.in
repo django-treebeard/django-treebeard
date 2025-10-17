@@ -1,4 +1,4 @@
-include CHANGES LICENSE NOTICE README.rst UPDATING MANIFEST.in
+include CHANGES LICENSE README.rst UPDATING MANIFEST.in
 recursive-include treebeard *.py
 recursive-include treebeard/static *
 recursive-include treebeard/templates *
