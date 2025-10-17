@@ -7,8 +7,7 @@ from treebeard.templatetags import needs_checkboxes
 
 
 register = Library()
-CHECKBOX_TMPL = ('<input type="checkbox" class="action-select" value="{}" '
-                 'name="_selected_action" />')
+CHECKBOX_TMPL = '<input type="checkbox" class="action-select" value="{}" name="_selected_action" /> '
 
 
 def _line(context, node, request):
