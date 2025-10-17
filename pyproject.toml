@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=62.4.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["treebeard"]
+
+[tool.setuptools.dynamic]
+version = {attr = "treebeard.__version__"}
+
+[project]
+name = "django-treebeard"
+description = "Efficient tree implementations for Django"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dynamic = ["version"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.1",
+    "Framework :: Django :: 5.2",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Utilities"
+]
+dependencies = [
+    "django>=4.2",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest-django>=4.0,<5.0",
+    "pytest-pythonpath>=0.7,<1.0",
+]

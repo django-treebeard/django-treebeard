@@ -9,9 +9,8 @@ Release logic:
  5. git push
  6. ensure that all tests pass on Github Actions
  7. git push --tags
- 8. pip install --upgrade pip wheel twine
- 9. python setup.py clean --all
- 9. python setup.py sdist bdist_wheel
+ 8. pip install --upgrade pip build twine
+ 9. python -m build
 10. twine upload dist/*
 11. bump the version, append ".dev0" to __version__
 12. git add treebeard/__init__.py
