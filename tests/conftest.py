@@ -1,5 +1,5 @@
-"""Pytest configuration file
-"""
+"""Pytest configuration file"""
+
 import os
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "tests.settings"

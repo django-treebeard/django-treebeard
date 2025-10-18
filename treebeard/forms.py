@@ -1,7 +1,6 @@
 """Forms for treebeard."""
 
 from django import forms
-from django.db.models.query import QuerySet
 from django.forms.models import ErrorList
 from django.forms.models import modelform_factory as django_modelform_factory
 from django.utils.html import escape
@@ -43,14 +42,14 @@ class MoveNodeForm(forms.ModelForm):
     """
 
     __position_choices_sorted = (
-        ('sorted-child', _('Child of')),
-        ('sorted-sibling', _('Sibling of')),
+        ("sorted-child", _("Child of")),
+        ("sorted-sibling", _("Sibling of")),
     )
 
     __position_choices_unsorted = (
-        ('first-child', _('First child of')),
-        ('left', _('Before')),
-        ('right', _('After')),
+        ("first-child", _("First child of")),
+        ("left", _("Before")),
+        ("right", _("After")),
     )
 
     _position = forms.ChoiceField(required=True, label=_("Position"))
@@ -59,47 +58,56 @@ class MoveNodeForm(forms.ModelForm):
 
     def _get_position_ref_node(self, instance):
         if self.is_sorted:
-            position = 'sorted-child'
+            position = "sorted-child"
             node_parent = instance.get_parent()
             if node_parent:
                 ref_node_id = node_parent.pk
             else:
-                ref_node_id = ''
+                ref_node_id = ""
         else:
             prev_sibling = instance.get_prev_sibling()
             if prev_sibling:
-                position = 'right'
+                position = "right"
                 ref_node_id = prev_sibling.pk
             else:
-                position = 'first-child'
+                position = "first-child"
                 if instance.is_root():
-                    ref_node_id = ''
+                    ref_node_id = ""
                 else:
                     ref_node_id = instance.get_parent().pk
-        return {'_ref_node_id': ref_node_id,
-                '_position': position}
+        return {"_ref_node_id": ref_node_id, "_position": position}
 
-    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
-                 initial=None, error_class=ErrorList, label_suffix=':',
-                 empty_permitted=False, instance=None, **kwargs):
+    def __init__(
+        self,
+        data=None,
+        files=None,
+        auto_id="id_%s",
+        prefix=None,
+        initial=None,
+        error_class=ErrorList,
+        label_suffix=":",
+        empty_permitted=False,
+        instance=None,
+        **kwargs,
+    ):
         opts = self._meta
         if opts.model is None:
-            raise ValueError('ModelForm has no model class specified')
+            raise ValueError("ModelForm has no model class specified")
 
         # update the '_position' field choices
-        self.is_sorted = getattr(opts.model, 'node_order_by', False)
+        self.is_sorted = getattr(opts.model, "node_order_by", False)
         if self.is_sorted:
             choices_sort_mode = self.__class__.__position_choices_sorted
         else:
             choices_sort_mode = self.__class__.__position_choices_unsorted
-        self.declared_fields['_position'].choices = choices_sort_mode
+        self.declared_fields["_position"].choices = choices_sort_mode
 
         # update the '_ref_node_id' choices
         choices = self.mk_dropdown_tree(opts.model, for_node=instance)
-        self.declared_fields['_ref_node_id'].choices = choices
+        self.declared_fields["_ref_node_id"].choices = choices
         # use the formfield `to_python` method to coerse the field for custom ids
         pkFormField = opts.model._meta.pk.formfield()
-        self.declared_fields['_ref_node_id'].coerce = pkFormField.to_python if pkFormField else int
+        self.declared_fields["_ref_node_id"].coerce = pkFormField.to_python if pkFormField else int
 
         # put initial data for these fields into a map, update the map with
         # initial data, and pass this new map to the parent constructor as
@@ -113,24 +121,31 @@ class MoveNodeForm(forms.ModelForm):
             initial_.update(initial)
 
         super().__init__(
-            data=data, files=files, auto_id=auto_id, prefix=prefix,
-            initial=initial_, error_class=error_class,
-            label_suffix=label_suffix, empty_permitted=empty_permitted,
-            instance=instance, **kwargs)
+            data=data,
+            files=files,
+            auto_id=auto_id,
+            prefix=prefix,
+            initial=initial_,
+            error_class=error_class,
+            label_suffix=label_suffix,
+            empty_permitted=empty_permitted,
+            instance=instance,
+            **kwargs,
+        )
 
     def _clean_cleaned_data(self):
-        """ delete auxilary fields not belonging to node model """
+        """delete auxilary fields not belonging to node model"""
         reference_node_id = None
 
-        if '_ref_node_id' in self.cleaned_data:
-            if self.cleaned_data['_ref_node_id'] != '0':
-                reference_node_id = self.cleaned_data['_ref_node_id']
+        if "_ref_node_id" in self.cleaned_data:
+            if self.cleaned_data["_ref_node_id"] != "0":
+                reference_node_id = self.cleaned_data["_ref_node_id"]
                 if reference_node_id.isdigit():
                     reference_node_id = int(reference_node_id)
-            del self.cleaned_data['_ref_node_id']
+            del self.cleaned_data["_ref_node_id"]
 
-        position_type = self.cleaned_data['_position']
-        del self.cleaned_data['_position']
+        position_type = self.cleaned_data["_position"]
+        del self.cleaned_data["_position"]
 
         return position_type, reference_node_id
 
@@ -139,8 +154,7 @@ class MoveNodeForm(forms.ModelForm):
 
         if self.instance._state.adding:
             if reference_node_id:
-                reference_node = self._meta.model.objects.get(
-                    pk=reference_node_id)
+                reference_node = self._meta.model.objects.get(pk=reference_node_id)
                 self.instance = reference_node.add_child(instance=self.instance)
                 self.instance.move(reference_node, pos=position_type)
             else:
@@ -148,14 +162,13 @@ class MoveNodeForm(forms.ModelForm):
         else:
             self.instance.save()
             if reference_node_id:
-                reference_node = self._meta.model.objects.get(
-                    pk=reference_node_id)
+                reference_node = self._meta.model.objects.get(pk=reference_node_id)
                 self.instance.move(reference_node, pos=position_type)
             else:
                 if self.is_sorted:
-                    pos = 'sorted-sibling'
+                    pos = "sorted-sibling"
                 else:
-                    pos = 'first-sibling'
+                    pos = "first-sibling"
                 self.instance.move(self._meta.model.get_first_root_node(), pos)
         # Reload the instance
         self.instance.refresh_from_db()
@@ -165,34 +178,31 @@ class MoveNodeForm(forms.ModelForm):
     @staticmethod
     def is_loop_safe(for_node, possible_parent):
         if for_node is not None:
-            return not (
-                possible_parent == for_node
-                ) or (possible_parent.is_descendant_of(for_node))
+            return not (possible_parent == for_node) or (possible_parent.is_descendant_of(for_node))
         return True
 
     @staticmethod
     def mk_indent(level):
-        return '&nbsp;&nbsp;&nbsp;&nbsp;' * (level - 1)
+        return "&nbsp;&nbsp;&nbsp;&nbsp;" * (level - 1)
 
     @classmethod
     def add_subtree(cls, for_node, node, options):
-        """ Recursively build options tree. """
+        """Recursively build options tree."""
         if cls.is_loop_safe(for_node, node):
             for item, _ in node.get_annotated_list(node):
                 options.append((item.pk, mark_safe(cls.mk_indent(item.get_depth()) + escape(item))))
 
     @classmethod
     def mk_dropdown_tree(cls, model, for_node=None):
-        """ Creates a tree-like list of choices """
+        """Creates a tree-like list of choices"""
 
-        options = [(None, _('-- root --'))]
+        options = [(None, _("-- root --"))]
         for node in model.get_root_nodes():
             cls.add_subtree(for_node, node, options)
         return options
 
 
-def movenodeform_factory(model, form=MoveNodeForm, fields=None, exclude=None,
-                         formfield_callback=None,  widgets=None):
+def movenodeform_factory(model, form=MoveNodeForm, fields=None, exclude=None, formfield_callback=None, widgets=None):
     """Dynamically build a MoveNodeForm subclass with the proper Meta.
 
     :param Node model:
@@ -208,8 +218,7 @@ def movenodeform_factory(model, form=MoveNodeForm, fields=None, exclude=None,
     :return: A :py:class:`MoveNodeForm` subclass
     """
     _exclude = _get_exclude_for_model(model, exclude)
-    return django_modelform_factory(
-        model, form, fields, _exclude, formfield_callback, widgets)
+    return django_modelform_factory(model, form, fields, _exclude, formfield_callback, widgets)
 
 
 def _get_exclude_for_model(model, exclude):
@@ -218,9 +227,9 @@ def _get_exclude_for_model(model, exclude):
     else:
         _exclude = ()
     if issubclass(model, AL_Node):
-        _exclude += ('sib_order', 'parent')
+        _exclude += ("sib_order", "parent")
     elif issubclass(model, MP_Node):
-        _exclude += ('depth', 'numchild', 'path')
+        _exclude += ("depth", "numchild", "path")
     elif issubclass(model, NS_Node):
-        _exclude += ('depth', 'lft', 'rgt', 'tree_id')
+        _exclude += ("depth", "lft", "rgt", "tree_id")
     return _exclude
