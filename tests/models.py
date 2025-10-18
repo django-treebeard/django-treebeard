@@ -1,12 +1,10 @@
-import random
-import string
 import uuid
 
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
 
-from treebeard.mp_tree import MP_Node, MP_NodeQuerySet
 from treebeard.al_tree import AL_Node
+from treebeard.mp_tree import MP_Node, MP_NodeQuerySet
 from treebeard.ns_tree import NS_Node
 
 
