@@ -1,10 +1,10 @@
 import itertools
 
 from django.contrib import admin
+
+from tests.models import BASE_MODELS, DEP_MODELS, UNICODE_MODELS
 from treebeard.admin import admin_factory
 from treebeard.forms import movenodeform_factory
-
-from tests.models import BASE_MODELS, UNICODE_MODELS, DEP_MODELS
 
 
 def register(admin_site, model):

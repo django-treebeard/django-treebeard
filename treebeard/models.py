@@ -4,8 +4,8 @@ import operator
 from contextlib import suppress
 from functools import reduce
 
+from django.db import connections, models, router
 from django.db.models import Q
-from django.db import models, router, connections
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
 
@@ -44,10 +44,7 @@ class Node(models.Model):
         """
         foreign_keys = {}
         for field in cls._meta.fields:
-            if (
-                field.get_internal_type() == 'ForeignKey' and
-                field.name != 'parent'
-            ):
+            if field.get_internal_type() == "ForeignKey" and field.name != "parent":
                 foreign_keys[field.name] = field.remote_field.model
         return foreign_keys
 
@@ -59,8 +56,7 @@ class Node(models.Model):
         """
         for key in foreign_keys.keys():
             if key in node_data:
-                node_data[key] = foreign_keys[key].objects.get(
-                    pk=node_data[key])
+                node_data[key] = foreign_keys[key].objects.get(pk=node_data[key])
 
     @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
@@ -107,7 +103,7 @@ class Node(models.Model):
         while stack:
             parent, node_struct = stack.pop()
             # shallow copy of the data structure so it doesn't persist...
-            node_data = node_struct['data'].copy()
+            node_data = node_struct["data"].copy()
             cls._process_foreign_keys(foreign_keys, node_data)
             if keep_ids:
                 node_data[pk_field] = node_struct[pk_field]
@@ -116,13 +112,10 @@ class Node(models.Model):
             else:
                 node_obj = cls.add_root(**node_data)
             added.append(node_obj.pk)
-            if 'children' in node_struct:
+            if "children" in node_struct:
                 # extending the stack with the current node as the parent of
                 # the new nodes
-                stack.extend([
-                    (node_obj, node)
-                    for node in node_struct['children'][::-1]
-                ])
+                stack.extend([(node_obj, node) for node in node_struct["children"][::-1]])
         return added
 
     @classmethod
@@ -511,41 +504,32 @@ class Node(models.Model):
     def _prepare_pos_var(self, pos, method_name, valid_pos, valid_sorted_pos):
         if pos is None:
             if self.node_order_by:
-                pos = 'sorted-sibling'
+                pos = "sorted-sibling"
             else:
-                pos = 'last-sibling'
+                pos = "last-sibling"
         if pos not in valid_pos:
-            raise InvalidPosition('Invalid relative position: %s' % (pos, ))
+            raise InvalidPosition("Invalid relative position: %s" % (pos,))
         if self.node_order_by and pos not in valid_sorted_pos:
             raise InvalidPosition(
-                'Must use %s in %s when node_order_by is enabled' % (
-                    ' or '.join(valid_sorted_pos), method_name))
+                "Must use %s in %s when node_order_by is enabled" % (" or ".join(valid_sorted_pos), method_name)
+            )
         if pos in valid_sorted_pos and not self.node_order_by:
-            raise MissingNodeOrderBy('Missing node_order_by attribute.')
+            raise MissingNodeOrderBy("Missing node_order_by attribute.")
         return pos
 
-    _valid_pos_for_add_sibling = ('first-sibling', 'left', 'right',
-                                  'last-sibling', 'sorted-sibling')
-    _valid_pos_for_sorted_add_sibling = ('sorted-sibling',)
+    _valid_pos_for_add_sibling = ("first-sibling", "left", "right", "last-sibling", "sorted-sibling")
+    _valid_pos_for_sorted_add_sibling = ("sorted-sibling",)
 
     def _prepare_pos_var_for_add_sibling(self, pos):
         return self._prepare_pos_var(
-            pos,
-            'add_sibling',
-            self._valid_pos_for_add_sibling,
-            self._valid_pos_for_sorted_add_sibling)
+            pos, "add_sibling", self._valid_pos_for_add_sibling, self._valid_pos_for_sorted_add_sibling
+        )
 
-    _valid_pos_for_move = _valid_pos_for_add_sibling + (
-        'first-child', 'last-child', 'sorted-child')
-    _valid_pos_for_sorted_move = _valid_pos_for_sorted_add_sibling + (
-        'sorted-child',)
+    _valid_pos_for_move = _valid_pos_for_add_sibling + ("first-child", "last-child", "sorted-child")
+    _valid_pos_for_sorted_move = _valid_pos_for_sorted_add_sibling + ("sorted-child",)
 
     def _prepare_pos_var_for_move(self, pos):
-        return self._prepare_pos_var(
-            pos,
-            'move',
-            self._valid_pos_for_move,
-            self._valid_pos_for_sorted_move)
+        return self._prepare_pos_var(pos, "move", self._valid_pos_for_move, self._valid_pos_for_sorted_move)
 
     def get_sorted_pos_queryset(self, siblings, newobj):
         """
@@ -562,12 +546,7 @@ class Node(models.Model):
         fields, filters = [], []
         for field in self.node_order_by:
             value = getattr(newobj, field)
-            filters.append(
-                Q(
-                    *[Q(**{f: v}) for f, v in fields] +
-                     [Q(**{'%s__gt' % field: value})]
-                )
-            )
+            filters.append(Q(*[Q(**{f: v}) for f, v in fields] + [Q(**{"%s__gt" % field: value})]))
             fields.append((field, value))
         return siblings.filter(reduce(operator.or_, filters))
 
@@ -591,14 +570,19 @@ class Node(models.Model):
             depth = node.get_depth()
             if start_depth is None:
                 start_depth = depth
-            open = (depth and (prev_depth is None or depth > prev_depth))
+            open = depth and (prev_depth is None or depth > prev_depth)
             if prev_depth is not None and depth < prev_depth:
-                info['close'] = list(range(0, prev_depth - depth))
-            info = {'open': open, 'close': [], 'level': depth - start_depth}
-            result.append((node, info,))
+                info["close"] = list(range(0, prev_depth - depth))
+            info = {"open": open, "close": [], "level": depth - start_depth}
+            result.append(
+                (
+                    node,
+                    info,
+                )
+            )
             prev_depth = depth
         if start_depth and start_depth > 0:
-            info['close'] = list(range(0, prev_depth - start_depth + 1))
+            info["close"] = list(range(0, prev_depth - start_depth + 1))
         return result
 
     @classmethod
@@ -616,9 +600,6 @@ class Node(models.Model):
 
             Optionally limit to specified depth
         """
-
-        result, info = [], {}
-        start_depth, prev_depth = (None, None)
         qs = cls.get_tree(parent)
         if max_depth:
             qs = qs.filter(depth__lte=max_depth)
@@ -640,10 +621,7 @@ class Node(models.Model):
 
     @classmethod
     def _get_database_connection(cls, action):
-        return {
-            'read': connections[router.db_for_read(cls)],
-            'write': connections[router.db_for_write(cls)]
-        }[action]
+        return {"read": connections[router.db_for_read(cls)], "write": connections[router.db_for_write(cls)]}[action]
 
     @classmethod
     def get_database_vendor(cls, action):
@@ -665,4 +643,5 @@ class Node(models.Model):
 
     class Meta:
         """Abstract model."""
+
         abstract = True

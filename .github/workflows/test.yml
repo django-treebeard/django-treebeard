@@ -13,6 +13,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref }}
+      - uses: astral-sh/ruff-action@v3
+        with:
+          version: "0.14.x"
+      - run: ruff check --fix
+      - run: ruff format --check --diff
   test-sqlite:
     name: SQlite, Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}
     runs-on: ubuntu-latest
@@ -25,7 +36,7 @@ jobs:
           - django-version: 42
             python-version: 3.13
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -57,7 +68,7 @@ jobs:
           POSTGRES_PASSWORD: treebeard
           POSTGRES_DB: treebeard
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -92,7 +103,7 @@ jobs:
         ports:
           - 3306/tcp
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -127,7 +138,7 @@ jobs:
         ports:
           - 1433/tcp
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:

@@ -1,7 +1,6 @@
 from django.template import Variable, VariableDoesNotExist
 
-
-action_form_var = Variable('action_form')
+action_form_var = Variable("action_form")
 
 
 def needs_checkboxes(context):

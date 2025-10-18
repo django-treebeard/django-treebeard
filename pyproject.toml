@@ -41,3 +41,16 @@ test = [
     "pytest-django>=4.0,<5.0",
     "pytest-pythonpath>=0.7,<1.0",
 ]
+
+[tool.ruff]
+line-length = 120
+lint.ignore = [
+    "UP031"     # Allow percent formatters    
+]
+lint.select = [
+    "PLE",   # pylint errors
+    "UP",   # pyupgrade
+    "I",    # isort
+    "F",    # pyflakes
+    "E",    # pycodestyle errors
+]
