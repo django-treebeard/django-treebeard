@@ -30,51 +30,38 @@
         }
     } );
 
-// This is the basic Node class, which handles UI tree operations for each 'row'
+    // This is the basic Node class, which handles UI tree operations for each 'row'
     var Node = function (elem) {
-        var $elem = $(elem);
-        var node_id = $elem.attr('node');
-        var parent_id = $elem.attr('parent');
-        var level = parseInt($elem.attr('level'));
-        var children_num = parseInt($elem.attr('children-num'));
+        const $elem = $(elem);
+        var node_id = $elem.data('node-id');
+        var parent_id = $elem.data('parent-id');
+        var level = parseInt($elem.data('level'));
+
         return {
             elem: elem,
             $elem: $elem,
             node_id: node_id,
             parent_id: parent_id,
             level: level,
-            has_children: function () {
-                return children_num > 0;
-            },
-            node_name: function () {
-                // Returns the text of the node
-                return $elem.find('th a:not(.collapse)').text();
-            },
             is_collapsed: function () {
                 return $elem.find('a.collapse').hasClass('collapsed');
             },
             children: function () {
-                return $('tr[parent=' + node_id + ']');
+                return $('td[data-parent-id=' + node_id + ']').closest("tr");
             },
             collapse: function () {
                 // For each children, hide it's children and so on...
                 $.each(this.children(),function () {
-                    var node = new Node(this);
-                    node.collapse();
+                    new Node(this).collapse();
                 }).hide();
-                // Swicth class to set the property expand/collapse icon
+                // Switch class to set the property expand/collapse icon
                 $elem.find('a.collapse').removeClass('expanded').addClass('collapsed');
-            },
-            parent_node: function () {
-                // Returns a Node object of the parent
-                return new Node($('tr[node=' + parent_id + ']', $elem.parent())[0]);
             },
             expand: function () {
                 // Display each kid (will display in collapsed state)
                 this.children().show();
                 // Swicth class to set the property expand/collapse icon
                 $elem.find('a.collapse').removeClass('collapsed').addClass('expanded');
-
             },
             toggle: function () {
                 if (this.is_collapsed()) {
@@ -97,6 +84,37 @@
             }
         });
 
+        const $resultList = $('#result_list tbody tr');
+
+        // Read in JSON context and link it to each row in the table
+        const contextList = JSON.parse(document.getElementById('tree-context').textContent);
+        $resultList.each(function (index, el) {
+            Object.entries(contextList[index]).forEach(function ([key, val]) {
+                $(el).data(key, val);
+            })
+        });
+
+        // Add drag handler and spacers to each node
+        $resultList.each(function () {
+            // Inject spacer and collapse buttons into the first table cell that isn't an action checkbox or drag handler
+            const $firstCell = $(this).find("td,th").not(".action-checkbox").first();
+            if (!$firstCell.length) {
+                return;
+            }
+
+            const numChildren = parseInt($(this).data("children-num"));
+            if (numChildren) {
+                $firstCell.prepend("<a href='#' class='collapse expanded'>-</a>");
+            }
+
+            const level = parseInt($(this).data("level"));
+            if (level > 1) {
+                $firstCell.prepend("<span class='spacer'>&nbsp;</span>".repeat(level - 1));
+            }
+
+            $firstCell.prepend("<span class='drag-handler'></span>")
+        })
+
         // Don't activate drag or collapse if GET filters are set on the page, or if user has no change permission
         if ($('#has-filters').val() === "1" || $('#has-change-permission').val() === "0") {
             return;
@@ -106,7 +124,7 @@
 
         // Activate all rows for drag & drop
         // then bind mouse down event
-        $('td.drag-handler span').addClass('active').bind('mousedown', function (evt) {
+        $('.drag-handler').addClass('active').bind('mousedown', function (evt) {
             $ghost = $('<div id="ghost"></div>');
             $drag_line = $('<div id="drag_line"><span></span></div>');
             $ghost.appendTo($body);
@@ -202,9 +220,6 @@
                     if ($targetRow !== null) {
                         target_node = new Node($targetRow[0]);
                         if (target_node.node_id !== node.node_id) {
-                            /*alert('Insert node ' + node.node_name() + ' as child of: '
-                             + target_node.parent_node().node_name() + '\n and sibling of: '
-                             + target_node.node_name());*/
                             // Call $.ajax so we can handle the error
                             // On Drop, make an XHR call to perform the node move
                             $.ajax({
