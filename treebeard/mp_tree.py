@@ -494,6 +494,9 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         newpos = None
         siblings = []
         if self.pos in ("first-child", "last-child", "sorted-child"):
+            if self.target == self.node:
+                raise InvalidMoveToDescendant(_("Can't move node to itself."))
+
             # moving to a child
             parent = self.target
             newdepth += 1

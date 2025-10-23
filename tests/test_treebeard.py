@@ -1150,6 +1150,18 @@ class TestMoveErrors(TestNonEmptyTree):
         with pytest.raises(InvalidMoveToDescendant):
             node.move(target, "first-sibling")
 
+    @pytest.mark.parametrize("pos", ("first-child", "last-child"))
+    def test_cannot_move_node_to_its_own_child(self, pos, model):
+        # Test for non-leaf node
+        node = model.objects.get(desc="22")
+        with pytest.raises(InvalidMoveToDescendant, match="move node to itself"):
+            node.move(node, pos)
+
+        # Test for leaf node
+        node = model.objects.get(desc="231")
+        with pytest.raises(InvalidMoveToDescendant, match="move node to itself"):
+            node.move(node, pos)
+
     def test_move_missing_nodeorderby(self, model):
         node = model.objects.get(desc="231")
         with pytest.raises(MissingNodeOrderBy):
