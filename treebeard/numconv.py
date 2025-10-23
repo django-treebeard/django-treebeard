@@ -8,7 +8,7 @@ https://tabo.pe/projects/numconv/
 __version__ = "2.1.1"
 
 # from april fool's rfc 1924
-BASE85 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~"
+BASE85 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+-;<=>?@^_`{|}~"
 
 # rfc4648 alphabets
 BASE16 = BASE85[:16]
