@@ -354,6 +354,9 @@ class NS_Node(Node):
         parent = None
 
         if pos in ("first-child", "last-child", "sorted-child"):
+            if self == target:
+                raise InvalidMoveToDescendant(_("Can't move node to itself."))
+
             # moving to a child
             if target.is_leaf():
                 parent = target

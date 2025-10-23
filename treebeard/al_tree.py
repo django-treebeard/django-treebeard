@@ -353,6 +353,9 @@ class AL_Node(Node):
         parent = None
 
         if pos in ("first-child", "last-child", "sorted-child"):
+            if self == target:
+                raise InvalidMoveToDescendant(_("Can't move node to itself."))
+
             # moving to a child
             if not target.is_leaf():
                 target = target.get_last_child()
