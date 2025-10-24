@@ -11,8 +11,9 @@ from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node
-from treebeard.numconv import NumConv
 from treebeard.new import mp_node_load_bulk
+from treebeard.numconv import NumConv
+
 
 # The following functions generate vendor-specific SQL functions
 def sql_concat(*args, **kwargs):
@@ -588,7 +589,7 @@ class MP_Node(Node):
         :raise PathOverflow: when no more root objects can be added
         """
         return MP_AddRootHandler(cls, **kwargs).process()
-    
+
     @classmethod
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         return mp_node_load_bulk(cls, bulk_data, parent, keep_ids)

@@ -10,7 +10,6 @@ import pytest
 from tests import models
 from treebeard.new import mp_node_load_bulk
 
-
 BASE_DATA = [
     {"data": {"desc": "1"}},
     {
@@ -128,8 +127,8 @@ class TestMPNodeLoadBulk:
             ("21", 2, 0),
             ("22", 2, 0),
             ("23", 2, 1),
-            ("231", 3, 4),      # Now has 4 children (was 0)
-            ("1", 4, 0),        # New nodes start at depth 4
+            ("231", 3, 4),  # Now has 4 children (was 0)
+            ("1", 4, 0),  # New nodes start at depth 4
             ("2", 4, 4),
             ("21", 5, 0),
             ("22", 5, 0),
@@ -199,9 +198,7 @@ class TestMPNodeLoadBulk:
         related_model.objects.all().delete()
 
         # Create or get a related object
-        related, created = models.RelatedModel.objects.get_or_create(
-            desc="Test %s" % related_model.__name__
-        )
+        related, created = models.RelatedModel.objects.get_or_create(desc="Test %s" % related_model.__name__)
 
         # Data structure with foreign key references (as PKs)
         related_data = [

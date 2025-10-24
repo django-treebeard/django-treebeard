@@ -201,9 +201,7 @@ def mp_node_load_bulk(
     # Step 3: Create child nodes with FK lookups
     children_to_create: list[MP_Node] = []
 
-    def _collect_children(
-        parent_node: MP_Node, child_nodes: list[BulkNodeData]
-    ) -> None:
+    def _collect_children(parent_node: MP_Node, child_nodes: list[BulkNodeData]) -> None:
         """Recursively collects child nodes and their metadata."""
         base_path = parent_node.path
         child_depth = parent_node.depth + 1
