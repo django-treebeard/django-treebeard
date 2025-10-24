@@ -12,7 +12,7 @@ from django.utils.translation import gettext_noop as _
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node
 from treebeard.numconv import NumConv
-
+from treebeard.new import mp_node_load_bulk
 
 # The following functions generate vendor-specific SQL functions
 def sql_concat(*args, **kwargs):
@@ -322,12 +322,15 @@ class MP_AddChildHandler(MP_AddHandler):
         self.kwargs = kwargs
 
     def process(self):
+        # If parent has node_order_by set and already has children, delegate to add_sibling
+        # to maintain sorted order among siblings
         if self.node_cls.node_order_by and not self.node.is_leaf():
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
             self.node.numchild += 1
             return self.node.get_last_child().add_sibling("sorted-sibling", **self.kwargs)
 
+        # Allow adding either a pre-created instance or creating a new one from kwargs
         if len(self.kwargs) == 1 and "instance" in self.kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs["instance"]
@@ -337,10 +340,13 @@ class MP_AddChildHandler(MP_AddHandler):
             # creating a new object
             newobj = self.node_cls(**self.kwargs)
 
+        # Set depth to one level deeper than parent
         newobj.depth = self.node.depth + 1
         if self.node.is_leaf():
             # the node had no children, adding the first child
+            # Build path: parent_path + step (e.g., "0001" becomes "00010001")
             newobj.path = self.node_cls._get_path(self.node.path, newobj.depth, 1)
+            # Validate path doesn't exceed database column width
             max_length = self.node_cls._meta.get_field("path").max_length
             if len(newobj.path) > max_length:
                 raise PathOverflow(
@@ -352,14 +358,19 @@ class MP_AddChildHandler(MP_AddHandler):
                 )
         else:
             # adding the new child as the last one
+            # Increment last child's path to get next sibling position
             newobj.path = self.node.get_last_child()._inc_path()
 
+        # Atomically increment parent's child count in database using F() expression
+        # to avoid race conditions (SQL: UPDATE ... SET numchild = numchild + 1)
         get_result_class(self.node_cls).objects.filter(path=self.node.path).update(numchild=F("numchild") + 1)
 
         # we increase the numchild value of the object in memory
+        # (F() expression doesn't update the in-memory object, so we sync it manually)
         self.node.numchild += 1
 
         # saving the instance before returning it
+        # Cache parent reference to avoid re-querying when get_parent() is called
         newobj._cached_parent_obj = self.node
         newobj.save()
 
@@ -577,6 +588,10 @@ class MP_Node(Node):
         :raise PathOverflow: when no more root objects can be added
         """
         return MP_AddRootHandler(cls, **kwargs).process()
+    
+    @classmethod
+    def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
+        return mp_node_load_bulk(cls, bulk_data, parent, keep_ids)
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):

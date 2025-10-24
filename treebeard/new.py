@@ -145,7 +145,7 @@ def mp_node_load_bulk(
 
     # Create first level of the bulk data
     # This level could have siblings, so we need to process them first
-    for node_struct in bulk_data[::-1]:
+    for node_struct in bulk_data:
         # Shallow copy of the data structure so it doesn't persist
         node_data = node_struct["data"].copy()
 
@@ -154,6 +154,7 @@ def mp_node_load_bulk(
 
         if keep_ids:
             # Will raise KeyError if pk_field is missing
+            # Otherwise will effectively do nothing??
             node_data[pk_field] = node_struct[pk_field]
 
         # Create first-level node using atomic methods
@@ -168,23 +169,60 @@ def mp_node_load_bulk(
         if "children" in node_struct:
             subtree_root_to_children_map[node_obj] = node_struct["children"]
 
+    # Step 1: Collect all FK values from all descendants that need to be fetched
+    fk_values_to_fetch: dict[str, set[Any]] = {fk_field: set() for fk_field in foreign_keys.keys()}
+    all_child_nodes: list[BulkNodeData] = []
+
+    def _collect_fk_values(child_nodes: list[BulkNodeData]) -> None:
+        """Recursively collect all FK values from child nodes."""
+        for child in child_nodes:
+            all_child_nodes.append(child)
+            child_data = child["data"]
+            for fk_field in foreign_keys.keys():
+                if fk_field in child_data:
+                    fk_values_to_fetch[fk_field].add(child_data[fk_field])
+            if "children" in child:
+                _collect_fk_values(child["children"])
+
+    for children in subtree_root_to_children_map.values():
+        _collect_fk_values(children)
+
+    # Step 2: Bulk fetch all FK objects and create lookup maps
+    fk_lookups: dict[str, dict[Any, models.Model]] = {}
+    for fk_field, fk_model in foreign_keys.items():
+        if fk_values_to_fetch[fk_field]:
+            # Fetch all FK objects at once
+            fk_objects = fk_model.objects.filter(pk__in=fk_values_to_fetch[fk_field])  # pyright: ignore
+            # Create lookup map: pk -> object
+            fk_lookups[fk_field] = {obj.pk: obj for obj in fk_objects}  # pyright: ignore
+        else:
+            fk_lookups[fk_field] = {}
+
+    # Step 3: Create child nodes with FK lookups
     children_to_create: list[MP_Node] = []
 
     def _collect_children(
         parent_node: MP_Node, child_nodes: list[BulkNodeData]
     ) -> None:
-        """Recursively collects child nodes and their metadata.
-
-        Args:
-            parent_node (MP_Node): The parent node to which child nodes belong.
-            child_nodes (list[BulkNodeData]): The list of child nodes to process.
-        """
+        """Recursively collects child nodes and their metadata."""
         base_path = parent_node.path
         child_depth = parent_node.depth + 1
 
-        for i, child in enumerate(child_nodes[::-1]):
-            child_node, grandchildren = child["data"], child.get("children", [])
-            child_obj = cls(**child_node)
+        for i, child in enumerate(child_nodes):
+            child_data = child["data"].copy()
+            grandchildren = child.get("children", [])
+
+            # Replace FK pks with actual FK objects using lookup map
+            for fk_field, fk_lookup in fk_lookups.items():
+                if fk_field in child_data:
+                    fk_pk = child_data[fk_field]
+                    child_data[fk_field] = fk_lookup[fk_pk]
+
+            # Handle keep_ids for child nodes
+            if keep_ids:
+                child_data[pk_field] = child[pk_field]
+
+            child_obj = cls(**child_data)
 
             child_obj.depth = child_depth
             child_obj.numchild = len(grandchildren)
@@ -203,30 +241,10 @@ def mp_node_load_bulk(
         created_children = cls.objects.bulk_create(children_to_create, batch_size=1000)
         added.extend([child.pk for child in created_children])
 
+    # Update numchild for first-level parents that had children bulk-created
+    for subtree_root, children in subtree_root_to_children_map.items():
+        # Count direct children only (not all descendants)
+        direct_children_count = len(children)
+        cls.objects.filter(pk=subtree_root.pk).update(numchild=direct_children_count)
+
     return added
-
-
-data: list[BulkNodeData] = [
-    {"data": {"desc": "1"}},
-    {
-        "data": {"desc": "2"},
-        "children": [
-            {"data": {"desc": "21"}},
-            {"data": {"desc": "22"}},
-            {
-                "data": {"desc": "23"},
-                "children": [
-                    {"data": {"desc": "231"}},
-                ],
-            },
-            {"data": {"desc": "24"}},
-        ],
-    },
-    {"data": {"desc": "3"}},
-    {
-        "data": {"desc": "4"},
-        "children": [
-            {"data": {"desc": "41"}},
-        ],
-    },
-]
