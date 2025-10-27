@@ -30,6 +30,7 @@ from treebeard.exceptions import (
     PathOverflow,
 )
 from treebeard.forms import movenodeform_factory
+from treebeard.templatetags.admin_tree import tree_context
 
 admin_register_all()
 
@@ -2571,14 +2572,8 @@ class TestForm(TestNonEmptyTree):
 
 
 @pytest.mark.django_db
-class TestAdminTree(TestNonEmptyTree):
-    template = Template("{% load admin_tree %}{% spaceless %}{% result_tree cl request %}{% endspaceless %}")
-
-    def test_result_tree(self, model_without_proxy):
-        """
-        Verifies that inclusion tag result_list generates a table when with
-        default ModelAdmin settings.
-        """
+class TestAdminTreeContext(TestNonEmptyTree):
+    def test_tree_context(self, model_without_proxy):
         model = model_without_proxy
         request = RequestFactory().get("/admin/tree/")
         request.user = AnonymousUser()
@@ -2606,168 +2601,20 @@ class TestAdminTree(TestNonEmptyTree):
             )
         )
         cl.formset = None
-        context = Context({"cl": cl, "request": request, "has_change_permission": True})
-        table_output = self.template.render(context)
-        # We have the same amount of drag handlers as objects
-        drag_handler = '<td class="drag-handler"><span>&nbsp;</span></td>'
-        assert table_output.count(drag_handler) == model.objects.count()
-        # All nodes are in the result tree
-        for object in model.objects.all():
-            url = cl.url_for_result(object)
-            node = '<a href="%s">%s</a>' % (url, str(object))
-            assert node in table_output
-        # Unfiltered
-        assert '<input type="hidden" id="has-filters" value="0"/>' in table_output
-        assert '<input type="hidden" id="has-change-permission" value="1"/>' in table_output
+        tree_ctx = tree_context(cl)
 
-    def test_unicode_result_tree(self, model_with_unicode):
-        """
-        Verifies that inclusion tag result_list generates a table when with
-        default ModelAdmin settings.
-        """
-        model = model_with_unicode
-        # Add a unicode description
-        model.add_root(desc="áéîøü")
-        request = RequestFactory().get("/admin/tree/")
-        request.user = AnonymousUser()
-        site = AdminSite()
-        form_class = movenodeform_factory(model)
-        ModelAdmin = admin_factory(form_class)
-
-        class UnicodeModelAdmin(ModelAdmin):
-            list_display = ("__str__", "desc")
-
-        m = UnicodeModelAdmin(model, site)
-        list_display = m.get_list_display(request)
-        list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
-            *get_changelist_args(
-                request,
-                model,
-                list_display,
-                list_display_links,
-                m.list_filter,
-                m.date_hierarchy,
-                m.search_fields,
-                m.list_select_related,
-                m.list_per_page,
-                m.list_max_show_all,
-                m.list_editable,
-                m,
-                [],
-            )
-        )
-        cl.formset = None
-        context = Context({"cl": cl, "request": request, "has_change_permission": True})
-        table_output = self.template.render(context)
-        # We have the same amount of drag handlers as objects
-        drag_handler = '<td class="drag-handler"><span>&nbsp;</span></td>'
-        assert table_output.count(drag_handler) == model.objects.count()
-        # All nodes are in the result tree
-        for object in model.objects.all():
-            url = cl.url_for_result(object)
-            node = '<a href="%s">%s</a>' % (url, object.desc)
-            assert node in table_output
-        # Unfiltered
-        assert '<input type="hidden" id="has-filters" value="0"/>' in table_output
-        assert '<input type="hidden" id="has-change-permission" value="1"/>' in table_output
-
-    def test_result_filtered_no_change_perm(self, model_without_proxy):
-        """Test template changes with filters or pagination."""
-        model = model_without_proxy
-        # Filtered GET
-        request = RequestFactory().get("/admin/tree/?desc=1")
-        request.user = AnonymousUser()
-        site = AdminSite()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        m = admin_class(model, site)
-        list_display = m.get_list_display(request)
-        list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
-            *get_changelist_args(
-                request,
-                model,
-                list_display,
-                list_display_links,
-                m.list_filter,
-                m.date_hierarchy,
-                m.search_fields,
-                m.list_select_related,
-                m.list_per_page,
-                m.list_max_show_all,
-                m.list_editable,
-                m,
-                [],
-            )
-        )
-        cl.formset = None
-        context = Context({"cl": cl, "request": request, "has_change_permission": False})
-        table_output = self.template.render(context)
-        # Filtered
-        assert '<input type="hidden" id="has-filters" value="1"/>' in table_output
-        assert '<input type="hidden" id="has-change-permission" value="0"/>' in table_output
-
-        # Not Filtered GET, it should ignore pagination
-        request = RequestFactory().get("/admin/tree/?p=1")
-        request.user = AnonymousUser()
-        list_display = m.get_list_display(request)
-        list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
-            *get_changelist_args(
-                request,
-                model,
-                list_display,
-                list_display_links,
-                m.list_filter,
-                m.date_hierarchy,
-                m.search_fields,
-                m.list_select_related,
-                m.list_per_page,
-                m.list_max_show_all,
-                m.list_editable,
-                m,
-                [],
-            )
-        )
-        cl.formset = None
-        context = Context({"cl": cl, "request": request, "has_change_permission": True})
-        table_output = self.template.render(context)
-        # Not Filtered
-        assert '<input type="hidden" id="has-filters" value="0"/>' in table_output
-
-        # Not Filtered GET, it should ignore all
-        request = RequestFactory().get("/admin/tree/?all=1")
-        request.user = AnonymousUser()
-        list_display = m.get_list_display(request)
-        list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
-            *get_changelist_args(
-                request,
-                model,
-                list_display,
-                list_display_links,
-                m.list_filter,
-                m.date_hierarchy,
-                m.search_fields,
-                m.list_select_related,
-                m.list_per_page,
-                m.list_max_show_all,
-                m.list_editable,
-                m,
-                [],
-            )
-        )
-        cl.formset = None
-        context = Context({"cl": cl, "request": request, "has_change_permission": True})
-        table_output = self.template.render(context)
-        # Not Filtered
-        assert '<input type="hidden" id="has-filters" value="0"/>' in table_output
+        for idx, obj in enumerate(cl.result_list):
+            assert tree_ctx[idx] == {
+                "node-id": str(obj.pk),
+                "parent-id": 0 if obj.is_root() else obj.get_parent().pk,
+                "level": obj.get_depth(),
+                "children-num": obj.get_children_count(),
+            }
 
 
 @pytest.mark.django_db
 class TestAdminTreeList(TestNonEmptyTree):
-    template = Template("{% load admin_tree_list %}{% spaceless %}{% result_tree cl request %}{% endspaceless %}")
+    template = Template("{% load admin_tree_list %}{% result_tree cl request %}")
 
     def test_result_tree_list(self, model_without_proxy):
         """
@@ -2839,7 +2686,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         context = Context({"cl": cl, "request": request, "action_form": True})
         table_output = self.template.render(context)
         output_template = (
-            '<input type="checkbox" class="action-select" value="%s" name="_selected_action" /><a href="%s/" >%s</a>'
+            '<input type="checkbox" class="action-select" value="%s" name="_selected_action" /> <a href="%s/" >%s</a>'
         )
 
         for object in model.objects.all():
@@ -2951,6 +2798,28 @@ class TestTreeAdmin(TestNonEmptyTree):
         admin_obj = self._get_admin_obj(models.MP_TestNode)
         admin_obj.changelist_view(request)
         assert admin_obj.change_list_template != "admin/tree_list.html"
+
+    def test_changelist_view_renders_hidden_inputs_with_extra_context(self):
+        user = self._create_user("changelist_tmp", is_superuser=True)
+        request = RequestFactory().get("/")
+        request.user = user
+        admin_obj = self._get_admin_obj(models.MP_TestNode)
+        response = admin_obj.changelist_view(request)
+        response.render()
+        content = response.content.decode()
+        assert '<input type="hidden" id="has-change-permission" value="1"/>' in content
+        assert '<input type="hidden" id="has-filters" value="0"/>' in content
+        assert '<script id="tree-context" type="application/json">[]</script>' in content
+
+        request = RequestFactory().get("/?desc=foo")
+        request.user = user
+        admin_obj = self._get_admin_obj(models.MP_TestNode)
+        with patch.object(admin_obj, "has_change_permission", return_value=False):
+            response = admin_obj.changelist_view(request)
+            response.render()
+            content = response.content.decode()
+        assert '<input type="hidden" id="has-change-permission" value="0"/>' in content
+        assert '<input type="hidden" id="has-filters" value="1"/>' in content
 
     def test_get_node(self, model):
         admin_obj = self._get_admin_obj(model)
