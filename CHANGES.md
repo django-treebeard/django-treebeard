@@ -1,3 +1,13 @@
+Release 4.8.0b (Nov 5, 2025)
+----------------------------
+* Add support for Django 5.2, and Python 3.13.
+* Drop support for Django 4.1 and 5.0.
+* Refactor Django admin integration to be simpler, and more resilient to upstream changes.
+* Add `include_self` option to `get_descendants` method.
+* Fix KeyError in MP_Node.dump_bulk if ordering differs from depth, path.
+* Exclude tests from packaged wheel distribution of django-treebeard
+
+
 Release 4.7.1 (Jan 31, 2024)
 ----------------------------
 * Fix: Allow usage of CSRF_COOKIE_HTTPONLY setting.
