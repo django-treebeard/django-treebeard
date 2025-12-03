@@ -1,4 +1,4 @@
-Release 4.8.0b (Nov 5, 2025)
+Release 4.8.0 (Dec 3, 2025)
 ----------------------------
 * Add support for Django 5.2, and Python 3.13.
 * Drop support for Django 4.1 and 5.0.

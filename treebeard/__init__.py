@@ -18,4 +18,4 @@ Release logic:
 14. git push
 """
 
-__version__ = "4.8b"
+__version__ = "4.8.0"
