@@ -1,7 +1,6 @@
 """Unit/Functional tests"""
 
 import datetime
-import os
 from unittest.mock import patch
 
 import pytest
@@ -1982,10 +1981,10 @@ class TestInheritedModels(TestTreeBase):
 
 @pytest.mark.django_db
 class TestMP_TreeAlphabet(TestTreeBase):
-    @pytest.mark.skipif(
-        not os.getenv("TREEBEARD_TEST_ALPHABET", False),
-        reason="TREEBEARD_TEST_ALPHABET env variable not set.",
-    )
+    # @pytest.mark.skipif(
+    #     not os.getenv("TREEBEARD_TEST_ALPHABET", False),
+    #     reason="TREEBEARD_TEST_ALPHABET env variable not set.",
+    # )
     def test_alphabet(self, mpalphabet_model):
         """This isn't actually a test, it's an informational routine."""
         basealpha = numconv.BASE85
