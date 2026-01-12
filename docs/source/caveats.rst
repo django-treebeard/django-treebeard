@@ -24,7 +24,7 @@ by overriding the ``objects`` member in your subclass, you
 *WILL* have errors and inconsistencies in your tree.
 
 To avoid this problem, if you need to override the default
-manager, you'll *NEED* to subclass the manager from
+manager, you *MUST* subclass the manager from
 the base manager class for the tree you are using.
 
 Read the documentation in each tree type for details.
@@ -34,19 +34,7 @@ Custom Managers
 ---------------
 
 Related to the previous caveat, if you need to create custom
-managers, you *NEED* to subclass the manager from the
+managers, you *MUST* subclass the manager from the
 base manager class for the tree you are using.
 
 Read the documentation in each tree type for details.
-
-
-Copying model instances
------------------------
-
-Starting in version 4.5, we made a change to support custom names
-in primary fields that exposed a bug in Django's documentation.
-This has been fixed in the dev version of Django (3.2 as of
-writing this), but even when using older versions,
-the `new instructions`_ apply.
-
-.. _new instructions: https://docs.djangoproject.com/en/3.2/topics/db/queries/#copying-model-instances
