@@ -1,4 +1,5 @@
 """Adjacency List"""
+from asgiref.sync import sync_to_async
 
 from django.core import serializers
 from django.db import models
@@ -75,12 +76,40 @@ class AL_Node(Node):
                     .objects.filter(parent__isnull=True)
                     .order_by("sib_order")
                     .reverse()[0]
-                    .sib_order
+                    .sib_order  # type: ignore
                 )
             except IndexError:
                 max = 0
             newobj.sib_order = max + 1
         newobj.save()
+        return newobj
+    
+    @classmethod
+    async def aadd_root(cls, **kwargs):
+        """Async version of add_root to add a root node to the tree."""
+
+        if len(kwargs) == 1 and "instance" in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs["instance"]
+            if not newobj._state.adding:
+                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
+        else:
+            newobj = cls(**kwargs)
+
+        newobj._cached_depth = 1
+        if not cls.node_order_by:
+            try:
+                first =(
+                    await get_result_class(cls)
+                    .objects.filter(parent__isnull=True)
+                    .order_by("sib_order")
+                    .alast()
+                )
+                max = 0 if first is None else first.sib_order  # type: ignore = first.sib_order  # type: ignore
+            except IndexError:
+                max = 0
+            newobj.sib_order = max + 1
+        await newobj.asave()
         return newobj
 
     @classmethod
@@ -112,7 +141,34 @@ class AL_Node(Node):
         while node:
             node = node.parent
             depth += 1
-        self._cached_depth = depth
+        self._cached_depthget_children = depth
+        return depth
+    
+    async def aget_depth(self, update=False):
+        """
+        **Async version of get_depth.**
+        :returns: the depth (level) of the node
+            Caches the result in the object itself to help in loops.
+        :param update: Updates the cached value.
+        """
+    
+        if self.parent_id is None:
+            return 1
+
+        try:
+            if update:
+                del self._cached_depth
+            else:
+                return self._cached_depth
+        except AttributeError:
+            pass
+
+        depth = 0
+        node = self
+        while node:
+            node = await sync_to_async(lambda: node.parent)()
+            depth += 1
+        self._cached_depthget_children = depth
         return depth
 
     def get_children(self):
@@ -132,6 +188,24 @@ class AL_Node(Node):
                 return self.__class__.objects.get(pk=self.parent_id)
         else:
             return self.parent
+        
+    async def aget_parent(self, update=False):
+        """
+        **Async version of get_parent.**
+        
+        :returns: the parent node of the current node object.
+        """
+        if self._meta.proxy_for_model:
+            # the current node is a proxy model; the returned parent
+            # should be the same proxy model, so we need to explicitly
+            # fetch it as an instance of that model rather than simply
+            # following the 'parent' relation
+            if self.parent_id is None:
+                return None
+            else:
+                return await self.__class__.objects.aget(pk=self.parent_id)
+        else:
+            return await sync_to_async(lambda: self.parent)()
 
     def get_ancestors(self):
         """
@@ -155,10 +229,46 @@ class AL_Node(Node):
                 ancestors.insert(0, node)
                 node = node.parent
         return ancestors
+    
+    async def aget_ancestors(self):
+        """
+        **Async version of get_ancestors.**
+        
+        :returns: A *list* containing the current node object's ancestors,
+            starting by the root node and descending to the parent.
+        """
+        ancestors = []
+        if self._meta.proxy_for_model:
+            # the current node is a proxy model; our result set
+            # should use the same proxy model, so we need to
+            # explicitly fetch instances of that model
+            # when following the 'parent' relation
+            cls = self.__class__
+            node = self
+            while node.parent_id:
+                node = await cls.objects.aget(pk=node.parent_id)
+                ancestors.insert(0, node)
+        else:
+            node = await sync_to_async(lambda: self.parent)()
+            while node:
+                ancestors.insert(0, node)
+                node = await sync_to_async(lambda: node.parent)()
+        return ancestors
 
     def get_root(self):
         """:returns: the root node for the current node object."""
         ancestors = self.get_ancestors()
+        if ancestors:
+            return ancestors[0]
+        return self
+    
+    async def aget_root(self):
+        """
+        **Async version of get_root.**
+        
+        :returns: the root node for the current node object.
+        """
+        ancestors = await sync_to_async(self.get_ancestors)()
         if ancestors:
             return ancestors[0]
         return self
@@ -169,6 +279,14 @@ class AL_Node(Node):
             as an argument, else, returns ``False``
         """
         return self.pk in (obj.pk for obj in node.get_descendants())
+
+    async def ais_descendant_of(self, node):
+        """
+        **Async version of is_descendant_of.**
+        :returns: ``True`` if the node if a descendant of another node given
+            as an argument, else, returns ``False``
+        """
+        return self.pk in [obj.pk for obj in await node.aget_descendants()]
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
@@ -209,6 +327,46 @@ class AL_Node(Node):
                 parentobj["children"].append(newobj)
             lnk[node.pk] = newobj
         return ret
+    
+    @classmethod
+    async def adump_bulk(cls, parent=None, keep_ids=True):
+        """Async version of dump_bulk to dump a tree branch to a python data structure."""
+
+        serializable_cls = cls._get_serializable_model()
+        if parent and serializable_cls != cls and parent.__class__ != serializable_cls:
+            parent = await serializable_cls.objects.aget(pk=parent.pk)
+
+        # a list of nodes: not really a queryset, but it works
+        objs = await serializable_cls.aget_tree(parent)
+
+        ret, lnk = [], {}
+        pk_field = cls._meta.pk.attname
+        for node, pyobj in zip(objs, serializers.serialize("python", objs)):
+            depth = node.get_depth()
+            # django's serializer stores the attributes in 'fields'
+            fields = pyobj["fields"]
+            del fields["parent"]
+
+            # non-sorted trees have this
+            if "sib_order" in fields:
+                del fields["sib_order"]
+
+            if pk_field in fields:
+                del fields[pk_field]
+
+            newobj = {"data": fields}
+            if keep_ids:
+                newobj[pk_field] = pyobj["pk"]
+
+            if (not parent and depth == 1) or (parent and depth == await sync_to_async(parent.get_depth)()):
+                ret.append(newobj)
+            else:
+                parentobj = lnk[node.parent_id]
+                if "children" not in parentobj:
+                    parentobj["children"] = []
+                parentobj["children"].append(newobj)
+            lnk[node.pk] = newobj
+        return ret
 
     def add_child(self, **kwargs):
         """Adds a child to the node."""
@@ -235,6 +393,33 @@ class AL_Node(Node):
         newobj.parent = self
         newobj.save()
         return newobj
+    
+    async def aadd_child(self, **kwargs):
+        """Async version of add_child to add a child to the node."""
+        cls = get_result_class(self.__class__)
+
+        if len(kwargs) == 1 and "instance" in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs["instance"]
+            if not newobj._state.adding:
+                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
+        else:
+            newobj = cls(**kwargs)
+
+        try:
+            newobj._cached_depth = self._cached_depth + 1
+        except AttributeError:
+            pass
+        if not cls.node_order_by:
+            try:
+                first = await cls.objects.filter(parent=self).alast()
+                max = 0 if first is None else first.sib_order
+            except IndexError:
+                max = 0
+            newobj.sib_order = max + 1
+        newobj.parent = self
+        await newobj.asave()
+        return newobj
 
     @classmethod
     def _get_tree_recursively(cls, results, parent, depth):
@@ -246,6 +431,17 @@ class AL_Node(Node):
             node._cached_depth = depth
             results.append(node)
             cls._get_tree_recursively(results, node, depth + 1)
+
+    @classmethod
+    async def _aget_tree_recursively(cls, results, parent, depth):
+        if parent:
+            nodes = parent.get_children()
+        else:
+            nodes = cls.get_root_nodes()
+        async for node in nodes:
+            node._cached_depth = depth
+            results.append(node)
+            await cls._aget_tree_recursively(results, node, depth + 1)
 
     @classmethod
     def get_tree(cls, parent=None):
@@ -262,6 +458,23 @@ class AL_Node(Node):
         cls._get_tree_recursively(results, parent, depth)
         return results
 
+    @classmethod
+    async def aget_tree(cls, parent=None):
+        """
+        :returns:
+
+            Async version of get_tree.
+        """
+        if parent:
+            depth = await sync_to_async(parent.get_depth)() + 1
+            results = [parent]
+        else:
+            depth = 1
+            results = []
+        await cls._aget_tree_recursively(results, parent, depth)
+        return results
+    
+
     def get_descendants(self, include_self=False):
         """
         :returns: A *list* of all the node's descendants, doesn't
@@ -270,6 +483,18 @@ class AL_Node(Node):
         if include_self:
             return self.__class__.get_tree(self)
         return self.__class__.get_tree(parent=self)[1:]
+    
+    async def aget_descendants(self, include_self=False):
+        """
+        **Async version of get_descendants.**
+        
+        :returns: A *list* of all the node's descendants, doesn't
+            include the node itself if `include_self` is False
+        """
+        if include_self:
+            return await self.__class__.aget_tree(self)
+        tree = await self.__class__.aget_tree(parent=self)
+        return tree[1:]
 
     def get_descendant_count(self):
         """:returns: the number of descendants of a nodee"""
@@ -283,6 +508,18 @@ class AL_Node(Node):
         if self.parent:
             return get_result_class(self.__class__).objects.filter(parent=self.parent)
         return self.__class__.get_root_nodes()
+    
+    async def aget_siblings(self):
+        """
+        **Async version of get_siblings.**
+        
+        :returns: A queryset of all the node's siblings, including the node
+            itself.
+        """
+        if await sync_to_async(lambda: self.parent)():
+            return get_result_class(self.__class__).objects.filter(parent=self.parent)
+        return self.__class__.get_root_nodes()
+
 
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
@@ -301,6 +538,25 @@ class AL_Node(Node):
             newobj.sib_order = self.__class__._get_new_sibling_order(pos, self)
         newobj.parent_id = self.parent_id
         newobj.save()
+        return newobj
+    
+    async def aadd_sibling(self, pos=None, **kwargs):
+        """Async version of add_sibling to add a new node as a sibling to the current node object."""
+        pos = self._prepare_pos_var_for_add_sibling(pos)
+
+        if len(kwargs) == 1 and "instance" in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs["instance"]
+            if not newobj._state.adding:
+                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
+        else:
+            # creating a new object
+            newobj = get_result_class(self.__class__)(**kwargs)
+
+        if not self.node_order_by:
+            newobj.sib_order = await sync_to_async(self.__class__._get_new_sibling_order)(pos, self)
+        newobj.parent_id = await sync_to_async(lambda: self.parent_id)()
+        await newobj.asave()
         return newobj
 
     @classmethod
