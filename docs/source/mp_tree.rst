@@ -105,7 +105,7 @@ extra steps, materialized path is more efficient than other approaches.
      .. note::
 
         In case you know what you are doing, there is a test that is
-        disabled by default that can tell you the optimal default alphabet
+        disabled by default that will attempt to suggest an optimal default alphabet
         in your enviroment. To run the test you must enable the
         :envvar:`TREEBEARD_TEST_ALPHABET` enviroment variable:
 
@@ -121,10 +121,10 @@ extra steps, materialized path is more efficient than other approaches.
          ================ ================ ====
          MySQL 5.6.17     0-9A-Z           36
          PostgreSQL 9.3.4 0-9A-Za-z        62
-         Sqlite3          0-9A-Za-z        62
+         Sqlite3          0-9A-Z           36
          ================ ================ ====
 
-        The default value is MySQL's since it will work in all DBs,
+        The default value is MySQL's since it will work for all DBs,
         but when working with a better database, changing the
         :attr:`alphabet` value is recommended in order to increase the
         density of the paths.
@@ -133,6 +133,17 @@ extra steps, materialized path is more efficient than other approaches.
         :attr:`path` column in the database to handle raw ASCII, and
         use the printable ASCII characters (0x20 to 0x7E) as the
         :attr:`alphabet`.
+
+         .. warning::
+
+            If you use a custom alphabet, you must ensure that the order of characters in the alphabet
+            matches the sort order of your database collation.
+
+            Also note that PostgreSQL relies on the collation provided by the underlying
+            operating system, yielding inconsistent results on different systems 
+            if both upper and lower case characters are included in the alphabet. 
+            See https://github.com/PostgresApp/PostgresApp/issues/216
+            and https://dba.stackexchange.com/questions/106964/why-is-my-postgresql-order-by-case-insensitive.
 
 
   .. attribute:: node_order_by
@@ -250,6 +261,5 @@ extra steps, materialized path is more efficient than other approaches.
 
 
 .. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/
-.. _`Sql Design Patterns`:
-   http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm
+.. _`SQL Design Patterns`: http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm
 .. _numconv: https://tabo.pe/projects/numconv/
