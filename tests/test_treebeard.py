@@ -1991,6 +1991,7 @@ class TestMP_TreeAlphabet(TestTreeBase):
         basealpha = numconv.BASE85
         got_err = False
         last_good = None
+
         for alphabetlen in range(3, len(basealpha) + 1):
             alphabet = basealpha[0:alphabetlen]
             assert len(alphabet) >= 3
@@ -2008,16 +2009,24 @@ class TestMP_TreeAlphabet(TestTreeBase):
             # insert root nodes
             for pos in range(len(alphabet) * 2):
                 try:
-                    mpalphabet_model.add_root(numval=pos)
+                    added = mpalphabet_model.add_root(numval=pos)
                 except Exception:
+                    got_err = True
+                    break
+
+                # Check for case-insensitive LIKE that would break querying even if the object was inserted correctly
+                if mpalphabet_model.objects.filter(path__startswith=added.path).count() != 1:
                     got_err = True
                     break
             if got_err:
                 break
-            got = [obj.path for obj in mpalphabet_model.objects.all()]
+
+            got = list(mpalphabet_model.objects.values_list("path", flat=True))
             if got != expected:
                 break
+
             last_good = alphabet
+
         assert False, f"Best BASE85 based alphabet for your setup: {last_good} (base {len(last_good)})"
 
 
