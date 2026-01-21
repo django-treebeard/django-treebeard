@@ -250,29 +250,29 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
         """
 
         vendor = self.node_cls.get_database_vendor("write")
-        sql1 = "UPDATE %s SET" % (connection.ops.quote_name(get_result_class(self.node_cls)._meta.db_table),)
+        quoted_db_name = connection.ops.quote_name(get_result_class(self.node_cls)._meta.db_table)
 
-        if vendor == "mysql":
-            # hooray for mysql ignoring standards in their default
-            # configuration!
-            # to make || work as it should, enable ansi mode
-            # http://dev.mysql.com/doc/refman/5.0/en/ansi-mode.html
-            sqlpath = "CONCAT(%s, SUBSTR(path, %s))"
-        else:
-            sqlpath = sql_concat("%s", sql_substr("path", "%s", vendor=vendor), vendor=vendor)
+        sqlpath = sql_concat("%s", sql_substr("path", "%s", vendor=vendor), vendor=vendor)
 
-        sql2 = ["path=%s" % (sqlpath,)]
+        set_sql = [f"path={sqlpath}"]
         vals = [newpath, len(oldpath) + 1]
-        if len(oldpath) != len(newpath) and vendor != "mysql":
-            # when using mysql, this won't update the depth and it has to be
-            # done in another query
-            # doesn't even work with sql_mode='ANSI,TRADITIONAL'
-            # TODO: FIND OUT WHY?!?? right now I'm just blaming mysql
-            sql2.append(("depth=" + sql_length("%s", vendor=vendor) + "/%%s") % (sqlpath,))
-            vals.extend([newpath, len(oldpath) + 1, self.node_cls.steplen])
-        sql3 = "WHERE path LIKE %s"
-        vals.extend([oldpath + "%"])
-        sql = "%s %s %s" % (sql1, ", ".join(sql2), sql3)
+        if len(oldpath) != len(newpath):
+            # MySQL processes multiple assigments left to right, using the updated value
+            # for any column that is referenced in a subsequent assignment. This behavior differs from standard SQL.
+            # See https://dev.mysql.com/doc/refman/8.4/en/update.html
+            # For a table with schema name (VARCHAR), length (INT) and row (name="bob", length=3), the query:
+            # `UPDATE table SET name='alice', length=LENGTH(name);`
+            # would set `length` to 5 in MySQL, but 3 on other databases, because they use the original source value.
+            if vendor == "mysql":
+                # For MySQL: compute the depth using the `path` field from the DB, that will use the just-updated value
+                set_sql.append(f"depth={sql_length('path', vendor=vendor)}/%s")
+                vals.append(self.node_cls.steplen)
+            else:
+                # For other databases: compute the depth using the new path value
+                set_sql.append(f"depth={sql_length(sqlpath, vendor=vendor)}/%s")
+                vals.extend([newpath, len(oldpath) + 1, self.node_cls.steplen])
+        vals.append(f"{oldpath}%")
+        sql = f"UPDATE {quoted_db_name} SET {', '.join(set_sql)} WHERE path LIKE %s"
         return sql, vals
 
 
@@ -458,7 +458,7 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         oldpath, newpath = self.reorder_nodes_before_add_or_move(
             self.pos, newpos, newdepth, self.target, siblings, oldpath, True
         )
-        # updates needed for mysql and children count in parents
+        # updates needed for children count in parents
         self.sanity_updates_after_move(oldpath, newpath)
 
         self.run_sql_stmts()
@@ -467,14 +467,8 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         """
         Updates the list of sql statements needed after moving nodes.
 
-        1. :attr:`depth` updates *ONLY* needed by mysql databases (*sigh*)
-        2. update the number of children of parent nodes
+        1. update the number of children of parent nodes
         """
-        if self.node_cls.get_database_vendor("write") == "mysql" and len(oldpath) != len(newpath):
-            # no words can describe how dumb mysql is
-            # we must update the depth of the branch in a different query
-            self.stmts.append(self.get_mysql_update_depth_in_branch(newpath))
-
         oldparentpath = self.node_cls._get_parent_path_from_path(oldpath)
         newparentpath = self.node_cls._get_parent_path_from_path(newpath)
         if (
@@ -519,18 +513,6 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
             parent.numchild += 1
 
         return newdepth, siblings, newpos
-
-    def get_mysql_update_depth_in_branch(self, path):
-        """
-        :returns: The sql needed to update the depth of all the nodes in a
-                  branch.
-        """
-        vendor = self.node_cls.get_database_vendor("write")
-        sql = ("UPDATE %s SET depth=" + sql_length("path", vendor=vendor) + "/%%s WHERE path LIKE %%s") % (
-            connection.ops.quote_name(get_result_class(self.node_cls)._meta.db_table),
-        )
-        vals = [self.node_cls.steplen, path + "%"]
-        return sql, vals
 
 
 class MP_Node(Node):
