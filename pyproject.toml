@@ -15,6 +15,9 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 dynamic = ["version"]
+authors = [
+  {name = "Gustavo Picon", email = "tabo@tabo.pe"}
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
