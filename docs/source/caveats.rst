@@ -1,15 +1,13 @@
 Known Caveats
 =============
 
-Raw Queries
------------
+Updating objects
+----------------
 
-``django-treebeard`` uses Django raw SQL queries for
-some write operations, and raw queries don't update the objects in the
-ORM since it's being bypassed.
-
-Because of this, if you have a node in memory and plan to use it after a
-tree modification (adding/removing/moving nodes), you need to reload it.
+The nature of tree data means that many operations (e.g., adding a child to a tree node)
+affect related objects (e.g., the parent node). ``django-treebeard`` updates these in the database, 
+but if you have a node in memory and plan to use it after a tree modification 
+(e.g., adding/removing/moving nodes), you may need to reload it with ``object_instance.refresh_from_db()``.
 
 
 Inconsistent state
