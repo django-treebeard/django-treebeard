@@ -4,7 +4,7 @@ import operator
 from contextlib import suppress
 from functools import reduce
 
-from django.db import connections, models, router, transaction
+from django.db import models, transaction
 from django.db.models import Q
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
@@ -608,28 +608,6 @@ class Node(models.Model):
         while current_class._meta.proxy:
             current_class = current_class._meta.proxy_for_model
         return current_class
-
-    @classmethod
-    def _get_database_connection(cls, action):
-        return {"read": connections[router.db_for_read(cls)], "write": connections[router.db_for_write(cls)]}[action]
-
-    @classmethod
-    def get_database_vendor(cls, action):
-        """
-        returns the supported database vendor used by a treebeard model when
-        performing read (select) or write (update, insert, delete) operations.
-
-        :param action:
-
-            `read` or `write`
-
-        :returns: postgresql, mysql or sqlite
-        """
-        return cls._get_database_connection(action).vendor
-
-    @classmethod
-    def _get_database_cursor(cls, action):
-        return cls._get_database_connection(action).cursor()
 
     class Meta:
         """Abstract model."""

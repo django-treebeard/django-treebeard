@@ -2041,6 +2041,26 @@ class TestInheritedModels(TestTreeBase):
             assert not base_model.objects.filter(desc=desc).exists()
         assert [node.desc for node in node2.get_descendants()] == ["22"]
 
+    def test_move_with_children(self, inherited_model):
+        base_model = inherited_model.__bases__[0]
+
+        node1 = base_model.objects.get(desc="1")
+        node21 = inherited_model.objects.get(desc="21")
+        node21.move(node1, "first-child")
+
+        node1.refresh_from_db()
+        node21.refresh_from_db()
+        assert [node.desc for node in node1.get_children()] == ["21"]
+        assert [node.desc for node in node21.get_children()] == ["211", "212"]
+
+    def test_get_descendants_group_count(self, inherited_model):
+        base_model = inherited_model.__bases__[0]
+        for node in base_model.get_descendants_group_count():
+            assert node.descendants_count == node.get_descendant_count()
+
+        for node in inherited_model.get_descendants_group_count():
+            assert node.descendants_count == node.get_descendant_count()
+
 
 @pytest.mark.django_db
 class TestMP_TreeAlphabet(TestTreeBase):
