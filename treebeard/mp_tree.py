@@ -1,13 +1,12 @@
 """Materialized Path Trees"""
 
-import operator
-from functools import reduce
+import collections
 from typing import Any
 
 from django.core import serializers
 from django.db import connection, models, transaction
 from django.db.models import F, Q, Value
-from django.db.models.functions import Concat, Substr
+from django.db.models.functions import Concat, Greatest, Substr
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
@@ -86,13 +85,12 @@ class MP_NodeQuerySet(models.query.QuerySet):
         # to be deleted and remove nodes from the list if an ancestor is
         # already getting removed, since that would be redundant
         removed = {}
-        for node in self.order_by("depth", "path"):
+        for node in self.order_by("depth", "path").only("path", "depth", "numchild").iterator():
             found = False
             for depth in range(1, int(len(node.path) / node.steplen)):
                 path = node._get_basepath(node.path, depth)
                 if path in removed:
-                    # we are already removing a parent of this node
-                    # skip
+                    # we are already removing an ancestor of this node, so skip it
                     found = True
                     break
             if not found:
@@ -101,31 +99,30 @@ class MP_NodeQuerySet(models.query.QuerySet):
         # ok, got the minimal list of nodes to remove...
         # we must also remove their children
         # and update every parent node's numchild attribute
-        # LOTS OF FUN HERE!
-        parents = {}
-        toremove = []
+        parents = collections.Counter()  # Mapping of parent path to the number of children it has lost
+        pks_to_remove = []
+        paths_to_remove = []
         for path, node in removed.items():
-            parentpath = node._get_basepath(node.path, node.depth - 1)
-            if parentpath:
-                if parentpath not in parents:
-                    parents[parentpath] = node.get_parent(True)
-                parent = parents[parentpath]
-                if parent and parent.numchild > 0:
-                    parent.numchild -= 1
-                    parent.save()
+            if parentpath := node._get_basepath(node.path, node.depth - 1):
+                parents[parentpath] += 1
+
             if node.is_leaf():
-                toremove.append(Q(path=node.path))
+                pks_to_remove.append(node.pk)  # More efficient than querying by path
             else:
-                toremove.append(Q(path__startswith=node.path))
+                paths_to_remove.append(node.path)
+
+        model = get_result_class(self.model)
+
+        # Save the updated numchild of all parents
+        for path, num_lost in parents.items():
+            model.objects.filter(path=path).update(numchild=Greatest(F("numchild") - num_lost, 0))
 
         # Django will handle this as a SELECT and then a DELETE of
         # ids, and will deal with removing related objects
-        model = get_result_class(self.model)
-        if toremove:
-            qset = model.objects.filter(reduce(operator.or_, toremove))
-        else:
-            qset = model.objects.none()
-        return super(MP_NodeQuerySet, qset).delete(*args, **kwargs)
+        query = Q(pk__in=pks_to_remove)
+        for path in paths_to_remove:
+            query |= Q(path__startswith=path)
+        return super(MP_NodeQuerySet, model.objects.filter(query)).delete(*args, **kwargs)
 
     delete.alters_data = True
     delete.queryset_only = True
