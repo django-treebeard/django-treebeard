@@ -586,7 +586,7 @@ class MP_Node(Node):
         return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
 
     @classmethod
-    def fix_tree(cls, destructive=False, fix_paths=False):
+    def fix_tree(cls, fix_paths=False, parent=None):
         """
         Solves some problems that can appear when transactions are not used and
         a piece of code breaks, leaving the tree in an inconsistent state.
@@ -610,24 +610,29 @@ class MP_Node(Node):
             ``numchild`` nodes, it won't fix the tree holes or broken path
             ordering.
 
-        :param destructive:
+        :param parent:
 
-            Deprecated; alias for ``fix_paths``.
+            If provided, limits the operation to descendants of the given node.
+            If not provided, the entire tree will be fixed.
+
+            Fixing only part of a tree will only work if the parent itself is valid.
         """
         cls = get_result_class(cls)
 
+        qs = cls.objects.filter(path__startswith=parent.path) if parent else cls.objects.all()
+
         # fix the depth field; we need the exclude query to speed up postgres
-        cls.objects.exclude(depth=Length("path") / cls.steplen).update(depth=Length("path") / cls.steplen)
+        qs.exclude(depth=Length("path") / cls.steplen).update(depth=Length("path") / cls.steplen)
 
         # fix the numchild field
         child_subquery = cls.objects.alias(path_length=Length("path")).filter(
             path__startswith=OuterRef("path"), path_length=Length(OuterRef("path")) + cls.steplen
         )
-        cls.objects.annotate(real_numchild=CountSubquery(child_subquery)).exclude(numchild=F("real_numchild")).update(
+        qs.annotate(real_numchild=CountSubquery(child_subquery)).exclude(numchild=F("real_numchild")).update(
             numchild=F("real_numchild")
         )
 
-        if fix_paths or destructive:
+        if fix_paths:
             with transaction.atomic():
                 # To fix holes and mis-orderings in paths, we consider each non-leaf node in turn
                 # and ensure that its children's path values are consecutive (and in the order
@@ -639,7 +644,7 @@ class MP_Node(Node):
 
                 # Initially children_to_fix is the set of root nodes, i.e. ones with a path
                 # starting with '' and depth 1.
-                children_to_fix = [("", 1)]
+                children_to_fix = [(parent.path, parent.depth + 1)] if parent else [("", 1)]
 
                 while children_to_fix:
                     parent_path, depth = children_to_fix.pop(0)

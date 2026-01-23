@@ -12,6 +12,7 @@ Release 5.0.0 (in development)
 * The initialisation signatures for the internal `MP_AddChildHandler` and `MP_AddSiblingHandler`
   classes have changed to avoid collisions with model field names. Both constructors now expect
   a mapping of model creation arguments as a single parameter, instead of keywords arguments passed to the constructor.
+* The deprecated `destructive` argument was removed from `MP_Node.fix_tree()` use `fix_paths` instead.
 
 
 Release 4.8.0 (Dec 3, 2025)

@@ -2339,29 +2339,76 @@ class TestMP_TreeFix(TestTreeBase):
         model(path="1", depth=10, numchild=3, desc="b").save()
         model(path="2", depth=10, numchild=3, desc="d").save()
 
-    def test_fix_tree_non_destructive(self, mpshort_model):
+    def test_fix_tree_no_fix_paths(self, mpshort_model):
         self.add_broken_test_data(mpshort_model)
-        mpshort_model.fix_tree(destructive=False)
+        mpshort_model.fix_tree(fix_paths=False)
         got = self.got(mpshort_model)
         expected = self.expected_with_holes[mpshort_model]
         assert got == expected
-        mpshort_model.find_problems()
+        assert all(not group for group in mpshort_model.find_problems())
 
-    def test_fix_tree_destructive(self, mpshort_model):
-        self.add_broken_test_data(mpshort_model)
-        mpshort_model.fix_tree(destructive=True)
-        got = self.got(mpshort_model)
-        expected = self.expected_no_holes[mpshort_model]
-        assert got == expected
-        mpshort_model.find_problems()
-
-    def test_fix_tree_with_fix_paths(self, mpshort_model):
+    def test_fix_tree_fix_paths(self, mpshort_model):
         self.add_broken_test_data(mpshort_model)
         mpshort_model.fix_tree(fix_paths=True)
         got = self.got(mpshort_model)
         expected = self.expected_no_holes[mpshort_model]
         assert got == expected
-        mpshort_model.find_problems()
+        assert all(not group for group in mpshort_model.find_problems())
+
+    def test_fix_tree_with_parent(self, mpshort_model):
+        """
+        Fix the tree only for parent with path 4 and everything inside it.
+        All other bad data should be left intact.
+        """
+
+        self.add_broken_test_data(mpshort_model)
+        mpshort_model.fix_tree(parent=mpshort_model.objects.get(path="4"))
+        got = self.got(mpshort_model)
+        expected = self.expected_with_holes[mpshort_model]
+
+        assert got[7:] == expected[7:]  # Only compare items from path 4 onwards
+        problems = mpshort_model.find_problems()
+        assert not any([problems[0], problems[1], problems[2], problems[4]])
+        assert set(problems[3]) == set(mpshort_model.objects.exclude(path__startswith="4").values_list("pk", flat=True))
+
+    def test_fix_tree_with_parent_fix_paths(self, mpshort_model):
+        """
+        Fix the tree only for parent with path 4 and everything inside it.
+        All other bad data should be left intact.
+        """
+
+        self.add_broken_test_data(mpshort_model)
+        parent = mpshort_model.objects.get(path="4")
+        # Fix the depth on the parent - we need a valid parent to operate on only part of a tree
+        parent.depth = 1
+        parent.save()
+        mpshort_model.fix_tree(parent=parent, fix_paths=True)
+        got = self.got(mpshort_model)
+        expected_partial = {
+            models.MP_TestNodeShortPath: [
+                ("4", "a", 1, 4),
+                ("41", "a", 2, 0),
+                ("42", "a", 2, 0),
+                ("43", "u", 2, 1),
+                ("431", "i", 3, 1),
+                ("4311", "e", 4, 0),
+                ("44", "o", 2, 0),
+            ],
+            models.MP_TestSortedNodeShortPath: [
+                ("4", "a", 1, 4),
+                ("41", "a", 2, 0),
+                ("42", "a", 2, 0),
+                ("43", "o", 2, 0),
+                ("44", "u", 2, 1),
+                ("441", "i", 3, 1),
+                ("4411", "e", 4, 0),
+            ],
+        }
+
+        assert got[7:] == expected_partial[mpshort_model]  # Only compare items from path 4 onwards
+        problems = mpshort_model.find_problems()
+        assert not any([problems[0], problems[1], problems[2], problems[4]])
+        assert set(problems[3]) == set(mpshort_model.objects.exclude(path__startswith="4").values_list("pk", flat=True))
 
 
 @pytest.mark.django_db
