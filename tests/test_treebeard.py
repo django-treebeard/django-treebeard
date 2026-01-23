@@ -5,7 +5,6 @@ import os
 from unittest.mock import patch
 
 import pytest
-from django import VERSION as DJANGO_VERSION
 from django.contrib.admin.options import TO_FIELD_VAR
 from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
@@ -138,14 +137,6 @@ def mpsmallstep_model(request):
 @pytest.fixture(scope="function", params=[models.MP_TestManyToManyWithUser])
 def mpm2muser_model(request):
     return request.param
-
-
-# Compat helper, and be dropped after Django 3.2 is dropped
-def get_changelist_args(*args):
-    new_args = list(args)
-    if DJANGO_VERSION > (4,):
-        new_args.append("")  # New search_help_text arg
-    return new_args
 
 
 class TestTreeBase:
@@ -2593,21 +2584,20 @@ class TestAdminTreeContext(TestNonEmptyTree):
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(
-            *get_changelist_args(
-                request,
-                model,
-                list_display,
-                list_display_links,
-                m.list_filter,
-                m.date_hierarchy,
-                m.search_fields,
-                m.list_select_related,
-                m.list_per_page,
-                m.list_max_show_all,
-                m.list_editable,
-                m,
-                [],
-            )
+            request,
+            model,
+            list_display,
+            list_display_links,
+            m.list_filter,
+            m.date_hierarchy,
+            m.search_fields,
+            m.list_select_related,
+            m.list_per_page,
+            m.list_max_show_all,
+            m.list_editable,
+            m,
+            [],
+            "",
         )
         cl.formset = None
         tree_ctx = tree_context(cl)
@@ -2640,21 +2630,20 @@ class TestAdminTreeList(TestNonEmptyTree):
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(
-            *get_changelist_args(
-                request,
-                model,
-                list_display,
-                list_display_links,
-                m.list_filter,
-                m.date_hierarchy,
-                m.search_fields,
-                m.list_select_related,
-                m.list_per_page,
-                m.list_max_show_all,
-                m.list_editable,
-                m,
-                [],
-            )
+            request,
+            model,
+            list_display,
+            list_display_links,
+            m.list_filter,
+            m.date_hierarchy,
+            m.search_fields,
+            m.list_select_related,
+            m.list_per_page,
+            m.list_max_show_all,
+            m.list_editable,
+            m,
+            [],
+            "",
         )
         cl.formset = None
         context = Context({"cl": cl, "request": request})
@@ -2675,21 +2664,20 @@ class TestAdminTreeList(TestNonEmptyTree):
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(
-            *get_changelist_args(
-                request,
-                model,
-                list_display,
-                list_display_links,
-                m.list_filter,
-                m.date_hierarchy,
-                m.search_fields,
-                m.list_select_related,
-                m.list_per_page,
-                m.list_max_show_all,
-                m.list_editable,
-                m,
-                [],
-            )
+            request,
+            model,
+            list_display,
+            list_display_links,
+            m.list_filter,
+            m.date_hierarchy,
+            m.search_fields,
+            m.list_select_related,
+            m.list_per_page,
+            m.list_max_show_all,
+            m.list_editable,
+            m,
+            [],
+            "",
         )
         cl.formset = None
         context = Context({"cl": cl, "request": request, "action_form": True})
@@ -2716,21 +2704,20 @@ class TestAdminTreeList(TestNonEmptyTree):
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(
-            *get_changelist_args(
-                request,
-                model,
-                list_display,
-                list_display_links,
-                m.list_filter,
-                m.date_hierarchy,
-                m.search_fields,
-                m.list_select_related,
-                m.list_per_page,
-                m.list_max_show_all,
-                m.list_editable,
-                m,
-                [],
-            )
+            request,
+            model,
+            list_display,
+            list_display_links,
+            m.list_filter,
+            m.date_hierarchy,
+            m.search_fields,
+            m.list_select_related,
+            m.list_per_page,
+            m.list_max_show_all,
+            m.list_editable,
+            m,
+            [],
+            "",
         )
         cl.formset = None
         context = Context({"cl": cl, "request": request})
@@ -2755,21 +2742,20 @@ class TestAdminTreeList(TestNonEmptyTree):
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(
-            *get_changelist_args(
-                request,
-                model_with_unicode,
-                list_display,
-                list_display_links,
-                m.list_filter,
-                m.date_hierarchy,
-                m.search_fields,
-                m.list_select_related,
-                m.list_per_page,
-                m.list_max_show_all,
-                m.list_editable,
-                m,
-                [],
-            )
+            request,
+            model_with_unicode,
+            list_display,
+            list_display_links,
+            m.list_filter,
+            m.date_hierarchy,
+            m.search_fields,
+            m.list_select_related,
+            m.list_per_page,
+            m.list_max_show_all,
+            m.list_editable,
+            m,
+            [],
+            "",
         )
         cl.formset = None
         context = Context({"cl": cl, "request": request})
