@@ -539,7 +539,7 @@ class Node(models.Model):
             Called only for Node models with :attr:`node_order_by`
 
         This function is based on _insertion_target_filters from django-mptt
-        (BSD licensed) by Jonathan Buchanan:
+        (MIT licensed) by Jonathan Buchanan:
         https://github.com/django-mptt/django-mptt/blob/0.3.0/mptt/signals.py
         """
 
