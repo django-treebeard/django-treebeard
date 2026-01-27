@@ -1,8 +1,8 @@
 """Forms for treebeard."""
 
 from django import forms
-from django.forms.models import ErrorList
 from django.forms.models import modelform_factory as django_modelform_factory
+from django.forms.utils import ErrorList
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -52,9 +52,9 @@ class MoveNodeForm(forms.ModelForm):
         ("right", _("After")),
     )
 
-    _position = forms.ChoiceField(required=True, label=_("Position"))
+    treebeard_position = forms.ChoiceField(required=True, label=_("Position"))
 
-    _ref_node_id = forms.ChoiceField(required=False, label=_("Relative to"))
+    treebeard_ref_node_id = forms.ChoiceField(required=False, label=_("Relative to"))
 
     def _get_position_ref_node(self, instance):
         if self.is_sorted:
@@ -75,7 +75,7 @@ class MoveNodeForm(forms.ModelForm):
                     ref_node_id = ""
                 else:
                     ref_node_id = instance.get_parent().pk
-        return {"_ref_node_id": ref_node_id, "_position": position}
+        return {"treebeard_ref_node_id": ref_node_id, "treebeard_position": position}
 
     def __init__(
         self,
@@ -94,20 +94,20 @@ class MoveNodeForm(forms.ModelForm):
         if opts.model is None:
             raise ValueError("ModelForm has no model class specified")
 
-        # update the '_position' field choices
+        # update the 'treebeard_position' field choices
         self.is_sorted = getattr(opts.model, "node_order_by", False)
         if self.is_sorted:
             choices_sort_mode = self.__class__.__position_choices_sorted
         else:
             choices_sort_mode = self.__class__.__position_choices_unsorted
-        self.declared_fields["_position"].choices = choices_sort_mode
+        self.declared_fields["treebeard_position"].choices = choices_sort_mode
 
-        # update the '_ref_node_id' choices
+        # update the 'treebeard_ref_node_id' choices
         choices = self.mk_dropdown_tree(opts.model, for_node=instance)
-        self.declared_fields["_ref_node_id"].choices = choices
+        self.declared_fields["treebeard_ref_node_id"].choices = choices
         # use the formfield `to_python` method to coerse the field for custom ids
         pkFormField = opts.model._meta.pk.formfield()
-        self.declared_fields["_ref_node_id"].coerce = pkFormField.to_python if pkFormField else int
+        self.declared_fields["treebeard_ref_node_id"].coerce = pkFormField.to_python if pkFormField else int
 
         # put initial data for these fields into a map, update the map with
         # initial data, and pass this new map to the parent constructor as
@@ -135,17 +135,12 @@ class MoveNodeForm(forms.ModelForm):
 
     def _clean_cleaned_data(self):
         """delete auxilary fields not belonging to node model"""
-        reference_node_id = None
+        reference_node_id = self.cleaned_data.pop("treebeard_ref_node_id", None)
 
-        if "_ref_node_id" in self.cleaned_data:
-            if self.cleaned_data["_ref_node_id"] != "0":
-                reference_node_id = self.cleaned_data["_ref_node_id"]
-                if reference_node_id.isdigit():
-                    reference_node_id = int(reference_node_id)
-            del self.cleaned_data["_ref_node_id"]
+        if reference_node_id and reference_node_id.isdigit():
+            reference_node_id = int(reference_node_id)
 
-        position_type = self.cleaned_data["_position"]
-        del self.cleaned_data["_position"]
+        position_type = self.cleaned_data.pop("treebeard_position")
 
         return position_type, reference_node_id
 
@@ -202,7 +197,7 @@ class MoveNodeForm(forms.ModelForm):
         return options
 
 
-def movenodeform_factory(model, form=MoveNodeForm, fields=None, exclude=None, formfield_callback=None, widgets=None):
+def movenodeform_factory(model, form=MoveNodeForm, exclude=None, **kwargs):
     """Dynamically build a MoveNodeForm subclass with the proper Meta.
 
     :param Node model:
@@ -215,21 +210,22 @@ def movenodeform_factory(model, form=MoveNodeForm, fields=None, exclude=None, fo
         The form class that will be used as a base. By
         default, :py:class:`MoveNodeForm` will be used.
 
+    Accepts all other kwargs that can be passed to Django's `modelform_factory`.
+
     :return: A :py:class:`MoveNodeForm` subclass
     """
     _exclude = _get_exclude_for_model(model, exclude)
-    return django_modelform_factory(model, form, fields, _exclude, formfield_callback, widgets)
+    return django_modelform_factory(model, form, exclude=_exclude, **kwargs)
 
 
 def _get_exclude_for_model(model, exclude):
-    if exclude:
-        _exclude = tuple(exclude)
-    else:
-        _exclude = ()
     if issubclass(model, AL_Node):
-        _exclude += ("sib_order", "parent")
+        to_exclude = ("sib_order", "parent")
     elif issubclass(model, MP_Node):
-        _exclude += ("depth", "numchild", "path")
+        to_exclude = ("depth", "numchild", "path")
     elif issubclass(model, NS_Node):
-        _exclude += ("depth", "lft", "rgt", "tree_id")
-    return _exclude
+        to_exclude = ("depth", "lft", "rgt", "tree_id")
+    else:
+        to_exclude = ()
+
+    return tuple(exclude or ()) + to_exclude

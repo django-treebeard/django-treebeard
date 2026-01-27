@@ -54,14 +54,14 @@ Basic Interface
 Model Detail Pages
 ~~~~~~~~~~~~~~~~~~
 
-If a model's field values are modified, then it is necessary to add the fields '_position' and '_ref_node_id'. Otherwise, it is not possible to create instances of the model.
+If a model's field values are modified, then it is necessary to add the fields 'treebeard_position' and 'treebeard_ref_node_id'. Otherwise, it is not possible to create instances of the model.
 
 Example:
 
    .. code-block:: python
 
         class MyAdmin(TreeAdmin):
-            list_display = ('title', 'body', 'is_edited', 'timestamp', '_position', '_ref_node_id',)
+            list_display = ('title', 'body', 'is_edited', 'timestamp', 'treebeard_position', 'treebeard_ref_node_id',)
             form = movenodeform_factory(MyNode)
 
         admin.site.register(MyNode, MyAdmin)

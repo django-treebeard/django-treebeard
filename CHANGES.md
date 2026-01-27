@@ -1,3 +1,10 @@
+
+Release 4.9.0 (in development)
+----------------------------
+* Internal fields used by Treebeard's `MoveNodeForm` have been renamed from 
+`_position` to `treebeard_position` and `_ref_node_id` to `treebeard_ref_node_id`.
+
+
 Release 4.8.0 (Dec 3, 2025)
 ----------------------------
 * Add support for Django 5.2, and Python 3.13.

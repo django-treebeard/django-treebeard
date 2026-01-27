@@ -2328,15 +2328,15 @@ class TestMoveNodeForm(TestNonEmptyTree):
         return [(pk, "%s%s" % ("&nbsp;" * 4 * (depth - 1), str)) for pk, str, depth in nodes]
 
     def _assert_nodes_in_choices(self, form, nodes):
-        choices = form.fields["_ref_node_id"].choices
+        choices = form.fields["treebeard_ref_node_id"].choices
         assert choices.pop(0)[0] is None
         assert nodes == [(choice[0], choice[1]) for choice in choices]
 
     def _move_node_helper(self, node, safe_parent_nodes):
         form_class = movenodeform_factory(type(node))
         form = form_class(instance=node)
-        assert ["desc", "_position", "_ref_node_id"] == list(form.base_fields.keys())
-        got = [choice[0] for choice in form.fields["_position"].choices]
+        assert ["desc", "treebeard_position", "treebeard_ref_node_id"] == list(form.base_fields.keys())
+        got = [choice[0] for choice in form.fields["treebeard_position"].choices]
         assert ["first-child", "left", "right"] == got
         nodes = self._get_nodes_list(safe_parent_nodes)
         self._assert_nodes_in_choices(form, nodes)
@@ -2366,7 +2366,7 @@ class TestMoveNodeForm(TestNonEmptyTree):
             admin_class = admin_factory(form_class)
             ma = admin_class(model, site)
             got = list(ma.get_form(request).base_fields.keys())
-            desc_pos_refnodeid = ["desc", "_position", "_ref_node_id"]
+            desc_pos_refnodeid = ["desc", "treebeard_position", "treebeard_ref_node_id"]
             assert desc_pos_refnodeid == got
             got = ma.get_fieldsets(request)
             expected = [(None, {"fields": desc_pos_refnodeid})]
@@ -2387,8 +2387,8 @@ class TestModelAdmin(TestNonEmptyTree):
         ma = admin_class(model, site)
         assert list(ma.get_form(None).base_fields.keys()) == [
             "desc",
-            "_position",
-            "_ref_node_id",
+            "treebeard_position",
+            "treebeard_ref_node_id",
         ]
 
 
@@ -2410,8 +2410,8 @@ class TestSortedForm(TestTreeSorted):
             "val1",
             "val2",
             "desc",
-            "_position",
-            "_ref_node_id",
+            "treebeard_position",
+            "treebeard_ref_node_id",
         ]
 
         form = form_class(instance=sorted_model.objects.get(desc="bcd"))
@@ -2419,11 +2419,11 @@ class TestSortedForm(TestTreeSorted):
             "val1",
             "val2",
             "desc",
-            "_position",
-            "_ref_node_id",
+            "treebeard_position",
+            "treebeard_ref_node_id",
         ]
-        assert "id__position" in str(form)
-        assert "id__ref_node_id" in str(form)
+        assert "id_treebeard_position" in str(form)
+        assert "id_treebeard_ref_node_id" in str(form)
 
 
 @pytest.mark.django_db
@@ -2431,12 +2431,12 @@ class TestForm(TestNonEmptyTree):
     def test_form(self, model):
         form_class = movenodeform_factory(model)
         form = form_class()
-        assert list(form.fields.keys()) == ["desc", "_position", "_ref_node_id"]
+        assert list(form.fields.keys()) == ["desc", "treebeard_position", "treebeard_ref_node_id"]
 
         form = form_class(instance=model.objects.get(desc="1"))
-        assert list(form.fields.keys()) == ["desc", "_position", "_ref_node_id"]
-        assert "id__position" in str(form)
-        assert "id__ref_node_id" in str(form)
+        assert list(form.fields.keys()) == ["desc", "treebeard_position", "treebeard_ref_node_id"]
+        assert "id_treebeard_position" in str(form)
+        assert "id_treebeard_ref_node_id" in str(form)
 
     def test_move_node_form(self, model):
         form_class = movenodeform_factory(model)
@@ -2455,46 +2455,46 @@ class TestForm(TestNonEmptyTree):
         instance_parent = model.objects.get(desc="1")
         form = form_class(instance=instance_parent)
         assert form._get_position_ref_node(instance_parent) == {
-            "_position": "first-child",
-            "_ref_node_id": "",
+            "treebeard_position": "first-child",
+            "treebeard_ref_node_id": "",
         }
 
         instance_child = model.objects.get(desc="21")
         form = form_class(instance=instance_child)
         assert form._get_position_ref_node(instance_child) == {
-            "_position": "first-child",
-            "_ref_node_id": model.objects.get(desc="2").pk,
+            "treebeard_position": "first-child",
+            "treebeard_ref_node_id": model.objects.get(desc="2").pk,
         }
 
         instance_grandchild = model.objects.get(desc="22")
         form = form_class(instance=instance_grandchild)
         assert form._get_position_ref_node(instance_grandchild) == {
-            "_position": "right",
-            "_ref_node_id": model.objects.get(desc="21").pk,
+            "treebeard_position": "right",
+            "treebeard_ref_node_id": model.objects.get(desc="21").pk,
         }
 
         instance_grandchild = model.objects.get(desc="231")
         form = form_class(instance=instance_grandchild)
         assert form._get_position_ref_node(instance_grandchild) == {
-            "_position": "first-child",
-            "_ref_node_id": model.objects.get(desc="23").pk,
+            "treebeard_position": "first-child",
+            "treebeard_ref_node_id": model.objects.get(desc="23").pk,
         }
 
     def test_clean_cleaned_data(self, model):
         instance_parent = model.objects.get(desc="1")
-        _position = "first-child"
-        _ref_node_id = ""
+        treebeard_position = "first-child"
+        treebeard_ref_node_id = ""
         form_class = movenodeform_factory(model)
         form = form_class(
             instance=instance_parent,
             data={
-                "_position": _position,
-                "_ref_node_id": _ref_node_id,
+                "treebeard_position": treebeard_position,
+                "treebeard_ref_node_id": treebeard_ref_node_id,
                 "desc": instance_parent.desc,
             },
         )
         assert form.is_valid()
-        assert form._clean_cleaned_data() == (_position, _ref_node_id)
+        assert form._clean_cleaned_data() == (treebeard_position, treebeard_ref_node_id)
 
     def test_save_edit(self, model):
         instance_parent = model.objects.get(desc="1")
@@ -2503,8 +2503,8 @@ class TestForm(TestNonEmptyTree):
         form = form_class(
             instance=instance_parent,
             data={
-                "_position": "first-child",
-                "_ref_node_id": model.objects.get(desc="2").pk,
+                "treebeard_position": "first-child",
+                "treebeard_ref_node_id": model.objects.get(desc="2").pk,
                 "desc": instance_parent.desc,
             },
         )
@@ -2521,8 +2521,8 @@ class TestForm(TestNonEmptyTree):
         form = form_class(
             instance=saved_instance,
             data={
-                "_position": "first-child",
-                "_ref_node_id": "",
+                "treebeard_position": "first-child",
+                "treebeard_ref_node_id": "",
                 "desc": saved_instance.desc,
             },
         )
@@ -2537,9 +2537,9 @@ class TestForm(TestNonEmptyTree):
     def test_save_new(self, model):
         original_count = model.objects.all().count()
         assert original_count == 10
-        _position = "first-child"
+        treebeard_position = "first-child"
         form_class = movenodeform_factory(model)
-        form = form_class(data={"_position": _position, "desc": "New Form Test"})
+        form = form_class(data={"treebeard_position": treebeard_position, "desc": "New Form Test"})
         assert form.is_valid()
         assert form.save() is not None
         assert original_count < model.objects.all().count()
@@ -2551,9 +2551,9 @@ class TestForm(TestNonEmptyTree):
         """
         original_count = model.objects.all().count()
         assert original_count == 10
-        _position = "first-child"
+        treebeard_position = "first-child"
         form_class = movenodeform_factory(model)
-        form = form_class(data={"_position": _position, "id": 999999, "desc": "New Form Test"})
+        form = form_class(data={"treebeard_position": treebeard_position, "id": 999999, "desc": "New Form Test"})
         assert form.is_valid()
         # Fake a natural key by updating the instance directly, because
         # the model form will have removed the id from cleaned data because
@@ -2564,7 +2564,7 @@ class TestForm(TestNonEmptyTree):
 
     def test_save_instance(self, model):
         form_class = movenodeform_factory(model)
-        form = form_class(data={"_position": "first-child", "desc": "Test Instance"})
+        form = form_class(data={"treebeard_position": "first-child", "desc": "Test Instance"})
         assert form.is_valid()
         form.instance.desc = "Modified Instance"
         instance = form.save()
