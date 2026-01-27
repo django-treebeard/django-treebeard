@@ -19,18 +19,18 @@
     margin: 0 10px;
 }
 
-.collapse {
+.treebeard-collapse {
     width: 16px;
     height: 16px;
     display: inline-block;
     text-indent: -999px;
 }
 
-.collapsed {
+.treebeard-collapsed {
     background: transparent url(expand-collapse.png) no-repeat left -16px;
 }
 
-.expanded {
+.treebeard-expanded {
     background: transparent url(expand-collapse.png) no-repeat left 0;
 }
 

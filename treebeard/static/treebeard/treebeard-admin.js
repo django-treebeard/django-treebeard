@@ -44,10 +44,10 @@
             parent_id: parent_id,
             level: level,
             is_collapsed: function () {
-                return $elem.find('a.collapse').hasClass('collapsed');
+                return $elem.find('a.treebeard-collapse').hasClass('treebeard-collapsed');
             },
             children: function () {
-                return $('td[data-parent-id=' + node_id + ']').closest("tr");
+                return $('tr[data-parent-id="' + node_id + '"]');
             },
             collapse: function () {
                 // For each children, hide it's children and so on...
@@ -55,13 +55,13 @@
                     new Node(this).collapse();
                 }).hide();
                 // Switch class to set the property expand/collapse icon
-                $elem.find('a.collapse').removeClass('expanded').addClass('collapsed');
+                $elem.find('a.treebeard-collapse').removeClass('treebeard-expanded').addClass('treebeard-collapsed');
             },
             expand: function () {
                 // Display each kid (will display in collapsed state)
                 this.children().show();
                 // Swicth class to set the property expand/collapse icon
-                $elem.find('a.collapse').removeClass('collapsed').addClass('expanded');
+                $elem.find('a.treebeard-collapse').removeClass('treebeard-collapsed').addClass('treebeard-expanded');
             },
             toggle: function () {
                 if (this.is_collapsed()) {
@@ -90,7 +90,7 @@
         const contextList = JSON.parse(document.getElementById('tree-context').textContent);
         $resultList.each(function (index, el) {
             Object.entries(contextList[index]).forEach(function ([key, val]) {
-                $(el).data(key, val);
+                $(el).attr(`data-${key}`, val);     // Must use attr() to set the HTML5 attribute, not data()
             })
         });
 
@@ -104,7 +104,7 @@
 
             const numChildren = parseInt($(this).data("children-num"));
             if (numChildren) {
-                $firstCell.prepend("<a href='#' class='collapse expanded'>-</a>");
+                $firstCell.prepend("<a href='#' class='treebeard-collapse treebeard-expanded'>-</a>");
             }
 
             const level = parseInt($(this).data("level"));
@@ -256,7 +256,7 @@
                 });
         });
 
-        $('a.collapse').click(function () {
+        $('a.treebeard-collapse').click(function () {
             var node = new Node($(this).closest('tr')[0]); // send the DOM node, not jQ
             node.toggle();
             return false;
