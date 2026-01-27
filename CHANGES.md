@@ -5,6 +5,9 @@ Release 4.9.0 (in development)
 * Drop support for Django 5.1.
 * Internal fields used by Treebeard's `MoveNodeForm` have been renamed from 
 `_position` to `treebeard_position` and `_ref_node_id` to `treebeard_ref_node_id`.
+* The initialisation signatures for the internal `MP_AddChildHandler` and `MP_AddSiblingHandler`
+  classes have changed to avoid collisions with model field names. Both constructors now expect
+  a mapping of model creation arguments as a single parameter, instead of keywords arguments passed to the constructor.
 
 
 Release 4.8.0 (Dec 3, 2025)

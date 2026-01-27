@@ -2,6 +2,7 @@
 
 import operator
 from functools import reduce
+from typing import Any
 
 from django.core import serializers
 from django.db import connection, models, transaction
@@ -315,11 +316,12 @@ class MP_AddRootHandler(MP_AddHandler):
 
 
 class MP_AddChildHandler(MP_AddHandler):
-    def __init__(self, node, **kwargs):
+    def __init__(self, node, creation_kwargs: dict[str, Any]):
         super().__init__()
         self.node = node
         self.node_cls = node.__class__
-        self.kwargs = kwargs
+        # These are deliberately not extracted in the function signature to avoid collision with model field names
+        self.kwargs = creation_kwargs
 
     def process(self):
         if self.node_cls.node_order_by and not self.node.is_leaf():
@@ -367,12 +369,13 @@ class MP_AddChildHandler(MP_AddHandler):
 
 
 class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
-    def __init__(self, node, pos, **kwargs):
+    def __init__(self, node, pos, creation_kwargs: dict[str, Any]):
         super().__init__()
         self.node = node
         self.node_cls = node.__class__
         self.pos = pos
-        self.kwargs = kwargs
+        # These are deliberately not extracted in the function signature to avoid collision with model field names
+        self.kwargs = creation_kwargs
 
     def process(self):
         self.pos = self.node._prepare_pos_var_for_add_sibling(self.pos)
@@ -1018,7 +1021,7 @@ class MP_Node(Node):
 
         :raise PathOverflow: when no more child nodes can be added
         """
-        return MP_AddChildHandler(self, **kwargs).process()
+        return MP_AddChildHandler(self, kwargs).process()
 
     def add_sibling(self, pos=None, **kwargs):
         """
@@ -1033,7 +1036,7 @@ class MP_Node(Node):
         :raise PathOverflow: when the library can't make room for the
            node's new position
         """
-        return MP_AddSiblingHandler(self, pos, **kwargs).process()
+        return MP_AddSiblingHandler(self, pos, kwargs).process()
 
     def get_root(self):
         """:returns: the root node for the current node object."""
