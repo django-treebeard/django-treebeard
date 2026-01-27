@@ -765,6 +765,16 @@ class TestAddChild(TestNonEmptyTree):
         ]
         assert self.got(model) == expected
 
+    def test_add_child_called_consecutively(self, model_without_data):
+        # Regression test for https://github.com/django-treebeard/django-treebeard/issues/307
+        parent = model_without_data.add_root(desc="1")
+        child1 = model_without_data(desc="11")
+        child2 = model_without_data(desc="12")
+        assert parent.get_children_count() == 0
+        parent.add_child(instance=child1)
+        parent.add_child(instance=child2)
+        assert list(parent.get_children().values_list("desc", flat=True)) == [child1.desc, child2.desc]
+
     def test_add_child_with_already_saved_instance(self, model):
         child = model.objects.get(desc="21")
         with pytest.raises(NodeAlreadySaved):
