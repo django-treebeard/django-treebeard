@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="AL_TestNode",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("sib_order", models.PositiveIntegerField()),
                 ("desc", models.CharField(max_length=255)),
                 (
@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_TestNode",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=255, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -51,7 +51,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_TestNodeAlphabet",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=255, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -77,7 +77,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_TestNodeShortPath",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=4, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -90,7 +90,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_TestNodeSmallStep",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=255, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -102,7 +102,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_TestNodeSorted",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=255, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -117,7 +117,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_TestNodeSortedAutoNow",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=255, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -144,7 +144,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_TestSortedNodeShortPath",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=4, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -157,7 +157,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_UnicodeNode",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=255, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -170,7 +170,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="NS_TestNode",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("lft", models.PositiveIntegerField(db_index=True)),
                 ("rgt", models.PositiveIntegerField(db_index=True)),
                 ("tree_id", models.PositiveIntegerField(db_index=True)),
@@ -184,7 +184,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="NS_TestNodeSorted",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("lft", models.PositiveIntegerField(db_index=True)),
                 ("rgt", models.PositiveIntegerField(db_index=True)),
                 ("tree_id", models.PositiveIntegerField(db_index=True)),
@@ -200,7 +200,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="NS_UnicodetNode",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("lft", models.PositiveIntegerField(db_index=True)),
                 ("rgt", models.PositiveIntegerField(db_index=True)),
                 ("tree_id", models.PositiveIntegerField(db_index=True)),
@@ -214,7 +214,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="RelatedModel",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("desc", models.CharField(max_length=255)),
             ],
         ),
@@ -284,14 +284,14 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="NS_TestNodeSomeDep",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("node", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.ns_testnode")),
             ],
         ),
         migrations.CreateModel(
             name="NS_TestNodeRelated",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("lft", models.PositiveIntegerField(db_index=True)),
                 ("rgt", models.PositiveIntegerField(db_index=True)),
                 ("tree_id", models.PositiveIntegerField(db_index=True)),
@@ -306,14 +306,14 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_TestNodeSomeDep",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("node", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.mp_testnode")),
             ],
         ),
         migrations.CreateModel(
             name="MP_TestNodeRelated",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=255, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -327,7 +327,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="MP_TestManyToManyWithUser",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("path", models.CharField(max_length=255, unique=True)),
                 ("depth", models.PositiveIntegerField()),
                 ("numchild", models.PositiveIntegerField(default=0)),
@@ -341,7 +341,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="AL_UnicodeNode",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("sib_order", models.PositiveIntegerField()),
                 ("desc", models.CharField(max_length=255)),
                 (
@@ -361,7 +361,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="AL_TestNodeSorted",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("val1", models.IntegerField()),
                 ("val2", models.IntegerField()),
                 ("desc", models.CharField(max_length=255)),
@@ -382,14 +382,14 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="AL_TestNodeSomeDep",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("node", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.al_testnode")),
             ],
         ),
         migrations.CreateModel(
             name="AL_TestNodeRelated",
             fields=[
-                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 ("sib_order", models.PositiveIntegerField()),
                 ("desc", models.CharField(max_length=255)),
                 (
@@ -442,7 +442,7 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.AutoField(
+                    models.BigAutoField(
                         auto_created=True,
                         primary_key=True,
                         serialize=False,
