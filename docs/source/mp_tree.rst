@@ -150,6 +150,7 @@ extra steps, materialized path is more efficient than other approaches.
 
      Attribute: a list of model fields that will be used for node
      ordering. When enabled, all tree operations will assume this ordering.
+     This takes precedence over drag and drop ordering in the Django admin.
 
      Example:
 
