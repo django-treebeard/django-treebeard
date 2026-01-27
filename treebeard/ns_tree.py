@@ -217,7 +217,9 @@ class NS_Node(Node):
                 pos = "last-sibling"
             last_child = self.get_last_child()
             last_child._cached_parent_obj = self
-            return last_child.add_sibling(pos, **kwargs)
+            new_sibling = last_child.add_sibling(pos, **kwargs)
+            self.rgt += 2  # Update the rgt of the parent object, which may be used again in a loop
+            return new_sibling
 
         # we're adding the first child of this node
         sql, params = self.__class__._move_right(self.tree_id, self.rgt, False, 2)
