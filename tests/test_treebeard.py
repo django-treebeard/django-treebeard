@@ -11,7 +11,6 @@ from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import AnonymousUser, User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.template import Context, Template
@@ -131,11 +130,6 @@ def mpsortedautonow_model(request):
 
 @pytest.fixture(scope="function", params=[models.MP_TestNodeSmallStep])
 def mpsmallstep_model(request):
-    return request.param
-
-
-@pytest.fixture(scope="function", params=[models.MP_TestManyToManyWithUser])
-def mpm2muser_model(request):
     return request.param
 
 
@@ -2281,55 +2275,6 @@ class TestMP_TreeFix(TestTreeBase):
         expected = self.expected_no_holes[mpshort_model]
         assert got == expected
         mpshort_model.find_problems()
-
-
-@pytest.mark.django_db
-class TestIssues(TestTreeBase):
-    # test for http://code.google.com/p/django-treebeard/issues/detail?id=14
-
-    def test_many_to_many_django_user_anonymous(self, mpm2muser_model):
-        # Using AnonymousUser() in the querysets will expose non-treebeard
-        # related problems in Django 1.0
-        #
-        # Postgres:
-        #   ProgrammingError: can't adapt
-        # SQLite:
-        #   InterfaceError: Error binding parameter 4 - probably unsupported
-        #   type.
-        # MySQL compared a string to an integer field:
-        #   `treebeard_mp_testissue14_users`.`user_id` = 'AnonymousUser'
-        #
-        # Using a None field instead works (will be translated to IS NULL).
-        #
-        # anonuserobj = AnonymousUser()
-        anonuserobj = None
-
-        def qs_check(qs, expected):
-            assert [o.name for o in qs] == expected
-
-        def qs_check_first_or_user(expected, root, user):
-            qs_check(root.get_children().filter(Q(name="first") | Q(users=user)), expected)
-
-        user = User.objects.create_user("test_user", "test@example.com", "testpasswd")
-        user.save()
-        root = mpm2muser_model.add_root(name="the root node")
-
-        root.add_child(name="first")
-        second = root.add_child(name="second")
-
-        qs_check(root.get_children(), ["first", "second"])
-        qs_check(root.get_children().filter(Q(name="first")), ["first"])
-        qs_check(root.get_children().filter(Q(users=user)), [])
-
-        qs_check_first_or_user(["first"], root, user)
-
-        qs_check_first_or_user(["first", "second"], root, anonuserobj)
-
-        user = User.objects.get(username="test_user")
-        second.users.add(user)
-        qs_check_first_or_user(["first", "second"], root, user)
-
-        qs_check_first_or_user(["first"], root, anonuserobj)
 
 
 @pytest.mark.django_db

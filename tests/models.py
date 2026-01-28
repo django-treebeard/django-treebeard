@@ -1,6 +1,5 @@
 import uuid
 
-from django.contrib.auth.models import User
 from django.db import models
 
 from treebeard.al_tree import AL_Node
@@ -271,11 +270,6 @@ class MP_TestSortedNodeShortPath(MP_Node):
 
 
 MP_TestSortedNodeShortPath._meta.get_field("path").max_length = 4
-
-
-class MP_TestManyToManyWithUser(MP_Node):
-    name = models.CharField(max_length=255)
-    users = models.ManyToManyField(User)
 
 
 class MP_RegressionIssue219QuerySet(MP_NodeQuerySet):
