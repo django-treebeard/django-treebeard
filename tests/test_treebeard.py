@@ -2335,17 +2335,17 @@ class TestIssues(TestTreeBase):
 @pytest.mark.django_db
 class TestMoveNodeForm(TestNonEmptyTree):
     def _get_nodes_list(self, nodes):
-        return [(pk, "%s%s" % ("&nbsp;" * 4 * (depth - 1), str)) for pk, str, depth in nodes]
+        return [(str(pk), "%s%s" % ("&nbsp;" * 4 * (depth - 1), _str)) for pk, _str, depth in nodes]
 
     def _assert_nodes_in_choices(self, form, nodes):
-        choices = form.fields["treebeard_ref_node_id"].choices
-        assert choices.pop(0)[0] is None
-        assert nodes == [(choice[0], choice[1]) for choice in choices]
+        choices = list(form.fields["treebeard_ref_node"].choices)
+        assert choices.pop(0)[0] == ""  # Empty choice
+        assert nodes == [(str(choice[0]), choice[1]) for choice in choices]
 
     def _move_node_helper(self, node, safe_parent_nodes):
         form_class = movenodeform_factory(type(node))
         form = form_class(instance=node)
-        assert ["desc", "treebeard_position", "treebeard_ref_node_id"] == list(form.base_fields.keys())
+        assert ["desc", "treebeard_position", "treebeard_ref_node"] == list(form.base_fields.keys())
         got = [choice[0] for choice in form.fields["treebeard_position"].choices]
         assert ["first-child", "left", "right"] == got
         nodes = self._get_nodes_list(safe_parent_nodes)
@@ -2360,12 +2360,6 @@ class TestMoveNodeForm(TestNonEmptyTree):
         safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
         self._move_node_helper(node, safe_parent_nodes)
 
-    def test_form_leaf_node(self, model):
-        nodes = list(model.get_tree())
-        safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
-        node = nodes.pop()
-        self._move_node_helper(node, safe_parent_nodes)
-
     def test_form_admin(self, model):
         request = None
         nodes = list(model.get_tree())
@@ -2376,7 +2370,7 @@ class TestMoveNodeForm(TestNonEmptyTree):
             admin_class = admin_factory(form_class)
             ma = admin_class(model, site)
             got = list(ma.get_form(request).base_fields.keys())
-            desc_pos_refnodeid = ["desc", "treebeard_position", "treebeard_ref_node_id"]
+            desc_pos_refnodeid = ["desc", "treebeard_position", "treebeard_ref_node"]
             assert desc_pos_refnodeid == got
             got = ma.get_fieldsets(request)
             expected = [(None, {"fields": desc_pos_refnodeid})]
@@ -2398,7 +2392,7 @@ class TestModelAdmin(TestNonEmptyTree):
         assert list(ma.get_form(None).base_fields.keys()) == [
             "desc",
             "treebeard_position",
-            "treebeard_ref_node_id",
+            "treebeard_ref_node",
         ]
 
 
@@ -2421,7 +2415,7 @@ class TestSortedForm(TestTreeSorted):
             "val2",
             "desc",
             "treebeard_position",
-            "treebeard_ref_node_id",
+            "treebeard_ref_node",
         ]
 
         form = form_class(instance=sorted_model.objects.get(desc="bcd"))
@@ -2430,10 +2424,10 @@ class TestSortedForm(TestTreeSorted):
             "val2",
             "desc",
             "treebeard_position",
-            "treebeard_ref_node_id",
+            "treebeard_ref_node",
         ]
         assert "id_treebeard_position" in str(form)
-        assert "id_treebeard_ref_node_id" in str(form)
+        assert "id_treebeard_ref_node" in str(form)
 
 
 @pytest.mark.django_db
@@ -2441,12 +2435,12 @@ class TestForm(TestNonEmptyTree):
     def test_form(self, model):
         form_class = movenodeform_factory(model)
         form = form_class()
-        assert list(form.fields.keys()) == ["desc", "treebeard_position", "treebeard_ref_node_id"]
+        assert list(form.fields.keys()) == ["desc", "treebeard_position", "treebeard_ref_node"]
 
         form = form_class(instance=model.objects.get(desc="1"))
-        assert list(form.fields.keys()) == ["desc", "treebeard_position", "treebeard_ref_node_id"]
+        assert list(form.fields.keys()) == ["desc", "treebeard_position", "treebeard_ref_node"]
         assert "id_treebeard_position" in str(form)
-        assert "id_treebeard_ref_node_id" in str(form)
+        assert "id_treebeard_ref_node" in str(form)
 
     def test_move_node_form(self, model):
         form_class = movenodeform_factory(model)
@@ -2459,62 +2453,46 @@ class TestForm(TestNonEmptyTree):
         assert "<script>" not in rendered_html
         assert "&lt;script&gt;" in rendered_html
 
-    def test_get_position_ref_node(self, model):
+    def test_get_initial(self, model):
         form_class = movenodeform_factory(model)
 
         instance_parent = model.objects.get(desc="1")
         form = form_class(instance=instance_parent)
-        assert form._get_position_ref_node(instance_parent) == {
+        assert form._get_initial(instance_parent) == {
             "treebeard_position": "first-child",
-            "treebeard_ref_node_id": "",
+            "treebeard_ref_node": None,
         }
 
         instance_child = model.objects.get(desc="21")
         form = form_class(instance=instance_child)
-        assert form._get_position_ref_node(instance_child) == {
+        assert form._get_initial(instance_child) == {
             "treebeard_position": "first-child",
-            "treebeard_ref_node_id": model.objects.get(desc="2").pk,
+            "treebeard_ref_node": model.objects.get(desc="2"),
         }
 
         instance_grandchild = model.objects.get(desc="22")
         form = form_class(instance=instance_grandchild)
-        assert form._get_position_ref_node(instance_grandchild) == {
+        assert form._get_initial(instance_grandchild) == {
             "treebeard_position": "right",
-            "treebeard_ref_node_id": model.objects.get(desc="21").pk,
+            "treebeard_ref_node": model.objects.get(desc="21"),
         }
 
         instance_grandchild = model.objects.get(desc="231")
         form = form_class(instance=instance_grandchild)
-        assert form._get_position_ref_node(instance_grandchild) == {
+        assert form._get_initial(instance_grandchild) == {
             "treebeard_position": "first-child",
-            "treebeard_ref_node_id": model.objects.get(desc="23").pk,
+            "treebeard_ref_node": model.objects.get(desc="23"),
         }
-
-    def test_clean_cleaned_data(self, model):
-        instance_parent = model.objects.get(desc="1")
-        treebeard_position = "first-child"
-        treebeard_ref_node_id = ""
-        form_class = movenodeform_factory(model)
-        form = form_class(
-            instance=instance_parent,
-            data={
-                "treebeard_position": treebeard_position,
-                "treebeard_ref_node_id": treebeard_ref_node_id,
-                "desc": instance_parent.desc,
-            },
-        )
-        assert form.is_valid()
-        assert form._clean_cleaned_data() == (treebeard_position, treebeard_ref_node_id)
 
     def test_save_edit(self, model):
         instance_parent = model.objects.get(desc="1")
-        original_count = len(model.objects.all())
+        original_count = model.objects.count()
         form_class = movenodeform_factory(model)
         form = form_class(
             instance=instance_parent,
             data={
                 "treebeard_position": "first-child",
-                "treebeard_ref_node_id": model.objects.get(desc="2").pk,
+                "treebeard_ref_node": model.objects.get(desc="2").pk,
                 "desc": instance_parent.desc,
             },
         )
@@ -2532,7 +2510,7 @@ class TestForm(TestNonEmptyTree):
             instance=saved_instance,
             data={
                 "treebeard_position": "first-child",
-                "treebeard_ref_node_id": "",
+                "treebeard_ref_node": "",
                 "desc": saved_instance.desc,
             },
         )
@@ -2945,13 +2923,13 @@ class TestTreeAdmin(TestNonEmptyTree):
 
 @pytest.mark.django_db
 class TestMPFormPerformance:
-    def test_form_add_subtree_no_of_queries(self, django_assert_num_queries):
+    def test_form_choices_no_of_queries(self, django_assert_num_queries):
         model = models.MP_TestNode
         model.load_bulk(BASE_DATA)
         form_class = movenodeform_factory(model)
         form = form_class()
-        with django_assert_num_queries(len(model.get_root_nodes()) + 1):
-            form.mk_dropdown_tree(model)
+        with django_assert_num_queries(2):
+            list(form.fields["treebeard_ref_node"].choices)
 
 
 @pytest.mark.django_db

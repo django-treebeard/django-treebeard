@@ -3,8 +3,9 @@ Release 4.9.0 (in development)
 * Add support for Python 3.14.
 * Add support for Django 6.0.
 * Drop support for Django 5.1.
+* `MoveNodeForm` has been refactored to use a `ModelChoiceField` for selecting the relative node.
 * Internal fields used by Treebeard's `MoveNodeForm` have been renamed from 
-`_position` to `treebeard_position` and `_ref_node_id` to `treebeard_ref_node_id`.
+`_position` to `treebeard_position` and `_ref_node_id` to `treebeard_ref_node`.
 * The initialisation signatures for the internal `MP_AddChildHandler` and `MP_AddSiblingHandler`
   classes have changed to avoid collisions with model field names. Both constructors now expect
   a mapping of model creation arguments as a single parameter, instead of keywords arguments passed to the constructor.

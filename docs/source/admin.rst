@@ -65,3 +65,35 @@ Example:
             form = movenodeform_factory(MyNode)
 
         admin.site.register(MyNode, MyAdmin)
+
+
+Foreign keys and One-to-one relationships
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If your project contains models that have a foreign key or one-to-one relationship with a tree model,
+you can leverage ``TreeNodeChoiceField`` to display the choices nicely in the Django admin. Given the following models:
+
+    .. code-block:: python
+
+        class TreeNode(MP_Node):
+            ...
+
+        class RelatedModel(models.Model):
+            tree_node = models.ForeignKey("TreeNode")
+
+You can configure the admin form for ``RelatedModel`` as follows for it to render the choices for ``tree_node`` in a nested list:
+
+    .. code-block:: python
+
+        class RelatedModelAdminForm(forms.ModelForm):
+            tree_node = TreeNodeChoiceField(queryset=TreeNode.objects.all())
+
+        class RelatedModelAdmin(admin.ModelAdmin):
+            form = RelatedModelAdminForm
+
+        admin.site.register(MyNode, MyAdmin)
+
+.. warning::
+
+   ``TreeNodeChoiceField`` should not be used with AL nodes, because they cannot be queried efficiently
+   in this context.
