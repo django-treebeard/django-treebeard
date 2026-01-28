@@ -4,7 +4,7 @@ import operator
 from functools import reduce
 
 from django.core import serializers
-from django.db import connection, models
+from django.db import connection, models, transaction
 from django.db.models import Q
 from django.utils.translation import gettext_noop as _
 
@@ -138,6 +138,7 @@ class NS_Node(Node):
     )
 
     @classmethod
+    @transaction.atomic
     def add_root(cls, **kwargs):
         """Adds a root node to the tree."""
 
@@ -207,6 +208,7 @@ class NS_Node(Node):
         }
         return sql, []
 
+    @transaction.atomic
     def add_child(self, **kwargs):
         """Adds a child to the node."""
         if not self.is_leaf():
@@ -251,6 +253,7 @@ class NS_Node(Node):
 
         return newobj
 
+    @transaction.atomic
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
 
@@ -344,6 +347,7 @@ class NS_Node(Node):
 
         return newobj
 
+    @transaction.atomic
     def move(self, target, pos=None):
         """
         Moves the current node and all it's descendants to a new position
@@ -500,6 +504,7 @@ class NS_Node(Node):
         return sql, []
 
     @classmethod
+    @transaction.atomic
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """Loads a list/dictionary structure to the tree."""
 

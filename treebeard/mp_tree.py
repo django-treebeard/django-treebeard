@@ -330,6 +330,9 @@ class MP_AddChildHandler(MP_AddHandler):
             self.node.numchild += 1
             return self.node.get_last_child().add_sibling("sorted-sibling", **self.kwargs)
 
+        # Lock parent row
+        parent_qs = get_result_class(self.node_cls).objects.filter(path=self.node.path).select_for_update()
+
         if len(self.kwargs) == 1 and "instance" in self.kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs["instance"]
@@ -356,7 +359,7 @@ class MP_AddChildHandler(MP_AddHandler):
             # adding the new child as the last one
             newobj.path = self.node.get_last_child()._inc_path()
 
-        get_result_class(self.node_cls).objects.filter(path=self.node.path).update(numchild=F("numchild") + 1)
+        parent_qs.update(numchild=F("numchild") + 1)
 
         # we increase the numchild value of the object in memory
         self.node.numchild += 1
@@ -552,6 +555,7 @@ class MP_Node(Node):
         return cls.numconv_obj_
 
     @classmethod
+    @transaction.atomic
     def add_root(cls, **kwargs):
         """
         Adds a root node to the tree.
@@ -1009,6 +1013,7 @@ class MP_Node(Node):
         """
         return self.path.startswith(node.path) and self.depth > node.depth
 
+    @transaction.atomic
     def add_child(self, **kwargs):
         """
         Adds a child to the node.
@@ -1023,6 +1028,7 @@ class MP_Node(Node):
         """
         return MP_AddChildHandler(self, kwargs).process()
 
+    @transaction.atomic
     def add_sibling(self, pos=None, **kwargs):
         """
         Adds a new node as a sibling to the current node object.
@@ -1080,6 +1086,7 @@ class MP_Node(Node):
         self._cached_parent_obj = get_result_class(self.__class__).objects.get(path=parentpath)
         return self._cached_parent_obj
 
+    @transaction.atomic
     def move(self, target, pos=None):
         """
         Moves the current node and all it's descendants to a new position
