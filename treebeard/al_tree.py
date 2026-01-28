@@ -1,7 +1,7 @@
 """Adjacency List"""
 
 from django.core import serializers
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
@@ -56,6 +56,7 @@ class AL_Node(Node):
     )
 
     @classmethod
+    @transaction.atomic
     def add_root(cls, **kwargs):
         """Adds a root node to the tree."""
 
@@ -210,6 +211,7 @@ class AL_Node(Node):
             lnk[node.pk] = newobj
         return ret
 
+    @transaction.atomic
     def add_child(self, **kwargs):
         """Adds a child to the node."""
         cls = get_result_class(self.__class__)
@@ -284,6 +286,7 @@ class AL_Node(Node):
             return get_result_class(self.__class__).objects.filter(parent=self.parent)
         return self.__class__.get_root_nodes()
 
+    @transaction.atomic
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
         pos = self._prepare_pos_var_for_add_sibling(pos)
@@ -341,6 +344,7 @@ class AL_Node(Node):
             sib_order = cls._make_hole_and_get_sibling_order(pos, target_node)
         return sib_order
 
+    @transaction.atomic
     def move(self, target, pos=None):
         """
         Moves the current node and all it's descendants to a new position

@@ -4,7 +4,7 @@ import operator
 from contextlib import suppress
 from functools import reduce
 
-from django.db import connections, models, router
+from django.db import connections, models, router, transaction
 from django.db.models import Q
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
@@ -59,6 +59,7 @@ class Node(models.Model):
                 node_data[key] = foreign_keys[key].objects.get(pk=node_data[key])
 
     @classmethod
+    @transaction.atomic
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """
         Loads a list/dictionary structure to the tree.

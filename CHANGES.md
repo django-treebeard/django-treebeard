@@ -1,8 +1,9 @@
-Release 4.9.0 (in development)
+Release 5.0.0 (in development)
 ----------------------------
 * Add support for Python 3.14.
 * Add support for Django 6.0.
 * Drop support for Django 5.1.
+* All node create and update operations are now run in a transaction to mitigate against race conditions.
 * `MoveNodeForm` has been refactored to use a `ModelChoiceField` for selecting the relative node.
 * Internal fields used by Treebeard's `MoveNodeForm` have been renamed from 
 `_position` to `treebeard_position` and `_ref_node_id` to `treebeard_ref_node`.
