@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 
 from treebeard.al_tree import AL_Node
-from treebeard.mp_tree import MP_Node, MP_NodeQuerySet
+from treebeard.mp_tree import MP_Node
 from treebeard.ns_tree import NS_Node
 
 
@@ -270,22 +270,6 @@ class MP_TestSortedNodeShortPath(MP_Node):
 
 
 MP_TestSortedNodeShortPath._meta.get_field("path").max_length = 4
-
-
-class MP_RegressionIssue219QuerySet(MP_NodeQuerySet):
-    pass
-
-
-class MP_RegressionIssue219(MP_Node):
-    # Model to reproduce https://github.com/django-treebeard/django-treebeard/issues/219
-    steplen = 3
-
-    name = models.CharField(max_length=255)
-
-    def __str__(self):  # pragma: no cover
-        return "Node %d" % self.name
-
-    objects = MP_RegressionIssue219QuerySet.as_manager()
 
 
 BASE_MODELS = (

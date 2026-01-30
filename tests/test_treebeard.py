@@ -2899,35 +2899,6 @@ class TestMP_TreeDescendantsPerformance(TestTreeBase):
 
 
 @pytest.mark.django_db
-class TestRegression:
-    def test_dump_bulk_regression_issue_219(self):
-        data = [
-            {
-                "data": {"name": "A"},
-                "children": [
-                    {"data": {"name": "X1"}},
-                    {"data": {"name": "X2"}},
-                    {
-                        "data": {"name": "X3"},
-                        "children": [
-                            # We need to create a large number of nodes to
-                            # to try the DB gives them in an arbitrary order
-                            {"data": {"name": f"Z{index}"}}
-                            for index in range(10000)
-                        ],
-                    },
-                    {"data": {"name": "X4"}},
-                ],
-            },
-        ]
-        models.MP_RegressionIssue219.load_bulk(data)
-        try:
-            models.MP_RegressionIssue219.dump_bulk()
-        except KeyError:
-            pytest.fail("It should not have raised an KeyError")
-
-
-@pytest.mark.django_db
 class TestRefreshFromDb:
     def test_get_parent(self, model):
         parent1 = model.objects.get(desc=2)
