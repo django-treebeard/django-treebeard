@@ -1,8 +1,6 @@
-import itertools
-
 from django.contrib import admin
 
-from tests.models import BASE_MODELS, DEP_MODELS, UNICODE_MODELS
+from tests.models import BASE_MODELS, DEP_MODELS
 from treebeard.admin import admin_factory
 from treebeard.forms import movenodeform_factory
 
@@ -14,5 +12,8 @@ def register(admin_site, model):
 
 
 def register_all(admin_site=admin.site):
-    for model in itertools.chain(BASE_MODELS, UNICODE_MODELS, DEP_MODELS):
+    for model in BASE_MODELS:
+        register(admin_site, model)
+
+    for _, model in DEP_MODELS:
         register(admin_site, model)
