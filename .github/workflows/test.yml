@@ -76,7 +76,8 @@ jobs:
         DATABASE_PASSWORD: treebeard
         DATABASE_HOST: 127.0.0.1
         DATABASE_PORT_POSTGRES: ${{ job.services.postgres.ports[5432] }} # get randomly assigned published port
-      run: tox -e "py-dj${{ matrix.django-version }}-postgres"
+      # Postgres covers the entire codebase, so we enforce a coverage check
+      run: tox -e "py-dj${{ matrix.django-version }}-postgres" -- --cov-fail-under 96
   test-mysql:
     name: MySQL, Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}
     runs-on: ubuntu-latest

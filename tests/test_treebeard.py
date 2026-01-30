@@ -92,11 +92,6 @@ def model_without_proxy(request):
     return request.param
 
 
-@pytest.fixture(scope="function", params=models.UNICODE_MODELS)
-def model_with_unicode(request):
-    return request.param
-
-
 @pytest.fixture(scope="function", params=models.SORTED_MODELS)
 def sorted_model(request):
     return request.param
@@ -104,11 +99,6 @@ def sorted_model(request):
 
 @pytest.fixture(scope="function", params=models.RELATED_MODELS)
 def related_model(request):
-    return request.param
-
-
-@pytest.fixture(scope="function", params=models.INHERITED_MODELS)
-def inherited_model(request):
     return request.param
 
 
@@ -1110,7 +1100,7 @@ class TestDelete(TestTreeBase):
     @staticmethod
     @pytest.fixture(
         scope="function",
-        params=zip(models.BASE_MODELS, models.DEP_MODELS),
+        params=models.DEP_MODELS,
         ids=lambda fv: f"base={fv[0].__name__} dep={fv[1].__name__}",
     )
     def delete_dep_model_pair(request):
@@ -1876,7 +1866,7 @@ class TestInheritedModels(TestTreeBase):
     @staticmethod
     @pytest.fixture(
         scope="function",
-        params=zip(models.BASE_MODELS, models.INHERITED_MODELS),
+        params=models.INHERITED_MODELS,
         ids=lambda fv: f"base={fv[0].__name__} inherited={fv[1].__name__}",
     )
     def inherited_model(request):
@@ -2476,18 +2466,18 @@ class TestSortedForm(TestTreeSorted):
         form_class = movenodeform_factory(sorted_model)
         form = form_class()
         assert list(form.fields.keys()) == [
+            "desc",
             "val1",
             "val2",
-            "desc",
             "treebeard_position",
             "treebeard_ref_node",
         ]
 
         form = form_class(instance=sorted_model.objects.get(desc="bcd"))
         assert list(form.fields.keys()) == [
+            "desc",
             "val1",
             "val2",
-            "desc",
             "treebeard_position",
             "treebeard_ref_node",
         ]
@@ -2780,23 +2770,23 @@ class TestAdminTreeList(TestNonEmptyTree):
             expected_output = output_template % object.pk
             assert expected_output in table_output
 
-    def test_result_tree_list_escapes_labels(self, model_with_unicode):
+    def test_result_tree_list_escapes_labels(self, model):
         """
         Verifies that inclusion tag result_list generates a table when with
         default ModelAdmin settings.
         """
-        object = model_with_unicode.add_root(desc="<>")
+        object = model.add_root(desc="<>")
         request = RequestFactory().get("/admin/tree/")
         request.user = AnonymousUser()
         site = AdminSite()
-        form_class = movenodeform_factory(model_with_unicode)
+        form_class = movenodeform_factory(model)
         admin_class = admin_factory(form_class)
-        m = admin_class(model_with_unicode, site)
+        m = admin_class(model, site)
         list_display = m.get_list_display(request)
         list_display_links = m.get_list_display_links(request, list_display)
         cl = ChangeList(
             request,
-            model_with_unicode,
+            model,
             list_display,
             list_display_links,
             m.list_filter,

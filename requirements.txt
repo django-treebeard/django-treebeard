@@ -4,6 +4,7 @@
 ipython
 ipdb
 django_extensions
+psycopg[binary]
 
 # Testing
 tox>=4.0
