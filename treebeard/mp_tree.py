@@ -1,6 +1,7 @@
 """Materialized Path Trees"""
 
 import collections
+import functools
 from typing import Any
 
 from django.core import serializers
@@ -10,7 +11,7 @@ from django.db.models.functions import Concat, Greatest, Substr
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
-from treebeard.models import Node
+from treebeard.models import Node, get_result_class_base
 from treebeard.numconv import NumConv
 
 
@@ -42,28 +43,7 @@ def sql_substr(field, pos, length=None, **kwargs):
     return function.format(field=field, pos=pos, length=length)
 
 
-def get_result_class(cls):
-    """
-    For the given model class, determine what class we should use for the
-    nodes returned by its tree methods (such as get_children).
-
-    Usually this will be trivially the same as the initial model class,
-    but there are special cases when model inheritance is in use:
-
-    * If the model extends another via multi-table inheritance, we need to
-      use whichever ancestor originally implemented the tree behaviour (i.e.
-      the one which defines the 'path' field). We can't use the
-      subclass, because it's not guaranteed that the other nodes reachable
-      from the current one will be instances of the same subclass.
-
-    * If the model is a proxy model, the returned nodes should also use
-      the proxy class.
-    """
-    base_class = cls._meta.get_field("path").model
-    if cls._meta.proxy_for_model == base_class:
-        return cls
-    else:
-        return base_class
+get_result_class = functools.partial(get_result_class_base, identifying_field="path")
 
 
 class MP_NodeQuerySet(models.query.QuerySet):
