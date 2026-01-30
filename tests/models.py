@@ -1,8 +1,10 @@
+import os
 import uuid
 
 from django.db import models
 
 from treebeard.al_tree import AL_Node
+from treebeard.ltree import LT_Node
 from treebeard.mp_tree import MP_Node
 from treebeard.ns_tree import NS_Node
 
@@ -58,6 +60,20 @@ class MP_TestNodeCustomId(MP_Node):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     desc = models.CharField(max_length=255)
+
+    def __str__(self):  # pragma: no cover
+        return "Node %d" % self.pk
+
+
+class LT_TestNode(LT_Node):
+    desc = models.CharField(max_length=255)
+
+    def __str__(self):  # pragma: no cover
+        return "Node %d" % self.pk
+
+
+class LT_TestNodeSomeDep(models.Model):
+    node = models.ForeignKey(LT_TestNode, on_delete=models.CASCADE)
 
     def __str__(self):  # pragma: no cover
         return "Node %d" % self.pk
@@ -272,22 +288,26 @@ class MP_TestSortedNodeShortPath(MP_Node):
 MP_TestSortedNodeShortPath._meta.get_field("path").max_length = 4
 
 
-BASE_MODELS = (
+BASE_MODELS = [
     AL_TestNode,
     MP_TestNode,
     NS_TestNode,
-    MP_TestNodeUuid,
-    MP_TestNodeCustomId,
-)
-PROXY_MODELS = AL_TestNode_Proxy, MP_TestNode_Proxy, NS_TestNode_Proxy
-SORTED_MODELS = AL_TestNodeSorted, MP_TestNodeSorted, NS_TestNodeSorted
-DEP_MODELS = AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep
-MP_SHORTPATH_MODELS = MP_TestNodeShortPath, MP_TestSortedNodeShortPath
-RELATED_MODELS = AL_TestNodeRelated, MP_TestNodeRelated, NS_TestNodeRelated
-UNICODE_MODELS = AL_UnicodeNode, MP_UnicodeNode, NS_UnicodetNode
+]
+
+PROXY_MODELS = [AL_TestNode_Proxy, MP_TestNode_Proxy, NS_TestNode_Proxy]
+SORTED_MODELS = [AL_TestNodeSorted, MP_TestNodeSorted, NS_TestNodeSorted]
+DEP_MODELS = [AL_TestNodeSomeDep, MP_TestNodeSomeDep, NS_TestNodeSomeDep]
+MP_SHORTPATH_MODELS = [MP_TestNodeShortPath, MP_TestSortedNodeShortPath]
+RELATED_MODELS = [AL_TestNodeRelated, MP_TestNodeRelated, NS_TestNodeRelated]
+UNICODE_MODELS = [AL_UnicodeNode, MP_UnicodeNode, NS_UnicodetNode]
 INHERITED_MODELS = (AL_TestNodeInherited, MP_TestNodeInherited, NS_TestNodeInherited)
 
 
-def empty_models_tables(models):
-    for model in models:
-        model.objects.all().delete()
+if os.environ.get("DATABASE_ENGINE", "") == "psql":
+    BASE_MODELS.append(LT_TestNode)
+    DEP_MODELS.append(LT_TestNodeSomeDep)
+
+BASE_MODELS += [
+    MP_TestNodeUuid,
+    MP_TestNodeCustomId,
+]

@@ -7,6 +7,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from treebeard.al_tree import AL_Node
+from treebeard.ltree import LT_Node
 from treebeard.mp_tree import MP_Node
 from treebeard.ns_tree import NS_Node
 
@@ -209,6 +210,8 @@ def _get_exclude_for_model(model, exclude):
         to_exclude = ("depth", "numchild", "path")
     elif issubclass(model, NS_Node):
         to_exclude = ("depth", "lft", "rgt", "tree_id")
+    elif issubclass(model, LT_Node):
+        to_exclude = ("path",)
     else:
         to_exclude = ()
 

@@ -5,6 +5,8 @@ import uuid
 import django.db.models.deletion
 from django.db import migrations, models
 
+import treebeard.ltree.fields
+
 
 class Migration(migrations.Migration):
     initial = True
@@ -163,6 +165,24 @@ class Migration(migrations.Migration):
             options={
                 "abstract": False,
             },
+        ),
+        migrations.CreateModel(
+            name="LT_TestNode",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("path", treebeard.ltree.fields.PathField(max_length=255, unique=True)),
+                ("desc", models.CharField(max_length=255)),
+            ],
+            options={
+                "abstract": False,
+            },
+        ),
+        migrations.CreateModel(
+            name="LT_TestNodeSomeDep",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("node", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.lt_testnode")),
+            ],
         ),
         migrations.CreateModel(
             name="NS_TestNode",
