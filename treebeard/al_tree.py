@@ -4,6 +4,7 @@ import functools
 
 from django.core import serializers
 from django.db import models, transaction
+from django.db.models import Max, Min
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
@@ -50,16 +51,7 @@ class AL_Node(Node):
 
         newobj._cached_depth = 1
         if not cls.node_order_by:
-            try:
-                max = (
-                    get_result_class(cls)
-                    .objects.filter(parent__isnull=True)
-                    .order_by("sib_order")
-                    .reverse()[0]
-                    .sib_order
-                )
-            except IndexError:
-                max = 0
+            max = get_result_class(cls).objects.filter(parent__isnull=True).aggregate(max=Max("sib_order"))["max"] or 0
             newobj.sib_order = max + 1
         newobj.save()
         return newobj
@@ -209,10 +201,7 @@ class AL_Node(Node):
         except AttributeError:
             pass
         if not cls.node_order_by:
-            try:
-                max = cls.objects.filter(parent=self).reverse()[0].sib_order
-            except IndexError:
-                max = 0
+            max = cls.objects.filter(parent=self).aggregate(max=Max("sib_order"))["max"] or 0
             newobj.sib_order = max + 1
         newobj.parent = self
         newobj.save()
@@ -308,10 +297,7 @@ class AL_Node(Node):
             "first-sibling": siblings,
         }[pos]
         sib_order = {"left": target_node.sib_order, "right": target_node.sib_order + 1, "first-sibling": 1}[pos]
-        try:
-            min = siblings.order_by("sib_order")[0].sib_order
-        except IndexError:
-            min = 0
+        min = siblings.aggregate(min=Min("sib_order"))["min"] or 0
         if min:
             cls._make_hole_in_db(min, target_node)
         return sib_order

@@ -373,10 +373,8 @@ class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
 
         if self.pos == "sorted-sibling":
             siblings = self.node.get_sorted_pos_queryset(self.node.get_siblings(), newobj)
-            try:
-                newpos = siblings.all()[0]._get_lastpos_in_path()
-            except IndexError:
-                newpos = None
+            first = siblings.first()
+            newpos = first._get_lastpos_in_path() if first else None
             if newpos is None:
                 self.pos = "last-sibling"
         else:
@@ -430,10 +428,8 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
 
         if self.pos == "sorted-sibling":
             siblings = self.node.get_sorted_pos_queryset(self.target.get_siblings(), self.node)
-            try:
-                newpos = siblings.all()[0]._get_lastpos_in_path()
-            except IndexError:
-                newpos = None
+            first = siblings.first()
+            newpos = first._get_lastpos_in_path() if first else None
             if newpos is None:
                 self.pos = "last-sibling"
 
@@ -930,10 +926,7 @@ class MP_Node(Node):
         :returns: The next node's sibling, or None if it was the rightmost
             sibling.
         """
-        try:
-            return self.get_siblings().filter(path__gt=self.path)[0]
-        except IndexError:
-            return None
+        return self.get_siblings().filter(path__gt=self.path).first()
 
     def get_descendants(self, include_self=False):
         """
@@ -951,10 +944,7 @@ class MP_Node(Node):
         :returns: The previous node's sibling, or None if it was the leftmost
             sibling.
         """
-        try:
-            return self.get_siblings().filter(path__lt=self.path).reverse()[0]
-        except IndexError:
-            return None
+        return self.get_siblings().filter(path__lt=self.path).last()
 
     def get_children_count(self):
         """

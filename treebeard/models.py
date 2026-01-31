@@ -151,10 +151,7 @@ class Node(models.Model):
 
             The first root node in the tree or ``None`` if it is empty.
         """
-        try:
-            return cls.get_root_nodes()[0]
-        except IndexError:
-            return None
+        return cls.get_root_nodes().first()
 
     @classmethod
     def get_last_root_node(cls):
@@ -163,10 +160,7 @@ class Node(models.Model):
 
             The last root node in the tree or ``None`` if it is empty.
         """
-        try:
-            return cls.get_root_nodes().reverse()[0]
-        except IndexError:
-            return None
+        return cls.get_root_nodes().last()
 
     @classmethod
     def find_problems(cls):  # pragma: no cover
@@ -256,10 +250,7 @@ class Node(models.Model):
 
             The leftmost node's child, or None if it has no children.
         """
-        try:
-            return self.get_children()[0]
-        except IndexError:
-            return None
+        return self.get_children().first()
 
     def get_last_child(self):
         """
@@ -267,10 +258,7 @@ class Node(models.Model):
 
             The rightmost node's child, or None if it has no children.
         """
-        try:
-            return self.get_children().reverse()[0]
-        except IndexError:
-            return None
+        return self.get_children().last()
 
     def get_first_sibling(self):
         """
@@ -279,7 +267,7 @@ class Node(models.Model):
             The leftmost node's sibling, can return the node itself if
             it was the leftmost sibling.
         """
-        return self.get_siblings()[0]
+        return self.get_siblings().first()
 
     def get_last_sibling(self):
         """
@@ -288,7 +276,7 @@ class Node(models.Model):
             The rightmost node's sibling, can return the node itself if
             it was the rightmost sibling.
         """
-        return self.get_siblings().reverse()[0]
+        return self.get_siblings().last()
 
     def get_prev_sibling(self):
         """
@@ -297,12 +285,10 @@ class Node(models.Model):
             The previous node's sibling, or None if it was the leftmost
             sibling.
         """
-        siblings = self.get_siblings()
-        ids = [obj.pk for obj in siblings]
-        if self.pk in ids:
-            idx = ids.index(self.pk)
-            if idx > 0:
-                return siblings[idx - 1]
+        ids = list(self.get_siblings().values_list("pk", flat=True))
+        idx = ids.index(self.pk)
+        if idx > 0:
+            return self.get_siblings().get(pk=ids[idx - 1])
 
     def get_next_sibling(self):
         """
@@ -311,12 +297,10 @@ class Node(models.Model):
             The next node's sibling, or None if it was the rightmost
             sibling.
         """
-        siblings = self.get_siblings()
-        ids = [obj.pk for obj in siblings]
-        if self.pk in ids:
-            idx = ids.index(self.pk)
-            if idx < len(siblings) - 1:
-                return siblings[idx + 1]
+        ids = list(self.get_siblings().values_list("pk", flat=True))
+        idx = ids.index(self.pk)
+        if idx < len(ids) - 1:
+            return self.get_siblings().get(pk=ids[idx + 1])
 
     def is_sibling_of(self, node):
         """
