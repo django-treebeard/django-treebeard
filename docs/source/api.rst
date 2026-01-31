@@ -413,16 +413,5 @@ API
 
   .. automethod:: get_annotated_list_qs
 
-  .. automethod:: get_database_vendor
-
-     Example:
-
-     .. code-block:: python
-
-        MyNodeModel.get_database_vendor("write")
-
-
-     .. versionadded:: 1.61
-
 
 .. _django-mptt: https://github.com/django-mptt/django-mptt/
