@@ -547,7 +547,12 @@ class Node(models.Model):
     @classmethod
     def get_annotated_list_qs(cls, qs):
         """
-        Gets an annotated list from a queryset.
+        Efficiently generates an annotated list from a queryset.
+
+        The queryset MUST be ordered by path, otherwise it will yield
+        incorrect results. The queryset must also represent the entirety of
+        a branch of a tree: excluded objects will not be fetched and will
+        result in gaps in the tree.
         """
         result, info = [], {}
         start_depth, prev_depth = (None, None)
