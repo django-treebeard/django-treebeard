@@ -20,6 +20,7 @@ from tests import models
 from tests.admin import register_all as admin_register_all
 from treebeard import numconv
 from treebeard.admin import admin_factory
+from treebeard.al_tree import AL_Node
 from treebeard.exceptions import (
     InvalidMoveToDescendant,
     InvalidPosition,
@@ -28,6 +29,7 @@ from treebeard.exceptions import (
     PathOverflow,
 )
 from treebeard.forms import movenodeform_factory
+from treebeard.ns_tree import NS_Node
 from treebeard.templatetags.admin_tree import tree_context
 
 admin_register_all()
@@ -240,8 +242,10 @@ class TestClassMethods(TestNonEmptyTree):
         assert sorted(got_descs) == sorted(expected_descs)
         assert self.got(model) == expected
 
-    def test_get_tree_all(self, model):
-        nodes = model.get_tree()
+    def test_get_tree_all(self, model, django_assert_max_num_queries):
+        max_queries = 11 if issubclass(model, AL_Node) else 1
+        with django_assert_max_num_queries(max_queries):
+            nodes = model.get_tree()
         got = [(o.desc, o.get_depth(), o.get_children_count()) for o in nodes]
         assert got == UNCHANGED
         assert all(isinstance(o, model) for o in nodes)
@@ -249,14 +253,17 @@ class TestClassMethods(TestNonEmptyTree):
     def test_dump_bulk_all(self, model):
         assert model.dump_bulk(keep_ids=False) == BASE_DATA
 
-    def test_get_tree_node(self, model):
+    def test_get_tree_node(self, model, django_assert_max_num_queries):
         node = model.objects.get(desc="231")
         model.load_bulk(BASE_DATA, node)
 
         # the tree was modified by load_bulk, so we reload our node object
         node = model.objects.get(pk=node.pk)
 
-        nodes = model.get_tree(node)
+        max_queries = 13 if issubclass(model, AL_Node) else 1
+        with django_assert_max_num_queries(max_queries):
+            nodes = model.get_tree(node)
+
         got = [(o.desc, o.get_depth(), o.get_children_count()) for o in nodes]
         expected = [
             ("231", 3, 4),
@@ -274,17 +281,19 @@ class TestClassMethods(TestNonEmptyTree):
         assert got == expected
         assert all(isinstance(o, model) for o in nodes)
 
-    def test_get_tree_leaf(self, model):
+    def test_get_tree_leaf(self, model, django_assert_max_num_queries):
         node = model.objects.get(desc="1")
 
         assert 0 == node.get_children_count()
-        nodes = model.get_tree(node)
+
+        with django_assert_max_num_queries(1):
+            nodes = model.get_tree(node)
         got = [(o.desc, o.get_depth(), o.get_children_count()) for o in nodes]
         expected = [("1", 1, 0)]
         assert got == expected
         assert all(isinstance(o, model) for o in nodes)
 
-    def test_get_annotated_list_all(self, model):
+    def test_get_annotated_list_all(self, model, django_assert_max_num_queries):
         expected = [
             ("1", True, [], 0),
             ("2", False, [], 0),
@@ -297,9 +306,11 @@ class TestClassMethods(TestNonEmptyTree):
             ("4", False, [], 0),
             ("41", True, [0, 1], 1),
         ]
-        self._assert_get_annotated_list(model, expected)
+        max_queries = 11 if issubclass(model, AL_Node) else 1
+        with django_assert_max_num_queries(max_queries):
+            self._assert_get_annotated_list(model, expected)
 
-    def test_get_annotated_list_node(self, model):
+    def test_get_annotated_list_node(self, model, django_assert_max_num_queries):
         node = model.objects.get(desc="2")
         expected = [
             ("2", True, [], 0),
@@ -309,12 +320,15 @@ class TestClassMethods(TestNonEmptyTree):
             ("231", True, [0], 2),
             ("24", False, [0, 1], 1),
         ]
-        self._assert_get_annotated_list(model, expected, node)
+        max_queries = 6 if issubclass(model, AL_Node) else 1
+        with django_assert_max_num_queries(max_queries):
+            self._assert_get_annotated_list(model, expected, node)
 
-    def test_get_annotated_list_leaf(self, model):
+    def test_get_annotated_list_leaf(self, model, django_assert_max_num_queries):
         node = model.objects.get(desc="1")
         expected = [("1", True, [0], 0)]
-        self._assert_get_annotated_list(model, expected, node)
+        with django_assert_max_num_queries(1):
+            self._assert_get_annotated_list(model, expected, node)
 
     def test_dump_bulk_node(self, model):
         node = model.objects.get(desc="231")
@@ -370,19 +384,22 @@ class TestClassMethods(TestNonEmptyTree):
         got = related_model.dump_bulk(keep_ids=False)
         assert got == related_data
 
-    def test_get_root_nodes(self, model):
-        got = model.get_root_nodes()
+    def test_get_root_nodes(self, model, django_assert_max_num_queries):
+        with django_assert_max_num_queries(1):
+            got = model.get_root_nodes()
         expected = ["1", "2", "3", "4"]
         assert [node.desc for node in got] == expected
         assert all(isinstance(node, model) for node in got)
 
-    def test_get_first_root_node(self, model):
-        got = model.get_first_root_node()
+    def test_get_first_root_node(self, model, django_assert_max_num_queries):
+        with django_assert_max_num_queries(1):
+            got = model.get_first_root_node()
         assert got.desc == "1"
         assert isinstance(got, model)
 
-    def test_get_last_root_node(self, model):
-        got = model.get_last_root_node()
+    def test_get_last_root_node(self, model, django_assert_max_num_queries):
+        with django_assert_max_num_queries(1):
+            got = model.get_last_root_node()
         assert got.desc == "4"
         assert isinstance(got, model)
 
@@ -409,7 +426,7 @@ class TestClassMethods(TestNonEmptyTree):
 
 @pytest.mark.django_db
 class TestSimpleNodeMethods(TestNonEmptyTree):
-    def test_is_root(self, model):
+    def test_is_root(self, model, django_assert_max_num_queries):
         data = [
             ("2", True),
             ("1", True),
@@ -420,20 +437,25 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("231", False),
         ]
         for desc, expected in data:
-            got = model.objects.get(desc=desc).is_root()
+            node = model.objects.get(desc=desc)
+            max_queries = 2 if issubclass(model, AL_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                got = node.is_root()
             assert got == expected
 
-    def test_is_leaf(self, model):
+    def test_is_leaf(self, model, django_assert_max_num_queries):
         data = [
             ("2", False),
             ("23", False),
             ("231", True),
         ]
         for desc, expected in data:
-            got = model.objects.get(desc=desc).is_leaf()
+            node = model.objects.get(desc=desc)
+            with django_assert_max_num_queries(1):
+                got = node.is_leaf()
             assert got == expected
 
-    def test_get_root(self, model):
+    def test_get_root(self, model, django_assert_max_num_queries):
         data = [
             ("2", "2"),
             ("1", "1"),
@@ -444,11 +466,14 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("231", "2"),
         ]
         for desc, expected in data:
-            node = model.objects.get(desc=desc).get_root()
+            descendant = model.objects.get(desc=desc)
+            max_queries = 2 if issubclass(model, AL_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                node = descendant.get_root()
             assert node.desc == expected
             assert isinstance(node, model)
 
-    def test_get_parent(self, model):
+    def test_get_parent(self, model, django_assert_max_num_queries):
         data = [
             ("2", None),
             ("1", None),
@@ -462,7 +487,8 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         objs = {}
         for desc, expected in data.items():
             node = model.objects.get(desc=desc)
-            parent = node.get_parent()
+            with django_assert_max_num_queries(1):
+                parent = node.get_parent()
             if expected:
                 assert parent.desc == expected
                 assert isinstance(parent, model)
@@ -483,39 +509,45 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             else:
                 assert parent is None
 
-    def test_get_children(self, model):
+    def test_get_children(self, model, django_assert_max_num_queries):
         data = [
             ("2", ["21", "22", "23", "24"]),
             ("23", ["231"]),
             ("231", []),
         ]
         for desc, expected in data:
-            children = model.objects.get(desc=desc).get_children()
+            node = model.objects.get(desc=desc)
+            with django_assert_max_num_queries(1):
+                children = node.get_children()
             assert [node.desc for node in children] == expected
             assert all(isinstance(node, model) for node in children)
 
-    def test_get_children_count(self, model):
+    def test_get_children_count(self, model, django_assert_max_num_queries):
         data = [
             ("2", 4),
             ("23", 1),
             ("231", 0),
         ]
         for desc, expected in data:
-            got = model.objects.get(desc=desc).get_children_count()
+            node = model.objects.get(desc=desc)
+            with django_assert_max_num_queries(1):
+                got = node.get_children_count()
             assert got == expected
 
-    def test_get_siblings(self, model):
+    def test_get_siblings(self, model, django_assert_max_num_queries):
         data = [
             ("2", ["1", "2", "3", "4"]),
             ("21", ["21", "22", "23", "24"]),
             ("231", ["231"]),
         ]
         for desc, expected in data:
-            siblings = model.objects.get(desc=desc).get_siblings()
+            node = model.objects.get(desc=desc)
+            with django_assert_max_num_queries(1):
+                siblings = node.get_siblings()
             assert [node.desc for node in siblings] == expected
             assert all(isinstance(node, model) for node in siblings)
 
-    def test_get_first_sibling(self, model):
+    def test_get_first_sibling(self, model, django_assert_max_num_queries):
         data = [
             ("2", "1"),
             ("1", "1"),
@@ -526,11 +558,14 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("231", "231"),
         ]
         for desc, expected in data:
-            node = model.objects.get(desc=desc).get_first_sibling()
-            assert node.desc == expected
-            assert isinstance(node, model)
+            node = model.objects.get(desc=desc)
+            max_queries = 2 if issubclass(model, NS_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                sibling = node.get_first_sibling()
+            assert sibling.desc == expected
+            assert isinstance(sibling, model)
 
-    def test_get_prev_sibling(self, model):
+    def test_get_prev_sibling(self, model, django_assert_max_num_queries):
         data = [
             ("2", "1"),
             ("1", None),
@@ -541,14 +576,17 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("231", None),
         ]
         for desc, expected in data:
-            node = model.objects.get(desc=desc).get_prev_sibling()
+            node = model.objects.get(desc=desc)
+            max_queries = 4 if issubclass(model, NS_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                sibling = node.get_prev_sibling()
             if expected is None:
-                assert node is None
+                assert sibling is None
             else:
-                assert node.desc == expected
-                assert isinstance(node, model)
+                assert sibling.desc == expected
+                assert isinstance(sibling, model)
 
-    def test_get_next_sibling(self, model):
+    def test_get_next_sibling(self, model, django_assert_max_num_queries):
         data = [
             ("2", "3"),
             ("1", "2"),
@@ -559,14 +597,17 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("231", None),
         ]
         for desc, expected in data:
-            node = model.objects.get(desc=desc).get_next_sibling()
+            node = model.objects.get(desc=desc)
+            max_queries = 4 if issubclass(model, NS_Node) else 1  # TODO can NS be made more efficient?
+            with django_assert_max_num_queries(max_queries):
+                sibling = node.get_next_sibling()
             if expected is None:
-                assert node is None
+                assert sibling is None
             else:
-                assert node.desc == expected
-                assert isinstance(node, model)
+                assert sibling.desc == expected
+                assert isinstance(sibling, model)
 
-    def test_get_last_sibling(self, model):
+    def test_get_last_sibling(self, model, django_assert_max_num_queries):
         data = [
             ("2", "4"),
             ("1", "4"),
@@ -577,11 +618,14 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("231", "231"),
         ]
         for desc, expected in data:
-            node = model.objects.get(desc=desc).get_last_sibling()
-            assert node.desc == expected
-            assert isinstance(node, model)
+            node = model.objects.get(desc=desc)
+            max_queries = 4 if issubclass(model, NS_Node) else 1  # TODO can NS be made more efficient?
+            with django_assert_max_num_queries(max_queries):
+                sibling = node.get_last_sibling()
+            assert sibling.desc == expected
+            assert isinstance(sibling, model)
 
-    def test_get_first_child(self, model):
+    def test_get_first_child(self, model, django_assert_max_num_queries):
         data = [
             ("2", "21"),
             ("21", None),
@@ -589,14 +633,16 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("231", None),
         ]
         for desc, expected in data:
-            node = model.objects.get(desc=desc).get_first_child()
+            parent = model.objects.get(desc=desc)
+            with django_assert_max_num_queries(1):
+                node = parent.get_first_child()
             if expected is None:
                 assert node is None
             else:
                 assert node.desc == expected
                 assert isinstance(node, model)
 
-    def test_get_last_child(self, model):
+    def test_get_last_child(self, model, django_assert_max_num_queries):
         data = [
             ("2", "24"),
             ("21", None),
@@ -604,25 +650,30 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("231", None),
         ]
         for desc, expected in data:
-            node = model.objects.get(desc=desc).get_last_child()
+            parent = model.objects.get(desc=desc)
+            with django_assert_max_num_queries(1):
+                node = parent.get_last_child()
             if expected is None:
                 assert node is None
             else:
                 assert node.desc == expected
                 assert isinstance(node, model)
 
-    def test_get_ancestors(self, model):
+    def test_get_ancestors(self, model, django_assert_max_num_queries):
         data = [
             ("2", []),
             ("21", ["2"]),
             ("231", ["2", "23"]),
         ]
         for desc, expected in data:
-            nodes = model.objects.get(desc=desc).get_ancestors()
+            descendant = model.objects.get(desc=desc)
+            max_queries = 2 if issubclass(model, AL_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                nodes = descendant.get_ancestors()
             assert [node.desc for node in nodes] == expected
             assert all(isinstance(node, model) for node in nodes)
 
-    def test_get_descendants(self, model):
+    def test_get_descendants(self, model, django_assert_max_num_queries):
         data = [
             ("2", ["21", "22", "23", "231", "24"]),
             ("23", ["231"]),
@@ -631,11 +682,14 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("4", ["41"]),
         ]
         for desc, expected in data:
-            nodes = model.objects.get(desc=desc).get_descendants()
+            parent = model.objects.get(desc=desc)
+            max_queries = 6 if issubclass(model, AL_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                nodes = parent.get_descendants()
             assert [node.desc for node in nodes] == expected
             assert all(isinstance(node, model) for node in nodes)
 
-    def test_get_descendants_include_self(self, model):
+    def test_get_descendants_include_self(self, model, django_assert_max_num_queries):
         data = [
             ("2", ["2", "21", "22", "23", "231", "24"]),
             ("23", ["23", "231"]),
@@ -644,11 +698,14 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("4", ["4", "41"]),
         ]
         for desc, expected in data:
-            nodes = model.objects.get(desc=desc).get_descendants(include_self=True)
+            parent = model.objects.get(desc=desc)
+            max_queries = 6 if issubclass(model, AL_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                nodes = parent.get_descendants(include_self=True)
             assert [node.desc for node in nodes] == expected
             assert all(isinstance(node, model) for node in nodes)
 
-    def test_get_descendant_count(self, model):
+    def test_get_descendant_count(self, model, django_assert_max_num_queries):
         data = [
             ("2", 5),
             ("23", 1),
@@ -657,10 +714,13 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
             ("4", 1),
         ]
         for desc, expected in data:
-            got = model.objects.get(desc=desc).get_descendant_count()
+            parent = model.objects.get(desc=desc)
+            max_queries = 6 if issubclass(model, AL_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                got = parent.get_descendant_count()
             assert got == expected
 
-    def test_is_sibling_of(self, model):
+    def test_is_sibling_of(self, model, django_assert_max_num_queries):
         data = [
             ("2", "2", True),
             ("2", "1", True),
@@ -673,9 +733,11 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc1, desc2, expected in data:
             node1 = model.objects.get(desc=desc1)
             node2 = model.objects.get(desc=desc2)
-            assert node1.is_sibling_of(node2) == expected
+            max_queries = 2 if issubclass(model, NS_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                assert node1.is_sibling_of(node2) == expected
 
-    def test_is_child_of(self, model):
+    def test_is_child_of(self, model, django_assert_max_num_queries):
         data = [
             ("2", "2", False),
             ("2", "1", False),
@@ -687,9 +749,10 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc1, desc2, expected in data:
             node1 = model.objects.get(desc=desc1)
             node2 = model.objects.get(desc=desc2)
-            assert node1.is_child_of(node2) == expected
+            with django_assert_max_num_queries(1):
+                assert node1.is_child_of(node2) == expected
 
-    def test_is_descendant_of(self, model):
+    def test_is_descendant_of(self, model, django_assert_max_num_queries):
         data = [
             ("2", "2", False),
             ("2", "1", False),
@@ -701,7 +764,9 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc1, desc2, expected in data:
             node1 = model.objects.get(desc=desc1)
             node2 = model.objects.get(desc=desc2)
-            assert node1.is_descendant_of(node2) == expected
+            max_queries = 6 if issubclass(model, AL_Node) else 1
+            with django_assert_max_num_queries(max_queries):
+                assert node1.is_descendant_of(node2) == expected
 
 
 @pytest.mark.django_db

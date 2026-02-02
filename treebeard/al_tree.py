@@ -251,9 +251,15 @@ class AL_Node(Node):
         :returns: A queryset of all the node's siblings, including the node
             itself.
         """
-        if self.parent:
-            return get_result_class(self.__class__).objects.filter(parent=self.parent)
+        if self.parent_id:
+            return get_result_class(self.__class__).objects.filter(parent_id=self.parent_id)
         return self.__class__.get_root_nodes()
+
+    def get_prev_sibling(self):
+        return self.get_siblings().filter(sib_order__lt=self.sib_order).last()
+
+    def get_next_sibling(self):
+        return self.get_siblings().filter(sib_order__gt=self.sib_order).first()
 
     @transaction.atomic
     def add_sibling(self, pos=None, **kwargs):
