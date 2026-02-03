@@ -2,6 +2,7 @@
 
 import datetime
 import os
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -13,6 +14,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.exceptions import PermissionDenied
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.forms import ValidationError
 from django.template import Context, Template
 from django.test.client import RequestFactory
 
@@ -2393,20 +2395,6 @@ class TestMoveNodeForm(TestNonEmptyTree):
 
 
 @pytest.mark.django_db
-class TestModelAdmin(TestNonEmptyTree):
-    def test_default_fields(self, model):
-        site = AdminSite()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        ma = admin_class(model, site)
-        assert list(ma.get_form(None).base_fields.keys()) == [
-            "desc",
-            "treebeard_position",
-            "treebeard_ref_node",
-        ]
-
-
-@pytest.mark.django_db
 class TestSortedForm(TestTreeSorted):
     def test_sorted_form(self, sorted_model):
         sorted_model.add_root(val1=3, val2=3, desc="zxy")
@@ -2780,6 +2768,49 @@ class TestTreeAdmin(TestNonEmptyTree):
         form_class = movenodeform_factory(model_class)
         admin_class = admin_factory(form_class)
         return admin_class(model_class, self.site)
+
+    def test_default_fields(self, model):
+        site = AdminSite()
+        form_class = movenodeform_factory(model)
+        admin_class = admin_factory(form_class)
+        ma = admin_class(model, site)
+        assert list(ma.get_form(None).base_fields.keys()) == [
+            "desc",
+            "treebeard_position",
+            "treebeard_ref_node",
+        ]
+
+    def test_changeform_view_rolls_back_on_form_error(self, model_without_proxy):
+        admin_obj = self._get_admin_obj(model_without_proxy)
+        target = model_without_proxy.objects.get(desc="231")
+        user = self._create_user("tmp", is_superuser=True)
+
+        request = self._mocked_request(
+            data={"desc": "new node", "treebeard_position": "first-child", "treebeard_ref_node": target.pk},
+            user=user,
+        )
+        # Access the inner function, skipping CSRF checks
+        response = admin_obj.changeform_view.__wrapped__(admin_obj, request)
+        assert response.status_code == 302
+        target.refresh_from_db()
+        children = target.get_children()
+        assert len(children) == 1  # Normal case: form submitted successfully and child added
+        assert children[0].desc == "new node"
+
+        request = self._mocked_request(
+            data={"desc": "second new node", "treebeard_position": "first-child", "treebeard_ref_node": target.pk},
+            user=user,
+        )
+
+        def fake_error(*args):
+            admin_obj.form.errors = {"__all__": [ValidationError("fake error")]}
+            return False
+
+        with mock.patch("django.contrib.admin.options.all_valid", side_effect=fake_error):
+            response = admin_obj.changeform_view.__wrapped__(admin_obj, request)
+        assert response.status_code == 200
+        target.refresh_from_db()
+        assert len(target.get_children()) == 1  # Second new child should not have been added
 
     def test_changelist_view(self):
         request = RequestFactory().get("/")
