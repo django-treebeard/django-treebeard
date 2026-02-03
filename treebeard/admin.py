@@ -5,6 +5,7 @@ import sys
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.urls import path
 from django.utils.encoding import force_str
@@ -63,6 +64,18 @@ class TreeAdmin(admin.ModelAdmin):
         extra_context["has_change_permission"] = self.has_change_permission(request)
         extra_context["filtered"] = not check_empty_dict(request.GET)
         return super().changelist_view(request, extra_context)
+
+    def _changeform_view(self, *args, **kwargs):
+        # Because Treebeard frequently needs to modify many objects in a tree when one node
+        # is added/updated, the normal behaviour of relying on `commit=False` to create
+        # unsaved objects before validating inlines etc doesn't work: Treebeard has already
+        # made database changes to prepare to insert/move a node.
+        # For this reason, if the form has error
+        response = super()._changeform_view(*args, **kwargs)
+        if getattr(response, "context_data", {}).get("errors", None):
+            # There was an error somewhere, likely in an inline, so we'll need to roll back
+            transaction.set_rollback(True)
+        return response
 
     def get_urls(self):
         """

@@ -148,6 +148,17 @@ class MoveNodeForm(forms.ModelForm):
         self._set_ref_model_queryset(opts, instance)
 
     def save(self, commit=True):
+        """
+        Saves the model form.
+
+        WARNING: Treebeard does not respect commit=False: other nodes that
+        need to be modified to make space for the edited node will be updated
+        in the database, and thus it is difficult to avoid writing any changes to the database.
+
+        TreeAdmin handles this by rolling back the entire transaction if the form or any
+        inlines report an error. If you use this form elsewhere, you will need to do the same.
+        """
+
         reference_node = self.cleaned_data.pop("treebeard_ref_node", None)
         position_type = self.cleaned_data.pop("treebeard_position")
 
