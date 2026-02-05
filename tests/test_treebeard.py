@@ -3012,3 +3012,121 @@ class TestRefreshFromDb:
         node.move(new_parent, pos="last-child")
         node.refresh_from_db()
         assert node.get_depth() == 2
+
+
+@pytest.mark.django_db
+class TestMP_LoadBulkQueryCount:
+    """Test that load_bulk uses a bounded number of DB queries."""
+
+    def test_load_bulk_empty_tree_query_count(self, django_assert_max_num_queries):
+        models.MP_TestNode.objects.all().delete()
+
+        # 4 root nodes created via add_root (each does a SELECT + INSERT = ~2-3 queries),
+        # plus 1 bulk_create for all descendants, plus numchild updates.
+        # The exact count depends on the backend, but should be well bounded.
+        with django_assert_max_num_queries(50):
+            models.MP_TestNode.load_bulk(BASE_DATA)
+
+        assert models.MP_TestNode.objects.count() == 10
+
+    def test_load_bulk_with_parent_query_count(self, django_assert_max_num_queries):
+        models.MP_TestNode.objects.all().delete()
+        root = models.MP_TestNode.add_root(desc="root")
+
+        with django_assert_max_num_queries(50):
+            models.MP_TestNode.load_bulk(BASE_DATA, root)
+
+        # root + 10 new nodes
+        assert models.MP_TestNode.objects.count() == 11
+
+
+@pytest.mark.django_db
+class TestMP_LoadBulkNodeOrderBy:
+    """Test that node_order_by is respected during bulk loading."""
+
+    def test_load_bulk_sorts_first_level_children(self):
+        models.MP_TestNodeSorted.objects.all().delete()
+
+        bulk_data = [
+            {
+                "data": {"val1": 1, "val2": 1, "desc": "root"},
+                "children": [
+                    {"data": {"val1": 3, "val2": 1, "desc": "C"}},
+                    {"data": {"val1": 1, "val2": 1, "desc": "A"}},
+                    {"data": {"val1": 2, "val2": 1, "desc": "B"}},
+                ],
+            }
+        ]
+
+        models.MP_TestNodeSorted.load_bulk(bulk_data)
+
+        root = models.MP_TestNodeSorted.objects.get(desc="root")
+        children = list(root.get_children().values_list("desc", flat=True))
+        assert children == ["A", "B", "C"]
+
+    def test_load_bulk_sorts_nested_children(self):
+        models.MP_TestNodeSorted.objects.all().delete()
+
+        bulk_data = [
+            {
+                "data": {"val1": 1, "val2": 1, "desc": "root"},
+                "children": [
+                    {
+                        "data": {"val1": 1, "val2": 1, "desc": "A"},
+                        "children": [
+                            {"data": {"val1": 3, "val2": 1, "desc": "A3"}},
+                            {"data": {"val1": 1, "val2": 1, "desc": "A1"}},
+                            {"data": {"val1": 2, "val2": 1, "desc": "A2"}},
+                        ],
+                    },
+                ],
+            }
+        ]
+
+        models.MP_TestNodeSorted.load_bulk(bulk_data)
+
+        parent = models.MP_TestNodeSorted.objects.get(desc="A")
+        children = list(parent.get_children().values_list("desc", flat=True))
+        assert children == ["A1", "A2", "A3"]
+
+    def test_load_bulk_sorts_by_multiple_fields(self):
+        """MP_TestNodeSorted has node_order_by = ["val1", "val2", "desc"]."""
+        models.MP_TestNodeSorted.objects.all().delete()
+
+        bulk_data = [
+            {
+                "data": {"val1": 1, "val2": 1, "desc": "root"},
+                "children": [
+                    {"data": {"val1": 1, "val2": 2, "desc": "B"}},
+                    {"data": {"val1": 2, "val2": 1, "desc": "C"}},
+                    {"data": {"val1": 1, "val2": 1, "desc": "A"}},
+                ],
+            }
+        ]
+
+        models.MP_TestNodeSorted.load_bulk(bulk_data)
+
+        root = models.MP_TestNodeSorted.objects.get(desc="root")
+        children = list(root.get_children().values_list("desc", flat=True))
+        assert children == ["A", "B", "C"]
+
+    def test_load_bulk_no_sorting_without_node_order_by(self):
+        """MP_TestNode does not have node_order_by set, so input order is preserved."""
+        models.MP_TestNode.objects.all().delete()
+
+        bulk_data = [
+            {
+                "data": {"desc": "root"},
+                "children": [
+                    {"data": {"desc": "C"}},
+                    {"data": {"desc": "A"}},
+                    {"data": {"desc": "B"}},
+                ],
+            }
+        ]
+
+        models.MP_TestNode.load_bulk(bulk_data)
+
+        root = models.MP_TestNode.objects.get(desc="root")
+        children = list(root.get_children().values_list("desc", flat=True))
+        assert children == ["C", "A", "B"]

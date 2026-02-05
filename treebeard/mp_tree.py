@@ -1,7 +1,5 @@
 """Materialized Path Trees"""
 
-from __future__ import annotations
-
 import collections
 import functools
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
@@ -28,10 +26,10 @@ class BulkNodeData(TypedDict):
     """
 
     data: dict[str, Any]
-    children: NotRequired[list[BulkNodeData]]
+    children: NotRequired[list["BulkNodeData"]]
 
 
-def _sort_children_by_node_order(cls: type[MP_Node], children: list[BulkNodeData]) -> list[BulkNodeData]:
+def _sort_children_by_node_order(cls: "type[MP_Node]", children: list[BulkNodeData]) -> list[BulkNodeData]:
     """Sort children according to cls.node_order_by if set."""
     if not cls.node_order_by:
         return children
@@ -582,7 +580,7 @@ class MP_Node(Node):
     @classmethod
     @transaction.atomic
     def load_bulk(
-        cls, bulk_data: list[BulkNodeData], parent: Self | None = None, keep_ids: bool = False, batch_size: int = 1000
+        cls, bulk_data: list[BulkNodeData], parent: "Self | None" = None, keep_ids: bool = False, batch_size: int = 1000
     ) -> list[Any]:
         """
         Loads a list/dictionary structure to the tree.
@@ -636,8 +634,8 @@ class MP_Node(Node):
             This differs from the original implementation's DFS order.
         """
         added: list[Any] = []
-        foreign_keys: dict[str, type[models.Model]] = cls.get_foreign_keys()  # pyright: ignore
-        pk_field: str = cls._meta.pk.attname  # pyright: ignore
+        foreign_keys: dict[str, type[models.Model]] = cls.get_foreign_keys()
+        pk_field: str = cls._meta.pk.attname
 
         subtree_root_to_children_map: dict[MP_Node, list[BulkNodeData]] = {}
 
@@ -648,7 +646,7 @@ class MP_Node(Node):
             node_data = node_struct["data"].copy()
 
             # For each fk field, replace pk value with actual object
-            cls._process_foreign_keys(foreign_keys, node_data)  # pyright: ignore
+            cls._process_foreign_keys(foreign_keys, node_data)
 
             if keep_ids:
                 # Will raise KeyError if pk_field is missing
@@ -667,15 +665,13 @@ class MP_Node(Node):
                 subtree_root_to_children_map[node_obj] = _sort_children_by_node_order(cls, node_struct["children"])
 
         # Step 1: Collect all FK values from all descendants that need to be fetched
-        fk_values_to_fetch: dict[str, set[Any]] = {fk_field: set() for fk_field in foreign_keys.keys()}
-        all_child_nodes: list[BulkNodeData] = []
+        fk_values_to_fetch: dict[str, set[Any]] = collections.defaultdict(set)
 
         def _collect_fk_values(child_nodes: list[BulkNodeData]) -> None:
             """Recursively collect all FK values from child nodes."""
             for child in child_nodes:
-                all_child_nodes.append(child)
                 child_data = child["data"]
-                for fk_field in foreign_keys.keys():
+                for fk_field in foreign_keys:
                     if fk_field in child_data:
                         fk_values_to_fetch[fk_field].add(child_data[fk_field])
                 if "children" in child:
@@ -688,10 +684,7 @@ class MP_Node(Node):
         fk_lookups: dict[str, dict[Any, models.Model]] = {}
         for fk_field, fk_model in foreign_keys.items():
             if fk_values_to_fetch[fk_field]:
-                # Fetch all FK objects at once
-                fk_objects = fk_model.objects.filter(pk__in=fk_values_to_fetch[fk_field])  # pyright: ignore
-                # Create lookup map: pk -> object
-                fk_lookups[fk_field] = {obj.pk: obj for obj in fk_objects}  # pyright: ignore
+                fk_lookups[fk_field] = fk_model.objects.in_bulk(list(fk_values_to_fetch[fk_field]))
             else:
                 fk_lookups[fk_field] = {}
 
@@ -720,11 +713,12 @@ class MP_Node(Node):
                 if keep_ids:
                     child_data[pk_field] = child[pk_field]
 
-                child_obj = cls(**child_data)
-
-                child_obj.depth = child_depth
-                child_obj.numchild = len(grandchildren)
-                child_obj.path = cls._get_path(base_path, child_depth, i + 1)
+                child_obj = cls(
+                    depth=child_depth,
+                    numchild=len(grandchildren),
+                    path=cls._get_path(base_path, child_depth, i + 1),
+                    **child_data,
+                )
 
                 children_to_create.append(child_obj)
 
