@@ -1,16 +1,17 @@
 """Materialized Path Trees"""
 
-import operator
-from functools import reduce
+import collections
+import functools
+from typing import Any
 
 from django.core import serializers
 from django.db import connection, models, transaction
 from django.db.models import F, Q, Value
-from django.db.models.functions import Concat, Substr
+from django.db.models.functions import Concat, Greatest, Substr
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
-from treebeard.models import Node
+from treebeard.models import Node, get_result_class_base
 from treebeard.new import mp_node_load_bulk
 from treebeard.numconv import NumConv
 
@@ -43,28 +44,7 @@ def sql_substr(field, pos, length=None, **kwargs):
     return function.format(field=field, pos=pos, length=length)
 
 
-def get_result_class(cls):
-    """
-    For the given model class, determine what class we should use for the
-    nodes returned by its tree methods (such as get_children).
-
-    Usually this will be trivially the same as the initial model class,
-    but there are special cases when model inheritance is in use:
-
-    * If the model extends another via multi-table inheritance, we need to
-      use whichever ancestor originally implemented the tree behaviour (i.e.
-      the one which defines the 'path' field). We can't use the
-      subclass, because it's not guaranteed that the other nodes reachable
-      from the current one will be instances of the same subclass.
-
-    * If the model is a proxy model, the returned nodes should also use
-      the proxy class.
-    """
-    base_class = cls._meta.get_field("path").model
-    if cls._meta.proxy_for_model == base_class:
-        return cls
-    else:
-        return base_class
+get_result_class = functools.partial(get_result_class_base, identifying_field="path")
 
 
 class MP_NodeQuerySet(models.query.QuerySet):
@@ -86,13 +66,12 @@ class MP_NodeQuerySet(models.query.QuerySet):
         # to be deleted and remove nodes from the list if an ancestor is
         # already getting removed, since that would be redundant
         removed = {}
-        for node in self.order_by("depth", "path"):
+        for node in self.order_by("depth", "path").only("path", "depth", "numchild").iterator():
             found = False
             for depth in range(1, int(len(node.path) / node.steplen)):
                 path = node._get_basepath(node.path, depth)
                 if path in removed:
-                    # we are already removing a parent of this node
-                    # skip
+                    # we are already removing an ancestor of this node, so skip it
                     found = True
                     break
             if not found:
@@ -101,31 +80,30 @@ class MP_NodeQuerySet(models.query.QuerySet):
         # ok, got the minimal list of nodes to remove...
         # we must also remove their children
         # and update every parent node's numchild attribute
-        # LOTS OF FUN HERE!
-        parents = {}
-        toremove = []
+        parents = collections.Counter()  # Mapping of parent path to the number of children it has lost
+        pks_to_remove = []
+        paths_to_remove = []
         for path, node in removed.items():
-            parentpath = node._get_basepath(node.path, node.depth - 1)
-            if parentpath:
-                if parentpath not in parents:
-                    parents[parentpath] = node.get_parent(True)
-                parent = parents[parentpath]
-                if parent and parent.numchild > 0:
-                    parent.numchild -= 1
-                    parent.save()
+            if parentpath := node._get_basepath(node.path, node.depth - 1):
+                parents[parentpath] += 1
+
             if node.is_leaf():
-                toremove.append(Q(path=node.path))
+                pks_to_remove.append(node.pk)  # More efficient than querying by path
             else:
-                toremove.append(Q(path__startswith=node.path))
+                paths_to_remove.append(node.path)
+
+        model = get_result_class(self.model)
+
+        # Save the updated numchild of all parents
+        for path, num_lost in parents.items():
+            model.objects.filter(path=path).update(numchild=Greatest(F("numchild") - num_lost, 0))
 
         # Django will handle this as a SELECT and then a DELETE of
         # ids, and will deal with removing related objects
-        model = get_result_class(self.model)
-        if toremove:
-            qset = model.objects.filter(reduce(operator.or_, toremove))
-        else:
-            qset = model.objects.none()
-        return super(MP_NodeQuerySet, qset).delete(*args, **kwargs)
+        query = Q(pk__in=pks_to_remove)
+        for path in paths_to_remove:
+            query |= Q(path__startswith=path)
+        return super(MP_NodeQuerySet, model.objects.filter(query)).delete(*args, **kwargs)
 
     delete.alters_data = True
     delete.queryset_only = True
@@ -251,29 +229,29 @@ class MP_ComplexAddMoveHandler(MP_AddHandler):
         """
 
         vendor = self.node_cls.get_database_vendor("write")
-        sql1 = "UPDATE %s SET" % (connection.ops.quote_name(get_result_class(self.node_cls)._meta.db_table),)
+        quoted_db_name = connection.ops.quote_name(get_result_class(self.node_cls)._meta.db_table)
 
-        if vendor == "mysql":
-            # hooray for mysql ignoring standards in their default
-            # configuration!
-            # to make || work as it should, enable ansi mode
-            # http://dev.mysql.com/doc/refman/5.0/en/ansi-mode.html
-            sqlpath = "CONCAT(%s, SUBSTR(path, %s))"
-        else:
-            sqlpath = sql_concat("%s", sql_substr("path", "%s", vendor=vendor), vendor=vendor)
+        sqlpath = sql_concat("%s", sql_substr("path", "%s", vendor=vendor), vendor=vendor)
 
-        sql2 = ["path=%s" % (sqlpath,)]
+        set_sql = [f"path={sqlpath}"]
         vals = [newpath, len(oldpath) + 1]
-        if len(oldpath) != len(newpath) and vendor != "mysql":
-            # when using mysql, this won't update the depth and it has to be
-            # done in another query
-            # doesn't even work with sql_mode='ANSI,TRADITIONAL'
-            # TODO: FIND OUT WHY?!?? right now I'm just blaming mysql
-            sql2.append(("depth=" + sql_length("%s", vendor=vendor) + "/%%s") % (sqlpath,))
-            vals.extend([newpath, len(oldpath) + 1, self.node_cls.steplen])
-        sql3 = "WHERE path LIKE %s"
-        vals.extend([oldpath + "%"])
-        sql = "%s %s %s" % (sql1, ", ".join(sql2), sql3)
+        if len(oldpath) != len(newpath):
+            # MySQL processes multiple assigments left to right, using the updated value
+            # for any column that is referenced in a subsequent assignment. This behavior differs from standard SQL.
+            # See https://dev.mysql.com/doc/refman/8.4/en/update.html
+            # For a table with schema name (VARCHAR), length (INT) and row (name="bob", length=3), the query:
+            # `UPDATE table SET name='alice', length=LENGTH(name);`
+            # would set `length` to 5 in MySQL, but 3 on other databases, because they use the original source value.
+            if vendor == "mysql":
+                # For MySQL: compute the depth using the `path` field from the DB, that will use the just-updated value
+                set_sql.append(f"depth={sql_length('path', vendor=vendor)}/%s")
+                vals.append(self.node_cls.steplen)
+            else:
+                # For other databases: compute the depth using the new path value
+                set_sql.append(f"depth={sql_length(sqlpath, vendor=vendor)}/%s")
+                vals.extend([newpath, len(oldpath) + 1, self.node_cls.steplen])
+        vals.append(f"{oldpath}%")
+        sql = f"UPDATE {quoted_db_name} SET {', '.join(set_sql)} WHERE path LIKE %s"
         return sql, vals
 
 
@@ -316,11 +294,12 @@ class MP_AddRootHandler(MP_AddHandler):
 
 
 class MP_AddChildHandler(MP_AddHandler):
-    def __init__(self, node, **kwargs):
+    def __init__(self, node, creation_kwargs: dict[str, Any]):
         super().__init__()
         self.node = node
         self.node_cls = node.__class__
-        self.kwargs = kwargs
+        # These are deliberately not extracted in the function signature to avoid collision with model field names
+        self.kwargs = creation_kwargs
 
     def process(self):
         # If parent has node_order_by set and already has children, delegate to add_sibling
@@ -331,7 +310,9 @@ class MP_AddChildHandler(MP_AddHandler):
             self.node.numchild += 1
             return self.node.get_last_child().add_sibling("sorted-sibling", **self.kwargs)
 
-        # Allow adding either a pre-created instance or creating a new one from kwargs
+        # Lock parent row
+        parent_qs = get_result_class(self.node_cls).objects.filter(path=self.node.path).select_for_update()
+
         if len(self.kwargs) == 1 and "instance" in self.kwargs:
             # adding the passed (unsaved) instance to the tree
             newobj = self.kwargs["instance"]
@@ -362,9 +343,7 @@ class MP_AddChildHandler(MP_AddHandler):
             # Increment last child's path to get next sibling position
             newobj.path = self.node.get_last_child()._inc_path()
 
-        # Atomically increment parent's child count in database using F() expression
-        # to avoid race conditions (SQL: UPDATE ... SET numchild = numchild + 1)
-        get_result_class(self.node_cls).objects.filter(path=self.node.path).update(numchild=F("numchild") + 1)
+        parent_qs.update(numchild=F("numchild") + 1)
 
         # we increase the numchild value of the object in memory
         # (F() expression doesn't update the in-memory object, so we sync it manually)
@@ -379,12 +358,13 @@ class MP_AddChildHandler(MP_AddHandler):
 
 
 class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
-    def __init__(self, node, pos, **kwargs):
+    def __init__(self, node, pos, creation_kwargs: dict[str, Any]):
         super().__init__()
         self.node = node
         self.node_cls = node.__class__
         self.pos = pos
-        self.kwargs = kwargs
+        # These are deliberately not extracted in the function signature to avoid collision with model field names
+        self.kwargs = creation_kwargs
 
     def process(self):
         self.pos = self.node._prepare_pos_var_for_add_sibling(self.pos)
@@ -402,10 +382,8 @@ class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
 
         if self.pos == "sorted-sibling":
             siblings = self.node.get_sorted_pos_queryset(self.node.get_siblings(), newobj)
-            try:
-                newpos = siblings.all()[0]._get_lastpos_in_path()
-            except IndexError:
-                newpos = None
+            first = siblings.first()
+            newpos = first._get_lastpos_in_path() if first else None
             if newpos is None:
                 self.pos = "last-sibling"
         else:
@@ -459,10 +437,8 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
 
         if self.pos == "sorted-sibling":
             siblings = self.node.get_sorted_pos_queryset(self.target.get_siblings(), self.node)
-            try:
-                newpos = siblings.all()[0]._get_lastpos_in_path()
-            except IndexError:
-                newpos = None
+            first = siblings.first()
+            newpos = first._get_lastpos_in_path() if first else None
             if newpos is None:
                 self.pos = "last-sibling"
 
@@ -470,7 +446,7 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         oldpath, newpath = self.reorder_nodes_before_add_or_move(
             self.pos, newpos, newdepth, self.target, siblings, oldpath, True
         )
-        # updates needed for mysql and children count in parents
+        # updates needed for children count in parents
         self.sanity_updates_after_move(oldpath, newpath)
 
         self.run_sql_stmts()
@@ -479,14 +455,8 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         """
         Updates the list of sql statements needed after moving nodes.
 
-        1. :attr:`depth` updates *ONLY* needed by mysql databases (*sigh*)
-        2. update the number of children of parent nodes
+        1. update the number of children of parent nodes
         """
-        if self.node_cls.get_database_vendor("write") == "mysql" and len(oldpath) != len(newpath):
-            # no words can describe how dumb mysql is
-            # we must update the depth of the branch in a different query
-            self.stmts.append(self.get_mysql_update_depth_in_branch(newpath))
-
         oldparentpath = self.node_cls._get_parent_path_from_path(oldpath)
         newparentpath = self.node_cls._get_parent_path_from_path(newpath)
         if (
@@ -506,6 +476,9 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         newpos = None
         siblings = []
         if self.pos in ("first-child", "last-child", "sorted-child"):
+            if self.target == self.node:
+                raise InvalidMoveToDescendant(_("Can't move node to itself."))
+
             # moving to a child
             parent = self.target
             newdepth += 1
@@ -528,18 +501,6 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
             parent.numchild += 1
 
         return newdepth, siblings, newpos
-
-    def get_mysql_update_depth_in_branch(self, path):
-        """
-        :returns: The sql needed to update the depth of all the nodes in a
-                  branch.
-        """
-        vendor = self.node_cls.get_database_vendor("write")
-        sql = ("UPDATE %s SET depth=" + sql_length("path", vendor=vendor) + "/%%s WHERE path LIKE %%s") % (
-            connection.ops.quote_name(get_result_class(self.node_cls)._meta.db_table),
-        )
-        vals = [self.node_cls.steplen, path + "%"]
-        return sql, vals
 
 
 class MP_Node(Node):
@@ -576,6 +537,7 @@ class MP_Node(Node):
         return cls.numconv_obj_
 
     @classmethod
+    @transaction.atomic
     def add_root(cls, **kwargs):
         """
         Adds a root node to the tree.
@@ -968,7 +930,10 @@ class MP_Node(Node):
             return get_result_class(self.__class__).objects.none()
         return (
             get_result_class(self.__class__)
-            .objects.filter(depth=self.depth + 1, path__range=self._get_children_path_interval(self.path))
+            .objects.filter(
+                depth=self.depth + 1,
+                path__range=self._get_children_path_interval(self.path),
+            )
             .order_by("path")
         )
 
@@ -977,10 +942,7 @@ class MP_Node(Node):
         :returns: The next node's sibling, or None if it was the rightmost
             sibling.
         """
-        try:
-            return self.get_siblings().filter(path__gt=self.path)[0]
-        except IndexError:
-            return None
+        return self.get_siblings().filter(path__gt=self.path).first()
 
     def get_descendants(self, include_self=False):
         """
@@ -998,10 +960,7 @@ class MP_Node(Node):
         :returns: The previous node's sibling, or None if it was the leftmost
             sibling.
         """
-        try:
-            return self.get_siblings().filter(path__lt=self.path).reverse()[0]
-        except IndexError:
-            return None
+        return self.get_siblings().filter(path__lt=self.path).last()
 
     def get_children_count(self):
         """
@@ -1037,6 +996,7 @@ class MP_Node(Node):
         """
         return self.path.startswith(node.path) and self.depth > node.depth
 
+    @transaction.atomic
     def add_child(self, **kwargs):
         """
         Adds a child to the node.
@@ -1049,8 +1009,9 @@ class MP_Node(Node):
 
         :raise PathOverflow: when no more child nodes can be added
         """
-        return MP_AddChildHandler(self, **kwargs).process()
+        return MP_AddChildHandler(self, kwargs).process()
 
+    @transaction.atomic
     def add_sibling(self, pos=None, **kwargs):
         """
         Adds a new node as a sibling to the current node object.
@@ -1064,7 +1025,7 @@ class MP_Node(Node):
         :raise PathOverflow: when the library can't make room for the
            node's new position
         """
-        return MP_AddSiblingHandler(self, pos, **kwargs).process()
+        return MP_AddSiblingHandler(self, pos, kwargs).process()
 
     def get_root(self):
         """:returns: the root node for the current node object."""
@@ -1108,6 +1069,7 @@ class MP_Node(Node):
         self._cached_parent_obj = get_result_class(self.__class__).objects.get(path=parentpath)
         return self._cached_parent_obj
 
+    @transaction.atomic
     def move(self, target, pos=None):
         """
         Moves the current node and all it's descendants to a new position
@@ -1160,7 +1122,10 @@ class MP_Node(Node):
     @classmethod
     def _get_children_path_interval(cls, path):
         """:returns: An interval of all possible children paths for a node."""
-        return (path + cls.alphabet[0] * cls.steplen, path + cls.alphabet[-1] * cls.steplen)
+        return (
+            path + cls.alphabet[0] * cls.steplen,
+            path + cls.alphabet[-1] * cls.steplen,
+        )
 
     class Meta:
         """Abstract model."""

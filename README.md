@@ -1,16 +1,15 @@
 # django-treebeard
 
-**django-treebeard** is a library that implements efficient tree
-implementations for the Django Web Framework 2.2 and later.
+**django-treebeard** is a library that implements efficient tree implementations for the Django Web Framework.
 
-It is written by Gustavo Picón and licensed under the Apache License
-2.0.
+It was written by Gustavo Picón and licensed under the Apache License 2.0.
 
 ## Status
 
 [![Documentation Status](https://readthedocs.org/projects/django-treebeard/badge/?version=latest)](https://django-treebeard.readthedocs.io/en/latest/?badge=latest)
 [![Tests](https://github.com/django-treebeard/django-treebeard/actions/workflows/test.yml/badge.svg)]()
 [![PyPI](https://img.shields.io/pypi/pyversions/django-treebeard.svg)]()
+![PyPI - Django Version](https://img.shields.io/pypi/frameworkversions/django/django-treebeard.svg)
 [![PyPI version](https://img.shields.io/pypi/v/django-treebeard.svg)](https://pypi.org/project/django-treebeard/)
 
 
@@ -29,9 +28,7 @@ django-treebeard is:
 -   **Clean**: Testable and well tested code base. Code/branch test
     coverage is above 96%.
 
-You can find the documentation in
-
-> <http://django-treebeard.readthedocs.io/en/latest/>
+You can find the documentation at <https://django-treebeard.readthedocs.io/en/latest/>
 
 ### Supported versions
 

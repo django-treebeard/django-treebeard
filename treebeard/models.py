@@ -4,7 +4,7 @@ import operator
 from contextlib import suppress
 from functools import reduce
 
-from django.db import connections, models, router
+from django.db import connections, models, router, transaction
 from django.db.models import Q
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
@@ -59,6 +59,7 @@ class Node(models.Model):
                 node_data[key] = foreign_keys[key].objects.get(pk=node_data[key])
 
     @classmethod
+    @transaction.atomic
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """
         Loads a list/dictionary structure to the tree.
@@ -150,10 +151,7 @@ class Node(models.Model):
 
             The first root node in the tree or ``None`` if it is empty.
         """
-        try:
-            return cls.get_root_nodes()[0]
-        except IndexError:
-            return None
+        return cls.get_root_nodes().first()
 
     @classmethod
     def get_last_root_node(cls):
@@ -162,10 +160,7 @@ class Node(models.Model):
 
             The last root node in the tree or ``None`` if it is empty.
         """
-        try:
-            return cls.get_root_nodes().reverse()[0]
-        except IndexError:
-            return None
+        return cls.get_root_nodes().last()
 
     @classmethod
     def find_problems(cls):  # pragma: no cover
@@ -255,10 +250,7 @@ class Node(models.Model):
 
             The leftmost node's child, or None if it has no children.
         """
-        try:
-            return self.get_children()[0]
-        except IndexError:
-            return None
+        return self.get_children().first()
 
     def get_last_child(self):
         """
@@ -266,10 +258,7 @@ class Node(models.Model):
 
             The rightmost node's child, or None if it has no children.
         """
-        try:
-            return self.get_children().reverse()[0]
-        except IndexError:
-            return None
+        return self.get_children().last()
 
     def get_first_sibling(self):
         """
@@ -278,7 +267,7 @@ class Node(models.Model):
             The leftmost node's sibling, can return the node itself if
             it was the leftmost sibling.
         """
-        return self.get_siblings()[0]
+        return self.get_siblings().first()
 
     def get_last_sibling(self):
         """
@@ -287,7 +276,7 @@ class Node(models.Model):
             The rightmost node's sibling, can return the node itself if
             it was the rightmost sibling.
         """
-        return self.get_siblings().reverse()[0]
+        return self.get_siblings().last()
 
     def get_prev_sibling(self):
         """
@@ -296,12 +285,10 @@ class Node(models.Model):
             The previous node's sibling, or None if it was the leftmost
             sibling.
         """
-        siblings = self.get_siblings()
-        ids = [obj.pk for obj in siblings]
-        if self.pk in ids:
-            idx = ids.index(self.pk)
-            if idx > 0:
-                return siblings[idx - 1]
+        ids = list(self.get_siblings().values_list("pk", flat=True))
+        idx = ids.index(self.pk)
+        if idx > 0:
+            return self.get_siblings().get(pk=ids[idx - 1])
 
     def get_next_sibling(self):
         """
@@ -310,12 +297,10 @@ class Node(models.Model):
             The next node's sibling, or None if it was the rightmost
             sibling.
         """
-        siblings = self.get_siblings()
-        ids = [obj.pk for obj in siblings]
-        if self.pk in ids:
-            idx = ids.index(self.pk)
-            if idx < len(siblings) - 1:
-                return siblings[idx + 1]
+        ids = list(self.get_siblings().values_list("pk", flat=True))
+        idx = ids.index(self.pk)
+        if idx < len(ids) - 1:
+            return self.get_siblings().get(pk=ids[idx + 1])
 
     def is_sibling_of(self, node):
         """
@@ -539,7 +524,7 @@ class Node(models.Model):
             Called only for Node models with :attr:`node_order_by`
 
         This function is based on _insertion_target_filters from django-mptt
-        (BSD licensed) by Jonathan Buchanan:
+        (MIT licensed) by Jonathan Buchanan:
         https://github.com/django-mptt/django-mptt/blob/0.3.0/mptt/signals.py
         """
 
@@ -562,7 +547,12 @@ class Node(models.Model):
     @classmethod
     def get_annotated_list_qs(cls, qs):
         """
-        Gets an annotated list from a queryset.
+        Efficiently generates an annotated list from a queryset.
+
+        The queryset MUST be ordered by path, otherwise it will yield
+        incorrect results. The queryset must also represent the entirety of
+        a branch of a tree: excluded objects will not be fetched and will
+        result in gaps in the tree.
         """
         result, info = [], {}
         start_depth, prev_depth = (None, None)
@@ -645,3 +635,27 @@ class Node(models.Model):
         """Abstract model."""
 
         abstract = True
+
+
+def get_result_class_base(cls, identifying_field: str):
+    """
+    For the given model class, determine what class we should use for the
+    nodes returned by its tree methods (such as get_children).
+
+    Usually this will be trivially the same as the initial model class,
+    but there are special cases when model inheritance is in use:
+
+    * If the model extends another via multi-table inheritance, we need to
+      use whichever ancestor originally implemented the tree behaviour (i.e.
+      the one which defines the 'path' field). We can't use the
+      subclass, because it's not guaranteed that the other nodes reachable
+      from the current one will be instances of the same subclass.
+
+    * If the model is a proxy model, the returned nodes should also use
+      the proxy class.
+    """
+    base_class = cls._meta.get_field(identifying_field).model
+    if cls._meta.proxy_for_model == base_class:
+        return cls
+
+    return base_class

@@ -1,3 +1,27 @@
+Release 5.0.0 (in development)
+----------------------------
+* Add support for Python 3.14.
+* Add support for Django 6.0.
+* Drop support for Django 5.1.
+* All node create and update operations are now run in a transaction to mitigate against race conditions.
+* `MoveNodeForm` has been refactored to use a `ModelChoiceField` for selecting the relative node.
+* Internal fields used by Treebeard's `MoveNodeForm` have been renamed from 
+`_position` to `treebeard_position` and `_ref_node_id` to `treebeard_ref_node`.
+* The initialisation signatures for the internal `MP_AddChildHandler` and `MP_AddSiblingHandler`
+  classes have changed to avoid collisions with model field names. Both constructors now expect
+  a mapping of model creation arguments as a single parameter, instead of keywords arguments passed to the constructor.
+
+
+Release 4.8.0 (Dec 3, 2025)
+----------------------------
+* Add support for Django 5.2, and Python 3.13.
+* Drop support for Django 4.1 and 5.0.
+* Refactor Django admin integration to be simpler, and more resilient to upstream changes.
+* Add `include_self` option to `get_descendants` method.
+* Fix KeyError in MP_Node.dump_bulk if ordering differs from depth, path.
+* Exclude tests from packaged wheel distribution of django-treebeard
+
+
 Release 4.7.1 (Jan 31, 2024)
 ----------------------------
 * Fix: Allow usage of CSRF_COOKIE_HTTPONLY setting.

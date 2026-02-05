@@ -1,35 +1,16 @@
 """Adjacency List"""
 
+import functools
+
 from django.core import serializers
-from django.db import models
+from django.db import models, transaction
+from django.db.models import Max, Min
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
-from treebeard.models import Node
+from treebeard.models import Node, get_result_class_base
 
-
-def get_result_class(cls):
-    """
-    For the given model class, determine what class we should use for the
-    nodes returned by its tree methods (such as get_children).
-
-    Usually this will be trivially the same as the initial model class,
-    but there are special cases when model inheritance is in use:
-
-    * If the model extends another via multi-table inheritance, we need to
-      use whichever ancestor originally implemented the tree behaviour (i.e.
-      the one which defines the 'parent' field). We can't use the
-      subclass, because it's not guaranteed that the other nodes reachable
-      from the current one will be instances of the same subclass.
-
-    * If the model is a proxy model, the returned nodes should also use
-      the proxy class.
-    """
-    base_class = cls._meta.get_field("parent").model
-    if cls._meta.proxy_for_model == base_class:
-        return cls
-    else:
-        return base_class
+get_result_class = functools.partial(get_result_class_base, identifying_field="parent")
 
 
 class AL_NodeManager(models.Manager):
@@ -56,6 +37,7 @@ class AL_Node(Node):
     )
 
     @classmethod
+    @transaction.atomic
     def add_root(cls, **kwargs):
         """Adds a root node to the tree."""
 
@@ -69,16 +51,7 @@ class AL_Node(Node):
 
         newobj._cached_depth = 1
         if not cls.node_order_by:
-            try:
-                max = (
-                    get_result_class(cls)
-                    .objects.filter(parent__isnull=True)
-                    .order_by("sib_order")
-                    .reverse()[0]
-                    .sib_order
-                )
-            except IndexError:
-                max = 0
+            max = get_result_class(cls).objects.filter(parent__isnull=True).aggregate(max=Max("sib_order"))["max"] or 0
             newobj.sib_order = max + 1
         newobj.save()
         return newobj
@@ -210,6 +183,7 @@ class AL_Node(Node):
             lnk[node.pk] = newobj
         return ret
 
+    @transaction.atomic
     def add_child(self, **kwargs):
         """Adds a child to the node."""
         cls = get_result_class(self.__class__)
@@ -227,10 +201,7 @@ class AL_Node(Node):
         except AttributeError:
             pass
         if not cls.node_order_by:
-            try:
-                max = cls.objects.filter(parent=self).reverse()[0].sib_order
-            except IndexError:
-                max = 0
+            max = cls.objects.filter(parent=self).aggregate(max=Max("sib_order"))["max"] or 0
             newobj.sib_order = max + 1
         newobj.parent = self
         newobj.save()
@@ -280,10 +251,17 @@ class AL_Node(Node):
         :returns: A queryset of all the node's siblings, including the node
             itself.
         """
-        if self.parent:
-            return get_result_class(self.__class__).objects.filter(parent=self.parent)
+        if self.parent_id:
+            return get_result_class(self.__class__).objects.filter(parent_id=self.parent_id)
         return self.__class__.get_root_nodes()
 
+    def get_prev_sibling(self):
+        return self.get_siblings().filter(sib_order__lt=self.sib_order).last()
+
+    def get_next_sibling(self):
+        return self.get_siblings().filter(sib_order__gt=self.sib_order).first()
+
+    @transaction.atomic
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
         pos = self._prepare_pos_var_for_add_sibling(pos)
@@ -325,10 +303,7 @@ class AL_Node(Node):
             "first-sibling": siblings,
         }[pos]
         sib_order = {"left": target_node.sib_order, "right": target_node.sib_order + 1, "first-sibling": 1}[pos]
-        try:
-            min = siblings.order_by("sib_order")[0].sib_order
-        except IndexError:
-            min = 0
+        min = siblings.aggregate(min=Min("sib_order"))["min"] or 0
         if min:
             cls._make_hole_in_db(min, target_node)
         return sib_order
@@ -341,6 +316,7 @@ class AL_Node(Node):
             sib_order = cls._make_hole_and_get_sibling_order(pos, target_node)
         return sib_order
 
+    @transaction.atomic
     def move(self, target, pos=None):
         """
         Moves the current node and all it's descendants to a new position
@@ -353,6 +329,9 @@ class AL_Node(Node):
         parent = None
 
         if pos in ("first-child", "last-child", "sorted-child"):
+            if self == target:
+                raise InvalidMoveToDescendant(_("Can't move node to itself."))
+
             # moving to a child
             if not target.is_leaf():
                 target = target.get_last_child()

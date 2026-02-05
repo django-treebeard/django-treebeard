@@ -1,39 +1,18 @@
 """Nested Sets"""
 
+import functools
 import operator
 from functools import reduce
 
 from django.core import serializers
-from django.db import connection, models
+from django.db import connection, models, transaction
 from django.db.models import Q
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
-from treebeard.models import Node
+from treebeard.models import Node, get_result_class_base
 
-
-def get_result_class(cls):
-    """
-    For the given model class, determine what class we should use for the
-    nodes returned by its tree methods (such as get_children).
-
-    Usually this will be trivially the same as the initial model class,
-    but there are special cases when model inheritance is in use:
-
-    * If the model extends another via multi-table inheritance, we need to
-      use whichever ancestor originally implemented the tree behaviour (i.e.
-      the one which defines the 'lft'/'rgt' fields). We can't use the
-      subclass, because it's not guaranteed that the other nodes reachable
-      from the current one will be instances of the same subclass.
-
-    * If the model is a proxy model, the returned nodes should also use
-      the proxy class.
-    """
-    base_class = cls._meta.get_field("lft").model
-    if cls._meta.proxy_for_model == base_class:
-        return cls
-    else:
-        return base_class
+get_result_class = functools.partial(get_result_class_base, identifying_field="lft")
 
 
 def merge_deleted_counters(c1, c2):
@@ -138,6 +117,7 @@ class NS_Node(Node):
     )
 
     @classmethod
+    @transaction.atomic
     def add_root(cls, **kwargs):
         """Adds a root node to the tree."""
 
@@ -207,6 +187,7 @@ class NS_Node(Node):
         }
         return sql, []
 
+    @transaction.atomic
     def add_child(self, **kwargs):
         """Adds a child to the node."""
         if not self.is_leaf():
@@ -217,7 +198,9 @@ class NS_Node(Node):
                 pos = "last-sibling"
             last_child = self.get_last_child()
             last_child._cached_parent_obj = self
-            return last_child.add_sibling(pos, **kwargs)
+            new_sibling = last_child.add_sibling(pos, **kwargs)
+            self.rgt += 2  # Update the rgt of the parent object, which may be used again in a loop
+            return new_sibling
 
         # we're adding the first child of this node
         sql, params = self.__class__._move_right(self.tree_id, self.rgt, False, 2)
@@ -249,6 +232,7 @@ class NS_Node(Node):
 
         return newobj
 
+    @transaction.atomic
     def add_sibling(self, pos=None, **kwargs):
         """Adds a new node as a sibling to the current node object."""
 
@@ -342,6 +326,7 @@ class NS_Node(Node):
 
         return newobj
 
+    @transaction.atomic
     def move(self, target, pos=None):
         """
         Moves the current node and all it's descendants to a new position
@@ -354,6 +339,9 @@ class NS_Node(Node):
         parent = None
 
         if pos in ("first-child", "last-child", "sorted-child"):
+            if self == target:
+                raise InvalidMoveToDescendant(_("Can't move node to itself."))
+
             # moving to a child
             if target.is_leaf():
                 parent = target
@@ -495,6 +483,7 @@ class NS_Node(Node):
         return sql, []
 
     @classmethod
+    @transaction.atomic
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """Loads a list/dictionary structure to the tree."""
 
