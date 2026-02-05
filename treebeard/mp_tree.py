@@ -2,7 +2,7 @@
 
 import collections
 import functools
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.core import serializers
 from django.db import connection, models, transaction
@@ -13,9 +13,6 @@ from django.utils.translation import gettext_noop as _
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node, get_result_class_base
 from treebeard.numconv import NumConv
-
-if TYPE_CHECKING:
-    from typing import Self
 
 
 class BulkNodeData(TypedDict):
@@ -580,7 +577,11 @@ class MP_Node(Node):
     @classmethod
     @transaction.atomic
     def load_bulk(
-        cls, bulk_data: list[BulkNodeData], parent: "Self | None" = None, keep_ids: bool = False, batch_size: int = 1000
+        cls,
+        bulk_data: list[BulkNodeData],
+        parent: "MP_Node | None" = None,
+        keep_ids: bool = False,
+        batch_size: int = 1000,
     ) -> list[Any]:
         """
         Loads a list/dictionary structure to the tree.
