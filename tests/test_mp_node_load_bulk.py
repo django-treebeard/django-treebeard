@@ -1,14 +1,13 @@
 """
-Unit tests for mp_node_load_bulk function.
+Unit tests for MP_Node.load_bulk method.
 
 This test file mirrors the existing load_bulk tests from test_treebeard.py
-to ensure the new mp_node_load_bulk implementation maintains backward compatibility.
+to ensure the load_bulk implementation maintains backward compatibility.
 """
 
 import pytest
 
 from tests import models
-from treebeard.new import mp_node_load_bulk
 
 BASE_DATA = [
     {"data": {"desc": "1"}},
@@ -59,7 +58,7 @@ def mp_model_without_data():
 def mp_model():
     """Fixture that returns MP_TestNode with BASE_DATA already loaded."""
     models.MP_TestNode.objects.all().delete()
-    mp_node_load_bulk(models.MP_TestNode, BASE_DATA)
+    models.MP_TestNode.load_bulk(BASE_DATA)
     return models.MP_TestNode
 
 
@@ -67,12 +66,12 @@ def mp_model():
 def mp_related_model():
     """Fixture that returns MP_TestNodeRelated model with BASE_DATA loaded."""
     models.MP_TestNodeRelated.objects.all().delete()
-    mp_node_load_bulk(models.MP_TestNode, BASE_DATA)
+    models.MP_TestNode.load_bulk(BASE_DATA)
     return models.MP_TestNodeRelated
 
 
 class TestMPNodeLoadBulk:
-    """Test class for mp_node_load_bulk function."""
+    """Test class for MP_Node.load_bulk method."""
 
     def got(self, model):
         """
@@ -92,7 +91,7 @@ class TestMPNodeLoadBulk:
         - Tree structure matches UNCHANGED constant
         """
         model = mp_model_without_data
-        ids = mp_node_load_bulk(model, BASE_DATA)
+        ids = model.load_bulk(BASE_DATA)
 
         # Verify all nodes were created
         got_descs = [obj.desc for obj in model.objects.filter(pk__in=ids)]
@@ -117,7 +116,7 @@ class TestMPNodeLoadBulk:
 
         # Load BASE_DATA as children of node "231"
         node = model.objects.get(desc="231")
-        ids = mp_node_load_bulk(model, BASE_DATA, node)
+        ids = model.load_bulk(BASE_DATA, node)
 
         # Expected structure: original tree + BASE_DATA under node "231" (depth 3)
         # Node "231" now has 4 children instead of 0
@@ -171,7 +170,7 @@ class TestMPNodeLoadBulk:
         model.objects.all().delete()
 
         # Reload with same IDs
-        mp_node_load_bulk(model, exp, None, True)
+        model.load_bulk(exp, None, True)
 
         # Dump again
         got = model.dump_bulk(keep_ids=True)
@@ -227,7 +226,7 @@ class TestMPNodeLoadBulk:
         ]
 
         # Load data with foreign keys
-        mp_node_load_bulk(related_model, related_data)
+        related_model.load_bulk(related_data)
 
         # Dump and verify
         got = related_model.dump_bulk(keep_ids=False)
@@ -244,7 +243,7 @@ class TestMPNodeLoadBulk:
         - All returned IDs exist in database
         """
         model = mp_model_without_data
-        ids = mp_node_load_bulk(model, BASE_DATA)
+        ids = model.load_bulk(BASE_DATA)
 
         # Should return 10 IDs (total nodes in BASE_DATA)
         assert len(ids) == 10
@@ -262,7 +261,7 @@ class TestMPNodeLoadBulk:
         - No nodes are created
         """
         model = mp_model_without_data
-        ids = mp_node_load_bulk(model, [])
+        ids = model.load_bulk([])
 
         assert ids == []
         assert model.objects.count() == 0
@@ -280,7 +279,7 @@ class TestMPNodeLoadBulk:
         model = mp_model_without_data
         single_node_data = [{"data": {"desc": "single_root"}}]
 
-        ids = mp_node_load_bulk(model, single_node_data)
+        ids = model.load_bulk(single_node_data)
 
         assert len(ids) == 1
         node = model.objects.get(pk=ids[0])
@@ -305,7 +304,7 @@ class TestMPNodeLoadBulk:
             {"data": {"desc": "root3"}},
         ]
 
-        ids = mp_node_load_bulk(model, multi_root_data)
+        ids = model.load_bulk(multi_root_data)
 
         assert len(ids) == 3
         assert model.objects.count() == 3
@@ -345,7 +344,7 @@ class TestMPNodeLoadBulk:
             },
         ]
 
-        ids = mp_node_load_bulk(model, deep_data)
+        ids = model.load_bulk(deep_data)
 
         assert len(ids) == 4
 
@@ -375,7 +374,7 @@ class TestMPNodeLoadBulk:
         - Parent nodes have correct numchild count
         """
         model = mp_model_without_data
-        mp_node_load_bulk(model, BASE_DATA)
+        model.load_bulk(BASE_DATA)
 
         # Check specific nodes
         node1 = model.objects.get(desc="1")
@@ -401,65 +400,123 @@ class TestMPNodeLoadBulk:
         model = mp_model_without_data
 
         # Normal case - should succeed
-        ids = mp_node_load_bulk(model, BASE_DATA)
+        ids = model.load_bulk(BASE_DATA)
         assert len(ids) == 10
         assert model.objects.count() == 10
 
 
-# Additional test for comparison with old implementation
 @pytest.mark.django_db
-class TestBackwardCompatibility:
-    """Test backward compatibility between old and new implementations."""
+class TestNodeOrderBySupport:
+    """Test that node_order_by is respected during bulk loading."""
 
-    def got(self, model):
-        """Helper method to get tree structure."""
-        return [(o.desc, o.get_depth(), o.get_children_count()) for o in model.get_tree()]
-
-    def test_new_vs_old_load_bulk_empty_tree(self):
+    def test_load_bulk_sorts_first_level_children(self):
         """
-        Compare new mp_node_load_bulk with old model.load_bulk on empty tree.
+        Test that first-level children are sorted according to node_order_by.
 
-        Both should produce identical results.
+        This verifies that when a model has node_order_by set, children
+        loaded via load_bulk are sorted correctly rather than being inserted
+        in input order.
         """
-        # Clean slate
+        models.MP_TestNodeSorted.objects.all().delete()
+
+        # Load bulk data with unsorted children (out of order by val1)
+        bulk_data = [
+            {
+                "data": {"val1": 1, "val2": 1, "desc": "root"},
+                "children": [
+                    {"data": {"val1": 3, "val2": 1, "desc": "C"}},  # Should be 3rd
+                    {"data": {"val1": 1, "val2": 1, "desc": "A"}},  # Should be 1st
+                    {"data": {"val1": 2, "val2": 1, "desc": "B"}},  # Should be 2nd
+                ],
+            }
+        ]
+
+        models.MP_TestNodeSorted.load_bulk(bulk_data)
+
+        # Verify order - children should be sorted by val1
+        root = models.MP_TestNodeSorted.objects.get(desc="root")
+        children = list(root.get_children().values_list("desc", flat=True))
+        assert children == ["A", "B", "C"], f"Expected ['A', 'B', 'C'], got {children}"
+
+    def test_load_bulk_sorts_nested_children(self):
+        """
+        Test that nested children at all levels are sorted according to node_order_by.
+
+        This verifies recursive sorting works correctly for grandchildren.
+        """
+        models.MP_TestNodeSorted.objects.all().delete()
+
+        bulk_data = [
+            {
+                "data": {"val1": 1, "val2": 1, "desc": "root"},
+                "children": [
+                    {
+                        "data": {"val1": 1, "val2": 1, "desc": "A"},
+                        "children": [
+                            {"data": {"val1": 3, "val2": 1, "desc": "A3"}},  # Should be 3rd
+                            {"data": {"val1": 1, "val2": 1, "desc": "A1"}},  # Should be 1st
+                            {"data": {"val1": 2, "val2": 1, "desc": "A2"}},  # Should be 2nd
+                        ],
+                    },
+                ],
+            }
+        ]
+
+        models.MP_TestNodeSorted.load_bulk(bulk_data)
+
+        # Verify nested children are sorted
+        parent = models.MP_TestNodeSorted.objects.get(desc="A")
+        children = list(parent.get_children().values_list("desc", flat=True))
+        assert children == ["A1", "A2", "A3"], f"Expected ['A1', 'A2', 'A3'], got {children}"
+
+    def test_load_bulk_sorts_by_multiple_fields(self):
+        """
+        Test that sorting works correctly when node_order_by has multiple fields.
+
+        MP_TestNodeSorted has node_order_by = ["val1", "val2", "desc"]
+        """
+        models.MP_TestNodeSorted.objects.all().delete()
+
+        bulk_data = [
+            {
+                "data": {"val1": 1, "val2": 1, "desc": "root"},
+                "children": [
+                    {"data": {"val1": 1, "val2": 2, "desc": "B"}},  # val1=1, val2=2 -> 2nd
+                    {"data": {"val1": 2, "val2": 1, "desc": "C"}},  # val1=2 -> 3rd
+                    {"data": {"val1": 1, "val2": 1, "desc": "A"}},  # val1=1, val2=1 -> 1st
+                ],
+            }
+        ]
+
+        models.MP_TestNodeSorted.load_bulk(bulk_data)
+
+        # Verify order - sorted by val1 first, then val2
+        root = models.MP_TestNodeSorted.objects.get(desc="root")
+        children = list(root.get_children().values_list("desc", flat=True))
+        assert children == ["A", "B", "C"], f"Expected ['A', 'B', 'C'], got {children}"
+
+    def test_load_bulk_no_sorting_without_node_order_by(self):
+        """
+        Test that nodes without node_order_by preserve input order.
+
+        MP_TestNode does not have node_order_by set.
+        """
         models.MP_TestNode.objects.all().delete()
 
-        # Load with new implementation
-        mp_node_load_bulk(models.MP_TestNode, BASE_DATA)
-        new_result = self.got(models.MP_TestNode)
+        bulk_data = [
+            {
+                "data": {"desc": "root"},
+                "children": [
+                    {"data": {"desc": "C"}},
+                    {"data": {"desc": "A"}},
+                    {"data": {"desc": "B"}},
+                ],
+            }
+        ]
 
-        # Clean and load with old implementation
-        models.MP_TestNode.objects.all().delete()
-        models.MP_TestNode.load_bulk(BASE_DATA)
-        old_result = self.got(models.MP_TestNode)
+        models.MP_TestNode.load_bulk(bulk_data)
 
-        # Should be identical
-        assert new_result == old_result
-        assert new_result == UNCHANGED
-
-    def test_new_vs_old_load_bulk_with_parent(self):
-        """
-        Compare new mp_node_load_bulk with old model.load_bulk when loading under a parent.
-
-        Both should produce identical results.
-        """
-        # Set up initial tree with old implementation
-        models.MP_TestNode.objects.all().delete()
-        models.MP_TestNode.load_bulk(BASE_DATA)
-
-        # Get parent node
-        node = models.MP_TestNode.objects.get(desc="231")
-
-        # Load children with new implementation
-        mp_node_load_bulk(models.MP_TestNode, BASE_DATA, node)
-        new_result = self.got(models.MP_TestNode)
-
-        # Reset and do the same with old implementation
-        models.MP_TestNode.objects.all().delete()
-        models.MP_TestNode.load_bulk(BASE_DATA)
-        node = models.MP_TestNode.objects.get(desc="231")
-        models.MP_TestNode.load_bulk(BASE_DATA, node)
-        old_result = self.got(models.MP_TestNode)
-
-        # Should be identical
-        assert new_result == old_result
+        # Verify order - should preserve input order (no sorting)
+        root = models.MP_TestNode.objects.get(desc="root")
+        children = list(root.get_children().values_list("desc", flat=True))
+        assert children == ["C", "A", "B"], f"Expected ['C', 'A', 'B'], got {children}"

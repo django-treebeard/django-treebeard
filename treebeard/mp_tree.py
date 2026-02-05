@@ -1,8 +1,10 @@
 """Materialized Path Trees"""
 
+from __future__ import annotations
+
 import collections
 import functools
-from typing import Any
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from django.core import serializers
 from django.db import connection, models, transaction
@@ -12,8 +14,33 @@ from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node, get_result_class_base
-from treebeard.new import mp_node_load_bulk
 from treebeard.numconv import NumConv
+
+if TYPE_CHECKING:
+    from typing import Self
+
+
+class BulkNodeData(TypedDict):
+    """Structure for bulk loading tree nodes.
+
+    Note: When ``keep_ids=True``, the primary key field name (e.g., "id")
+    exists as a top-level key alongside "data" and "children".
+    """
+
+    data: dict[str, Any]
+    children: NotRequired[list[BulkNodeData]]
+
+
+def _sort_children_by_node_order(cls: type[MP_Node], children: list[BulkNodeData]) -> list[BulkNodeData]:
+    """Sort children according to cls.node_order_by if set."""
+    if not cls.node_order_by:
+        return children
+
+    def sort_key(child: BulkNodeData) -> tuple:
+        data = child["data"]
+        return tuple(data.get(field) for field in cls.node_order_by)
+
+    return sorted(children, key=sort_key)
 
 
 # The following functions generate vendor-specific SQL functions
@@ -553,8 +580,172 @@ class MP_Node(Node):
         return MP_AddRootHandler(cls, **kwargs).process()
 
     @classmethod
-    def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
-        return mp_node_load_bulk(cls, bulk_data, parent, keep_ids)
+    @transaction.atomic
+    def load_bulk(
+        cls, bulk_data: list[BulkNodeData], parent: Self | None = None, keep_ids: bool = False, batch_size: int = 1000
+    ) -> list[Any]:
+        """
+        Loads a list/dictionary structure to the tree.
+
+        :param bulk_data:
+
+            The data that will be loaded, the structure is a list of
+            dictionaries with 2 keys:
+
+            - ``data``: will store arguments that will be passed for object
+                creation, and
+
+            - ``children``: a list of dictionaries, each one has it's own
+                ``data`` and ``children`` keys (a recursive structure)
+
+
+        :param parent:
+
+            The node that will receive the structure as children, if not
+            specified the first level of the structure will be loaded as root
+            nodes
+
+
+        :param keep_ids:
+
+            If enabled, loads the nodes with the same primary keys that are
+            given in the structure. Will error if there are nodes without
+            primary key info or if the primary keys are already used.
+
+
+        :param batch_size:
+
+            The batch size for ``bulk_create()`` when creating descendant nodes.
+            Default is 1000.
+
+
+        :returns: A list of the added node ids.
+
+        .. note::
+
+            **Concurrency**: When loading root nodes (``parent=None``), concurrent
+            calls may conflict on path assignment due to the unique constraint.
+            The operation is atomic and will roll back on failure. For
+            high-concurrency scenarios, provide a parent node or implement retry
+            logic.
+
+        .. note::
+
+            **Return order**: The returned list contains first-level node IDs in
+            input order, followed by all descendant IDs from ``bulk_create()``.
+            This differs from the original implementation's DFS order.
+        """
+        added: list[Any] = []
+        foreign_keys: dict[str, type[models.Model]] = cls.get_foreign_keys()  # pyright: ignore
+        pk_field: str = cls._meta.pk.attname  # pyright: ignore
+
+        subtree_root_to_children_map: dict[MP_Node, list[BulkNodeData]] = {}
+
+        # Create first level of the bulk data
+        # This level could have siblings, so we need to process them first
+        for node_struct in bulk_data:
+            # Shallow copy of the data structure so it doesn't persist
+            node_data = node_struct["data"].copy()
+
+            # For each fk field, replace pk value with actual object
+            cls._process_foreign_keys(foreign_keys, node_data)  # pyright: ignore
+
+            if keep_ids:
+                # Will raise KeyError if pk_field is missing
+                node_data[pk_field] = node_struct[pk_field]
+
+            # Create first-level node using atomic methods
+            if parent:
+                node_obj = parent.add_child(**node_data)
+            else:
+                node_obj = cls.add_root(**node_data)
+
+            added.append(node_obj.pk)
+
+            # Track children for bulk creation
+            if "children" in node_struct:
+                subtree_root_to_children_map[node_obj] = _sort_children_by_node_order(cls, node_struct["children"])
+
+        # Step 1: Collect all FK values from all descendants that need to be fetched
+        fk_values_to_fetch: dict[str, set[Any]] = {fk_field: set() for fk_field in foreign_keys.keys()}
+        all_child_nodes: list[BulkNodeData] = []
+
+        def _collect_fk_values(child_nodes: list[BulkNodeData]) -> None:
+            """Recursively collect all FK values from child nodes."""
+            for child in child_nodes:
+                all_child_nodes.append(child)
+                child_data = child["data"]
+                for fk_field in foreign_keys.keys():
+                    if fk_field in child_data:
+                        fk_values_to_fetch[fk_field].add(child_data[fk_field])
+                if "children" in child:
+                    _collect_fk_values(child["children"])
+
+        for children in subtree_root_to_children_map.values():
+            _collect_fk_values(children)
+
+        # Step 2: Bulk fetch all FK objects and create lookup maps
+        fk_lookups: dict[str, dict[Any, models.Model]] = {}
+        for fk_field, fk_model in foreign_keys.items():
+            if fk_values_to_fetch[fk_field]:
+                # Fetch all FK objects at once
+                fk_objects = fk_model.objects.filter(pk__in=fk_values_to_fetch[fk_field])  # pyright: ignore
+                # Create lookup map: pk -> object
+                fk_lookups[fk_field] = {obj.pk: obj for obj in fk_objects}  # pyright: ignore
+            else:
+                fk_lookups[fk_field] = {}
+
+        # Step 3: Create child nodes with FK lookups
+        children_to_create: list[MP_Node] = []
+
+        def _collect_children(parent_node: MP_Node, child_nodes: list[BulkNodeData]) -> None:
+            """Recursively collects child nodes and their metadata."""
+            base_path = parent_node.path
+            child_depth = parent_node.depth + 1
+
+            sorted_children = _sort_children_by_node_order(cls, child_nodes)
+            for i, child in enumerate(sorted_children):
+                child_data = child["data"].copy()
+                grandchildren = child.get("children", [])
+
+                # Replace FK pks with actual FK objects using lookup map
+                for fk_field, fk_lookup in fk_lookups.items():
+                    if fk_field in child_data:
+                        fk_pk = child_data[fk_field]
+                        if fk_pk not in fk_lookup:
+                            raise ValueError(f"Foreign key {fk_field}={fk_pk!r} does not exist")
+                        child_data[fk_field] = fk_lookup[fk_pk]
+
+                # Handle keep_ids for child nodes
+                if keep_ids:
+                    child_data[pk_field] = child[pk_field]
+
+                child_obj = cls(**child_data)
+
+                child_obj.depth = child_depth
+                child_obj.numchild = len(grandchildren)
+                child_obj.path = cls._get_path(base_path, child_depth, i + 1)
+
+                children_to_create.append(child_obj)
+
+                # Recursively process grandchildren
+                _collect_children(child_obj, grandchildren)
+
+        for subtree_root, children in subtree_root_to_children_map.items():
+            _collect_children(subtree_root, children)
+
+        # Bulk create all descendants at once with batch_size
+        if children_to_create:
+            created_children = cls.objects.bulk_create(children_to_create, batch_size=batch_size)
+            added.extend([child.pk for child in created_children])
+
+        # Update numchild for first-level parents that had children bulk-created
+        for subtree_root, children in subtree_root_to_children_map.items():
+            # Count direct children only (not all descendants)
+            direct_children_count = len(children)
+            cls.objects.filter(pk=subtree_root.pk).update(numchild=direct_children_count)
+
+        return added
 
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
