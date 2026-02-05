@@ -3016,28 +3016,67 @@ class TestRefreshFromDb:
 
 @pytest.mark.django_db
 class TestMP_LoadBulkQueryCount:
-    """Test that load_bulk uses a bounded number of DB queries."""
+    """Test that load_bulk uses a bounded number of DB queries.
 
-    def test_load_bulk_empty_tree_query_count(self, django_assert_max_num_queries):
+    The optimized load_bulk creates first-level nodes via add_root/add_child
+    (O(roots) queries) and all descendants via a single bulk_create plus
+    numchild updates (O(roots) queries). Query count should scale with the
+    number of first-level nodes, NOT total tree size.
+    """
+
+    # 5 roots x 5 children x 3 grandchildren = 105 nodes
+    LARGE_DATA = [
+        {
+            "data": {"desc": f"root{i}"},
+            "children": [
+                {
+                    "data": {"desc": f"r{i}c{j}"},
+                    "children": [{"data": {"desc": f"r{i}c{j}g{k}"}} for k in range(3)],
+                }
+                for j in range(5)
+            ],
+        }
+        for i in range(5)
+    ]
+
+    def test_load_bulk_empty_tree(self, django_assert_max_num_queries):
         models.MP_TestNode.objects.all().delete()
 
-        # 4 root nodes created via add_root (each does a SELECT + INSERT = ~2-3 queries),
-        # plus 1 bulk_create for all descendants, plus numchild updates.
-        # The exact count depends on the backend, but should be well bounded.
-        with django_assert_max_num_queries(50):
+        # 4 roots: ~5 queries each (select last root, savepoint, insert, release savepoint)
+        # + 1 bulk_create + 2 numchild updates = ~25
+        with django_assert_max_num_queries(25):
             models.MP_TestNode.load_bulk(BASE_DATA)
 
         assert models.MP_TestNode.objects.count() == 10
 
-    def test_load_bulk_with_parent_query_count(self, django_assert_max_num_queries):
+    def test_load_bulk_with_parent(self, django_assert_max_num_queries):
         models.MP_TestNode.objects.all().delete()
         root = models.MP_TestNode.add_root(desc="root")
 
-        with django_assert_max_num_queries(50):
+        with django_assert_max_num_queries(28):
             models.MP_TestNode.load_bulk(BASE_DATA, root)
 
-        # root + 10 new nodes
         assert models.MP_TestNode.objects.count() == 11
+
+    def test_load_bulk_large_scales_with_roots_not_total_nodes(self, django_assert_max_num_queries):
+        """Loading 105 nodes should use roughly the same queries as 10 nodes,
+        since descendants are bulk-created in a single query."""
+        models.MP_TestNode.objects.all().delete()
+
+        # 5 roots + 1 bulk_create + 5 numchild updates = ~35
+        with django_assert_max_num_queries(35):
+            models.MP_TestNode.load_bulk(self.LARGE_DATA)
+
+        assert models.MP_TestNode.objects.count() == 105
+
+    def test_load_bulk_large_with_parent(self, django_assert_max_num_queries):
+        models.MP_TestNode.objects.all().delete()
+        root = models.MP_TestNode.add_root(desc="root")
+
+        with django_assert_max_num_queries(38):
+            models.MP_TestNode.load_bulk(self.LARGE_DATA, root)
+
+        assert models.MP_TestNode.objects.count() == 106
 
 
 @pytest.mark.django_db
