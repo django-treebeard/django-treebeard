@@ -54,7 +54,7 @@ class NoReturnBulkCreateStrategy(BulkCreateStrategy):
     """
 
     def bulk_create(self, cls, nodes, keep_ids, batch_size):
-        if keep_ids:
+        if keep_ids and connection.vendor == "microsoft":
             self._bulk_create_with_identity_insert(cls, nodes, batch_size)
         else:
             cls.objects.bulk_create(nodes, batch_size=batch_size)
@@ -62,6 +62,7 @@ class NoReturnBulkCreateStrategy(BulkCreateStrategy):
         return self._retrieve_pks(cls, nodes)
 
     def _bulk_create_with_identity_insert(self, cls, nodes, batch_size):
+        """Toggle IDENTITY_INSERT for MSSQL when inserting explicit PKs."""
         table_name = cls._meta.db_table
         with connection.cursor() as cursor:
             cursor.execute(f"SET IDENTITY_INSERT [{table_name}] ON")
