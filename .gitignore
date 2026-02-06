@@ -32,3 +32,4 @@ distribute*
 share/
 venv/
 .DS_store
+.vscode/
