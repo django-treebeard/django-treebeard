@@ -3,7 +3,7 @@
 import abc
 import collections
 import functools
-from typing import Any, NotRequired, TypedDict
+from typing import Any
 
 from django.core import serializers
 from django.db import connection, models, transaction
@@ -14,17 +14,7 @@ from django.utils.translation import gettext_noop as _
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node, get_result_class_base
 from treebeard.numconv import NumConv
-
-
-class BulkNodeData(TypedDict):
-    """Structure for bulk loading tree nodes.
-
-    Note: When ``keep_ids=True``, the primary key field name (e.g., "id")
-    exists as a top-level key alongside "data" and "children".
-    """
-
-    data: dict[str, Any]
-    children: NotRequired[list["BulkNodeData"]]
+from treebeard.types import BulkNodeData
 
 
 class BulkCreateStrategy(abc.ABC):
