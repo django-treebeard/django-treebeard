@@ -1,5 +1,6 @@
 """Materialized Path Trees"""
 
+import abc
 import collections
 import functools
 from typing import Any, NotRequired, TypedDict
@@ -24,6 +25,66 @@ class BulkNodeData(TypedDict):
 
     data: dict[str, Any]
     children: NotRequired[list["BulkNodeData"]]
+
+
+class BulkCreateStrategy(abc.ABC):
+    """Strategy for bulk creating MP_Node descendants and retrieving their PKs."""
+
+    @abc.abstractmethod
+    def bulk_create(
+        self,
+        cls: "type[MP_Node]",
+        nodes: list["MP_Node"],
+        keep_ids: bool,
+        batch_size: int,
+    ) -> list[Any]:
+        """Bulk create nodes and return their PKs."""
+
+    @staticmethod
+    def get_strategy() -> "BulkCreateStrategy":
+        """Select the appropriate strategy based on the database backend."""
+        if connection.features.can_return_rows_from_bulk_insert:
+            return DefaultBulkCreateStrategy()
+        return NoReturnBulkCreateStrategy()
+
+
+class DefaultBulkCreateStrategy(BulkCreateStrategy):
+    """For backends that return PKs from bulk_create (PostgreSQL, SQLite, MySQL)."""
+
+    def bulk_create(self, cls, nodes, keep_ids, batch_size):
+        created = cls.objects.bulk_create(nodes, batch_size=batch_size)
+        return [child.pk for child in created]
+
+
+class NoReturnBulkCreateStrategy(BulkCreateStrategy):
+    """For backends that don't return PKs from bulk_create (e.g. MSSQL).
+
+    Uses a path-based query to retrieve PKs after insertion, and toggles
+    IDENTITY_INSERT when explicit PKs are needed.
+    """
+
+    def bulk_create(self, cls, nodes, keep_ids, batch_size):
+        if keep_ids:
+            self._bulk_create_with_identity_insert(cls, nodes, batch_size)
+        else:
+            cls.objects.bulk_create(nodes, batch_size=batch_size)
+
+        return self._retrieve_pks(cls, nodes)
+
+    def _bulk_create_with_identity_insert(self, cls, nodes, batch_size):
+        table_name = cls._meta.db_table
+        with connection.cursor() as cursor:
+            cursor.execute(f"SET IDENTITY_INSERT [{table_name}] ON")
+        try:
+            cls.objects.bulk_create(nodes, batch_size=batch_size)
+        finally:
+            with connection.cursor() as cursor:
+                cursor.execute(f"SET IDENTITY_INSERT [{table_name}] OFF")
+
+    def _retrieve_pks(self, cls, nodes):
+        expected_paths = [child.path for child in nodes]
+        path_to_pk = dict(cls.objects.filter(path__in=expected_paths).values_list("path", "pk"))
+        return [path_to_pk[p] for p in expected_paths]
 
 
 def _sort_children_by_node_order(cls: "type[MP_Node]", children: list[BulkNodeData]) -> list[BulkNodeData]:
@@ -731,8 +792,9 @@ class MP_Node(Node):
 
         # Bulk create all descendants at once with batch_size
         if children_to_create:
-            created_children = cls.objects.bulk_create(children_to_create, batch_size=batch_size)
-            added.extend([child.pk for child in created_children])
+            strategy = BulkCreateStrategy.get_strategy()
+            pks = strategy.bulk_create(cls, children_to_create, keep_ids, batch_size)
+            added.extend(pks)
 
         # Update numchild for first-level parents that had children bulk-created
         for subtree_root, children in subtree_root_to_children_map.items():
