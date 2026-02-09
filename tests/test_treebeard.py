@@ -2660,7 +2660,7 @@ class TestAdminTreeContext(TestNonEmptyTree):
                 "node-id": str(obj.pk),
                 "parent-id": 0 if obj.is_root() else obj.get_parent().pk,
                 "level": obj.get_depth(),
-                "children-num": obj.get_children_count(),
+                "has-children": 0 if obj.is_leaf() else 1,
             }
 
 

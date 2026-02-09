@@ -28,7 +28,7 @@ def tree_context(cl):
             "node-id": str(obj.pk),
             "parent-id": _get_parent_id(obj),
             "level": obj.get_depth(),
-            "children-num": obj.get_children_count(),
+            "has-children": int(not obj.is_leaf()),
         }
         for obj in cl.result_list
     ]

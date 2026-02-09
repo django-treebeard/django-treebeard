@@ -102,8 +102,8 @@
                 return;
             }
 
-            const numChildren = parseInt($(this).data("children-num"));
-            if (numChildren) {
+            const hasChildren = parseInt($(this).data("has-children"));
+            if (hasChildren) {
                 $firstCell.prepend("<a href='#' class='treebeard-collapse treebeard-expanded'>-</a>");
             }
 
