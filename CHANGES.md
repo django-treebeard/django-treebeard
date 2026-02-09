@@ -2,7 +2,7 @@ Release 5.0.0 (in development)
 ----------------------------
 * Add support for Python 3.14.
 * Add support for Django 6.0.
-* Drop support for Django 5.1.
+* Drop support for Django 4.2 and 5.1.
 * Replace all raw SQL queries made by Treebeard with ORM queries, for better security, portability and compatibility.
 * Remove the `Node.get_database_vendor()` helper function which is no longer used.
 * All node create and update operations are now run in a transaction to mitigate against race conditions.
