@@ -31,10 +31,7 @@ jobs:
       fail-fast: true
       matrix:
         python-version: [3.12, 3.14]
-        django-version: [42, 52, 60]
-        exclude:
-          - django-version: 42
-            python-version: 3.14
+        django-version: [52, 60]
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -53,10 +50,7 @@ jobs:
       fail-fast: true
       matrix:
         python-version: [3.12, 3.14]
-        django-version: [42, 52, 60]
-        exclude:
-          - django-version: 42
-            python-version: 3.14
+        django-version: [52, 60]
     services:
       postgres:
         image: postgres:15
@@ -90,10 +84,7 @@ jobs:
       fail-fast: true
       matrix:
         python-version: [3.12, 3.14]
-        django-version: [42, 52, 60]
-        exclude:
-          - django-version: 42
-            python-version: 3.14
+        django-version: [52, 60]
     services:
       mysql:
         image: mysql:8.0
@@ -125,10 +116,7 @@ jobs:
       fail-fast: true
       matrix:
         python-version: [3.12, 3.14]
-        django-version: [42, 52]    # mssql-django doesn't yet support Django 6
-        exclude:
-          - django-version: 42
-            python-version: 3.14
+        django-version: [52]    # mssql-django doesn't yet support Django 6
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2019-latest

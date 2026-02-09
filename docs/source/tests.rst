@@ -43,7 +43,7 @@ tox
 environments - permutations of:
 
   - Python 3.10 - 3.13
-  - Django 4.2, to 5.2
+  - Django 5.2 and above
   - Sqlite, MySQL, PostgreSQL and MSSQL
 
 This means that there are a lot of permutations, which takes a long time.
@@ -52,7 +52,7 @@ option in `tox`_, like:
 
 .. code-block:: console
 
-    $ tox -e py39-dj32-postgres
+    $ tox -e py313-dj52-postgres
 
 
 .. _pytest: http://pytest.org/

@@ -34,6 +34,6 @@ You can find the documentation at <https://django-treebeard.readthedocs.io/en/la
 
 **django-treebeard** officially supports
 
--   Django 4.2 and higher
+-   Django 5.2 and higher
 -   Python 3.10 and higher
 -   PostgreSQL, MySQL, MSSQL, SQLite database back-ends.
