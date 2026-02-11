@@ -1,18 +1,29 @@
-Release 5.0.0 (in development)
-----------------------------
-* Add support for Python 3.14.
-* Add support for Django 6.0.
-* Drop support for Django 4.2 and 5.1.
-* Replace all raw SQL queries made by Treebeard with ORM queries, for better security, portability and compatibility.
-* Remove the `Node.get_database_vendor()` helper function which is no longer used.
-* All node create and update operations are now run in a transaction to mitigate against race conditions.
-* `MoveNodeForm` has been refactored to use a `ModelChoiceField` for selecting the relative node.
+Release 5.0.0 (Feb 11, 2026)
+------------------------------
+
+Treebeard 5.0 is a major release with a number of significant changes:
+
+* All operations that previously used raw SQL queries were rewritten to use the Django ORM. 
+  This provides better security, portability across backends, and compability for multiple database setups.
+* An experimental implementation using PostgreSQL Ltree was added.
+
+Backward incompatible changes:
 * Internal fields used by Treebeard's `MoveNodeForm` have been renamed from 
 `_position` to `treebeard_position` and `_ref_node_id` to `treebeard_ref_node`.
-* The initialisation signatures for the internal `MP_AddChildHandler` and `MP_AddSiblingHandler`
-  classes have changed to avoid collisions with model field names. Both constructors now expect
-  a mapping of model creation arguments as a single parameter, instead of keywords arguments passed to the constructor.
+* Changed initialisation signatures for the internal `MP_AddChildHandler` and `MP_AddSiblingHandler`
+  to avoid collisions with model field names. Both constructors now expect a mapping of model 
+  creation arguments as a single parameter, instead of keywords arguments passed to the constructor.
+* `MoveNodeForm` has been refactored to use a `ModelChoiceField` for selecting the relative node. This field
+  can be used by projects, e.g., for foreign keys in the Django admin.
+* Removed the `Node.get_database_vendor()` helper function which is no longer used.
 * The deprecated `destructive` argument was removed from `MP_Node.fix_tree()` use `fix_paths` instead.
+
+Other changes:
+
+* Added support for Python 3.14.
+* Added support for Django 6.0.
+* Dropped support for Django 4.2 and 5.1.
+* All node create and update operations are now run in a transaction to mitigate against race conditions.
 
 
 Release 4.8.0 (Dec 3, 2025)
