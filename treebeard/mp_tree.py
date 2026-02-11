@@ -5,20 +5,14 @@ import functools
 from typing import Any
 
 from django.core import serializers
-from django.db import models, transaction
-from django.db.models import F, OuterRef, Q, Subquery, Value
+from django.db import connections, models, router, transaction
+from django.db.models import F, Func, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Concat, Greatest, Length, Substr
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node, get_result_class_base
 from treebeard.numconv import NumConv
-
-
-class CountSubquery(Subquery):
-    template = "(SELECT COUNT(1) FROM (%(subquery)s) _count)"
-    output_field = models.PositiveIntegerField()
-
 
 get_result_class = functools.partial(get_result_class_base, identifying_field="path")
 
@@ -586,6 +580,32 @@ class MP_Node(Node):
         return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
 
     @classmethod
+    def _fix_numchild(cls, result_class, qs):
+        vendor = connections[router.db_for_write(result_class)].vendor
+        child_subquery = (
+            result_class.objects.alias(path_length=Length("path"))
+            .order_by()
+            .filter(path__startswith=OuterRef("path"), path_length=Length(OuterRef("path")) + cls.steplen)
+            .annotate(count=Func(F("pk"), function="Count"))
+            .values("count")
+        )
+        qs = qs.annotate(real_numchild=Subquery(child_subquery, output_field=models.IntegerField())).exclude(
+            numchild=F("real_numchild")
+        )
+
+        if vendor != "mysql":
+            qs.update(numchild=F("real_numchild"))
+        else:
+            # Our friend MySQL doesn't support update queries that use a select from the same table
+            # So we have to update each object individually
+            to_update = []
+            for node in qs.iterator():
+                node.numchild = node.real_numchild
+                to_update.append(node)
+
+            result_class.objects.bulk_update(to_update, ["numchild"])
+
+    @classmethod
     def fix_tree(cls, fix_paths=False, parent=None):
         """
         Solves some problems that can appear when transactions are not used and
@@ -625,12 +645,7 @@ class MP_Node(Node):
         qs.exclude(depth=Length("path") / cls.steplen).update(depth=Length("path") / cls.steplen)
 
         # fix the numchild field
-        child_subquery = cls.objects.alias(path_length=Length("path")).filter(
-            path__startswith=OuterRef("path"), path_length=Length(OuterRef("path")) + cls.steplen
-        )
-        qs.annotate(real_numchild=CountSubquery(child_subquery)).exclude(numchild=F("real_numchild")).update(
-            numchild=F("real_numchild")
-        )
+        cls._fix_numchild(cls, qs)
 
         if fix_paths:
             with transaction.atomic():
@@ -750,9 +765,18 @@ class MP_Node(Node):
             A Queryset of node objects with an extra attribute: `descendants_count`.
         """
         cls = get_result_class(cls)
+
         qs = parent.get_children() if parent else cls.get_root_nodes()
-        subquery = cls.objects.filter(path__startswith=OuterRef("path"))
-        return qs.annotate(descendants_count=CountSubquery(subquery) - 1)  # Subtract the parent node from the count
+        subquery = (
+            cls.objects.filter(path__startswith=OuterRef("path"))
+            .order_by()
+            .annotate(count=Func(F("pk"), function="Count"))
+            .values("count")
+        )
+        qs = qs.annotate(
+            descendants_count=Subquery(subquery, output_field=models.IntegerField()) - 1
+        )  # Subtract the parent node from the count
+        return qs
 
     def get_depth(self):
         """:returns: the depth (level) of the node"""

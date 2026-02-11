@@ -1,5 +1,13 @@
+Release 5.0.1 (Feb 11, 2026)
+----------------------------
+
+Treebeard 5.0.1 is a bugfix release.
+
+* Fix count aggregations not working on MariaDB.
+
+
 Release 5.0.0 (Feb 11, 2026)
-------------------------------
+----------------------------
 
 Treebeard 5.0 is a major release with a number of significant changes:
 
