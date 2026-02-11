@@ -9,7 +9,7 @@ from typing import Any
 
 from django.core import serializers
 from django.db import models, transaction
-from django.db.models import F, OuterRef, Q, Subquery, Value
+from django.db.models import F, Func, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Concat
 from django.utils.translation import gettext_noop as _
 
@@ -19,11 +19,6 @@ from treebeard.models import Node, get_result_class_base
 from .fields import Ltree2Text, PathField, PathValue, Subpath, Text2LTree
 
 get_result_class = functools.partial(get_result_class_base, identifying_field="path")
-
-
-class CountSubquery(Subquery):
-    template = "(SELECT COUNT(1) FROM (%(subquery)s) _count)"
-    output_field = models.PositiveIntegerField()
 
 
 class InvalidLabelConstraints(Exception): ...
@@ -484,8 +479,15 @@ class LT_Node(Node):
         """
         cls = get_result_class(cls)
         qs = parent.get_children() if parent else cls.get_root_nodes()
-        subquery = cls.objects.filter(path__descendants=OuterRef("path"))
-        return qs.annotate(descendants_count=CountSubquery(subquery) - 1)  # Subtract the parent node from the count
+        subquery = (
+            cls.objects.filter(path__descendants=OuterRef("path"))
+            .order_by()
+            .annotate(count=Func(F("pk"), function="Count"))
+            .values("count")
+        )
+        return qs.annotate(
+            descendants_count=Subquery(subquery, output_field=models.IntegerField()) - 1
+        )  # Subtract the parent node from the count
 
     def get_depth(self):
         """:returns: the depth (level) of the node"""
