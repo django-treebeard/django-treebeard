@@ -22,6 +22,7 @@ django-treebeard is:
     1.  Adjacency List
     2.  Materialized Path
     3.  Nested Sets
+    4.  PostgreSQL ltree (experimental)
 -   **Fast**: Optimized non-naive tree operations
 -   **Easy**: Uses Django Model Inheritance with abstract classes to
     define your own models.
