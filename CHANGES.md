@@ -24,6 +24,7 @@ Other changes:
 * Added support for Django 6.0.
 * Dropped support for Django 4.2 and 5.1.
 * All node create and update operations are now run in a transaction to mitigate against race conditions.
+* Added a `parent` argument to `MP_Node.fix_tree` to allow fixing only a portion of a tree.
 
 
 Release 4.8.0 (Dec 3, 2025)
