@@ -115,6 +115,26 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
+            name="MP_TestNodeInheritedSorted",
+            fields=[
+                (
+                    "mp_testnodesorted_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        serialize=False,
+                        to="tests.mp_testnodesorted",
+                    ),
+                ),
+            ],
+            options={
+                "abstract": False,
+            },
+            bases=("tests.mp_testnodesorted",),
+        ),
+        migrations.CreateModel(
             name="MP_TestNodeSortedAutoNow",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
@@ -452,6 +472,26 @@ if os.environ.get("DATABASE_ENGINE") == "psql":
                 options={
                     "abstract": False,
                 },
+            ),
+            migrations.CreateModel(
+                name="LT_TestNodeInheritedSorted",
+                fields=[
+                    (
+                        "lt_testnodesorted_ptr",
+                        models.OneToOneField(
+                            auto_created=True,
+                            on_delete=django.db.models.deletion.CASCADE,
+                            parent_link=True,
+                            primary_key=True,
+                            serialize=False,
+                            to="tests.lt_testnodesorted",
+                        ),
+                    ),
+                ],
+                options={
+                    "abstract": False,
+                },
+                bases=("tests.lt_testnodesorted",),
             ),
         ]
     )

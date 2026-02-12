@@ -1885,6 +1885,15 @@ class TestInheritedModels(TestTreeBase):
         base_model.add_root(instance=node3)
         return inherited_model
 
+    @staticmethod
+    @pytest.fixture(
+        scope="function",
+        params=models.INHERITED_MODELS_WITH_SORT,
+        ids=lambda fv: f"base={fv[0].__name__} inherited={fv[1].__name__}",
+    )
+    def inherited_model_with_sort(request):
+        return request.param
+
     def test_get_tree_all(self, inherited_model):
         got = [(o.desc, o.get_depth(), o.get_children_count()) for o in inherited_model.get_tree()]
         expected = [
@@ -2050,6 +2059,18 @@ class TestInheritedModels(TestTreeBase):
 
         for node in inherited_model.get_descendants_group_count():
             assert node.descendants_count == node.get_descendant_count()
+
+    def test_add_root_with_node_order_by(self, inherited_model_with_sort):
+        """
+        Regression test for https://github.com/django-treebeard/django-treebeard/issues/301
+
+        Ensure that adding a second inherited root node with node_order_by does not delegate
+        to the parent class.
+        """
+        _, inherited_model = inherited_model_with_sort
+        inherited_model.add_root(val1=2, val2=3, desc="B")
+        inherited_model.add_root(val1=2, val2=3, desc="A")
+        assert list(inherited_model.objects.values_list("desc", flat=True)) == ["A", "B"]
 
 
 @pytest.mark.django_db
