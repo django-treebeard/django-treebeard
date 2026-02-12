@@ -96,7 +96,7 @@ class AL_TestNodeInherited(AL_TestNode):
 
 class MP_TestNodeSorted(MP_Node, DescMixin):
     steplen = 1
-    node_order_by = ["val1", "val2", "desc"]
+    node_order_by = ["val1", "val2", "-desc"]
     val1 = models.IntegerField()
     val2 = models.IntegerField()
 
@@ -105,7 +105,7 @@ class MP_TestNodeInheritedSorted(MP_TestNodeSorted): ...
 
 
 class NS_TestNodeSorted(NS_Node, DescMixin):
-    node_order_by = ["val1", "val2", "desc"]
+    node_order_by = ["val1", "val2", "-desc"]
     val1 = models.IntegerField()
     val2 = models.IntegerField()
 
@@ -118,7 +118,7 @@ class AL_TestNodeSorted(AL_Node, DescMixin):
         db_index=True,
         on_delete=models.CASCADE,
     )
-    node_order_by = ["val1", "val2", "desc"]
+    node_order_by = ["val1", "val2", "-desc"]
     val1 = models.IntegerField()
     val2 = models.IntegerField()
 
@@ -214,7 +214,7 @@ if os.environ.get("DATABASE_ENGINE", "") == "psql":
             proxy = True
 
     class LT_TestNodeSorted(LT_Node, DescMixin):
-        node_order_by = ["val1", "val2", "desc"]
+        node_order_by = ["val1", "val2", "-desc"]
         val1 = models.IntegerField()
         val2 = models.IntegerField()
 

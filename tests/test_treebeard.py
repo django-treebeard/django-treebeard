@@ -1,6 +1,5 @@
 """Unit/Functional tests"""
 
-import datetime
 import os
 from unittest import mock
 from unittest.mock import patch
@@ -17,6 +16,7 @@ from django.dispatch import receiver
 from django.forms import ValidationError
 from django.template import Context, Template
 from django.test.client import RequestFactory
+from django.utils.timezone import now
 
 from tests import models
 from tests.admin import register_all as admin_register_all
@@ -1748,9 +1748,9 @@ class TestTreeSorted(TestTreeBase):
             (2, 2, "qwe", 1, 0),
             (2, 5, "zxy", 1, 0),
             (3, 2, "vcx", 1, 0),
-            (3, 3, "abc", 1, 0),
-            (3, 3, "abc", 1, 0),
             (3, 3, "zxy", 1, 0),
+            (3, 3, "abc", 1, 0),
+            (3, 3, "abc", 1, 0),
             (4, 1, "fgh", 1, 0),
         ]
         assert self.got(sorted_model) == expected
@@ -1771,9 +1771,9 @@ class TestTreeSorted(TestTreeBase):
             (2, 2, "qwe", 2, 0),
             (2, 5, "zxy", 2, 0),
             (3, 2, "vcx", 2, 0),
-            (3, 3, "abc", 2, 0),
-            (3, 3, "abc", 2, 0),
             (3, 3, "zxy", 2, 0),
+            (3, 3, "abc", 2, 0),
+            (3, 3, "abc", 2, 0),
             (4, 1, "fgh", 2, 0),
         ]
         assert self.got(sorted_model) == expected
@@ -1792,12 +1792,12 @@ class TestTreeSorted(TestTreeBase):
 
         expected = [
             (0, 0, "a", 1, 3),
-            (0, 0, "aa", 2, 0),
-            (0, 0, "ac", 2, 3),
-            (0, 0, "aca", 3, 0),
-            (0, 0, "acb", 3, 0),
-            (0, 0, "acc", 3, 0),
             (0, 0, "av", 2, 0),
+            (0, 0, "ac", 2, 3),
+            (0, 0, "acc", 3, 0),
+            (0, 0, "acb", 3, 0),
+            (0, 0, "aca", 3, 0),
+            (0, 0, "aa", 2, 0),
         ]
         assert self.got(sorted_model) == expected
 
@@ -1822,9 +1822,9 @@ class TestTreeSorted(TestTreeBase):
             (2, 2, "qwe", 2, 0),
             (2, 5, "zxy", 2, 0),
             (3, 2, "vcx", 2, 0),
-            (3, 3, "abc", 2, 0),
-            (3, 3, "abc", 2, 0),
             (3, 3, "zxy", 2, 0),
+            (3, 3, "abc", 2, 0),
+            (3, 3, "abc", 2, 0),
             (4, 1, "fgh", 2, 0),
         ]
         assert self.got(sorted_model) == expected
@@ -1852,9 +1852,9 @@ class TestTreeSorted(TestTreeBase):
             (0, 2, "qwe", 1, 0),
             (0, 5, "zxy", 1, 0),
             (1, 2, "vcx", 1, 0),
-            (1, 3, "abc", 1, 0),
-            (1, 3, "abc", 1, 0),
             (1, 3, "zxy", 1, 0),
+            (1, 3, "abc", 1, 0),
+            (1, 3, "abc", 1, 0),
             (1, 4, "bcd", 1, 0),
             (2, 1, "fgh", 1, 0),
         ]
@@ -2068,9 +2068,9 @@ class TestInheritedModels(TestTreeBase):
         to the parent class.
         """
         _, inherited_model = inherited_model_with_sort
-        inherited_model.add_root(val1=2, val2=3, desc="B")
         inherited_model.add_root(val1=2, val2=3, desc="A")
-        assert list(inherited_model.objects.values_list("desc", flat=True)) == ["A", "B"]
+        inherited_model.add_root(val1=2, val2=3, desc="B")
+        assert list(inherited_model.objects.values_list("desc", flat=True)) == ["B", "A"]
 
 
 @pytest.mark.django_db
@@ -2150,23 +2150,25 @@ class TestHelpers(TestTreeBase):
 @pytest.mark.django_db
 class TestMP_TreeSortedAutoNow(TestTreeBase):
     """
-    The sorting mechanism used by treebeard when adding a node can fail if the
-    ordering is using an "auto_now" field
+    Auto-populated fields cannot be used with node_order_by, because we need
+    to be able to run queries against the value before creating the object.
+
+    Treebeard should log a warning and skip ordering by that field if no value is found
+    on the object.
     """
 
-    def test_sorted_by_autonow_workaround(self, mpsortedautonow_model):
-        # workaround
-        for i in range(1, 5):
-            mpsortedautonow_model.add_root(desc="node%d" % (i,), created=datetime.datetime.now())
-
-    def test_sorted_by_autonow_FAIL(self, mpsortedautonow_model):
-        """
-        This test asserts that we have a problem.
-        fix this, somehow
-        """
+    def test_sorted_by_autonow_ignores_and_warns(self, mpsortedautonow_model):
         mpsortedautonow_model.add_root(desc="node1")
-        with pytest.raises(ValueError):
+        with pytest.warns(RuntimeWarning, match="Received a null value for field 'created'"):
             mpsortedautonow_model.add_root(desc="node2")
+
+        # Object was still created, but `created` order isn't respected
+        assert list(mpsortedautonow_model.objects.values_list("desc", flat=True)) == ["node2", "node1"]
+
+    def test_sorted_by_autonow_value_added_manually(self, mpsortedautonow_model):
+        mpsortedautonow_model.add_root(desc="node1", created=now())
+        mpsortedautonow_model.add_root(desc="node2", created=now())
+        assert list(mpsortedautonow_model.objects.values_list("desc", flat=True)) == ["node1", "node2"]
 
 
 @pytest.mark.django_db

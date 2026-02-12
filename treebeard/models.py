@@ -1,6 +1,7 @@
 """Models and base API"""
 
 import operator
+import warnings
 from contextlib import suppress
 from functools import reduce
 
@@ -530,9 +531,27 @@ class Node(models.Model):
 
         fields, filters = [], []
         for field in self.node_order_by:
+            comparator = "gt"
+            if field.startswith("-"):
+                field = field[1:]
+                comparator = "lt"
+
             value = getattr(newobj, field)
-            filters.append(Q(*[Q(**{f: v}) for f, v in fields] + [Q(**{"%s__gt" % field: value})]))
+            if value is None:
+                warnings.warn(
+                    f"Received a null value for field '{field}', which is used "
+                    f"by '{self.__class__.__name__}.node_order_by'. "
+                    "This field will be ignored when sorting the object.",
+                    category=RuntimeWarning,
+                )
+                continue
+
+            filters.append(Q(*[Q(**{f: v}) for f, v in fields] + [Q(**{f"{field}__{comparator}": value})]))
             fields.append((field, value))
+
+        if not filters:
+            return siblings
+
         return siblings.filter(reduce(operator.or_, filters))
 
     def _clear_cached_attributes(self):
