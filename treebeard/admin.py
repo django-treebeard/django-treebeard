@@ -2,7 +2,6 @@
 
 import sys
 
-from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
@@ -39,27 +38,19 @@ class TreeAdmin(admin.ModelAdmin):
             # So we're returning the regular .get_queryset cause we will use
             # the old admin
             return super().get_queryset(request)
-        else:
-            return self.model.get_tree()
+
+        # We deliberately don't use `get_tree()` here because we want the specific
+        # model for inherited models. This assumes that all implementations
+        # return the queryset in DFS order (except AL_Node which is handled above).
+        return self.model.objects.all()
 
     def changelist_view(self, request, extra_context=None):
         if issubclass(self.model, AL_Node):
             # For AL trees, use the old admin display
             self.change_list_template = "admin/tree_list.html"
+
         if extra_context is None:
             extra_context = {}
-        request_context = any(
-            map(
-                lambda tmpl: tmpl.get("BACKEND", None) == "django.template.backends.django.DjangoTemplates"
-                and tmpl.get("APP_DIRS", False)
-                and "django.template.context_processors.request"
-                in tmpl.get("OPTIONS", {}).get("context_processors", []),
-                settings.TEMPLATES,
-            )
-        )
-        lacks_request = "request" not in extra_context and not request_context
-        if lacks_request:
-            extra_context["request"] = request
 
         extra_context["has_change_permission"] = self.has_change_permission(request)
         extra_context["filtered"] = not check_empty_dict(request.GET)
