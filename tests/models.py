@@ -101,6 +101,9 @@ class MP_TestNodeSorted(MP_Node, DescMixin):
     val2 = models.IntegerField()
 
 
+class MP_TestNodeInheritedSorted(MP_TestNodeSorted): ...
+
+
 class NS_TestNodeSorted(NS_Node, DescMixin):
     node_order_by = ["val1", "val2", "desc"]
     val1 = models.IntegerField()
@@ -198,6 +201,10 @@ INHERITED_MODELS = [
     (NS_TestNode, NS_TestNodeInherited),
 ]
 
+INHERITED_MODELS_WITH_SORT = [
+    (MP_TestNodeSorted, MP_TestNodeInheritedSorted),
+]
+
 if os.environ.get("DATABASE_ENGINE", "") == "psql":
 
     class LT_TestNode(LT_Node, DescMixin): ...
@@ -214,6 +221,8 @@ if os.environ.get("DATABASE_ENGINE", "") == "psql":
     class LT_TestNodeInherited(LT_TestNode):
         extra_desc = models.CharField(max_length=255)
 
+    class LT_TestNodeInheritedSorted(LT_TestNodeSorted): ...
+
     class LT_TestNodeSomeDep(models.Model):
         node = models.ForeignKey(LT_TestNode, on_delete=models.CASCADE)
 
@@ -222,3 +231,4 @@ if os.environ.get("DATABASE_ENGINE", "") == "psql":
     DEP_MODELS.append((LT_TestNode, LT_TestNodeSomeDep))
     INHERITED_MODELS.append((LT_TestNode, LT_TestNodeInherited))
     SORTED_MODELS.append(LT_TestNodeSorted)
+    INHERITED_MODELS_WITH_SORT.append((LT_TestNodeSorted, LT_TestNodeInheritedSorted))

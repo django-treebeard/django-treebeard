@@ -205,9 +205,13 @@ class LT_AddRootHandler:
         last_root = self.cls.get_last_root_node()
 
         if last_root and last_root.node_order_by:
-            # there are root nodes and node_order_by has been set
-            # delegate sorted insertion to add_sibling
-            return last_root.add_sibling("sorted-sibling", **self.kwargs)
+            # There are root nodes and node_order_by has been set.
+            # Delegate sorted insertion to add_sibling.
+            # We must pass an instance here to ensure that the right object is created for
+            # models with multi-table inheritance.
+            return last_root.add_sibling(
+                "sorted-sibling", instance=self.kwargs.get("instance", self.cls(**self.kwargs))
+            )
 
         if len(self.kwargs) == 1 and "instance" in self.kwargs:
             # adding the passed (unsaved) instance to the tree
