@@ -1,9 +1,21 @@
+Release 5.0.2 (in development)
+------------------------------
+
+Treebeard 5.0.2 is a bugfix release.
+
+* Fix handling of reverse ordering in `node_order_by`.
+* Fix handling of inherited models in `TreeAdmin`.
+* Fix adding root nodes for inherited models.
+* Handle null values of fields specified in `node_order_by` more gracefully: ignore the field
+  for the purpose of ordering and log a warning to indicate that the value likely needs to be 
+  provided manually.
+
 Release 5.0.1 (Feb 11, 2026)
 ----------------------------
 
 Treebeard 5.0.1 is a bugfix release.
 
-* Fix count aggregations not working on MariaDB.
+* Fixed count aggregations not working on MariaDB.
 
 
 Release 5.0.0 (Feb 11, 2026)

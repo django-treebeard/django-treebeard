@@ -47,6 +47,13 @@ slow reads. If you read more than you write, use
 
          node_order_by = ['field1', 'field2', 'field3']
 
+      .. warning::
+         
+         ``node_order_by`` values are used to determine correct node ordering *before*
+         an object is inserted/moved. This means any fields that
+         are auto-populated at a database level, e.g., ``AutoField()``, or ``DateTimeField(auto_now=True)``
+         will be ignored for the purpose of ordering if a value isn't provided manually.
+
    .. attribute:: parent
 
       ``ForeignKey`` to itself. This attribute **MUST** be defined in the
