@@ -1,6 +1,5 @@
 """Nested Sets"""
 
-import functools
 import operator
 from functools import reduce
 
@@ -10,9 +9,7 @@ from django.db.models import Case, F, Q, When
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
-from treebeard.models import Node, get_result_class_base
-
-get_result_class = functools.partial(get_result_class_base, identifying_field="lft")
+from treebeard.models import Node
 
 
 def merge_deleted_counters(c1, c2):
@@ -38,7 +35,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
         :returns: tuple of the number of objects deleted and a dictionary
                   with the number of deletions per object type
         """
-        model = get_result_class(self.model)
+        model = self.model.tree_model()
 
         if deleted_counter is None:
             deleted_counter = (0, {})
@@ -107,6 +104,8 @@ class NS_Node(Node):
     tree_id = models.PositiveIntegerField(db_index=True)
     depth = models.PositiveIntegerField(db_index=True)
 
+    TREEBEARD_IDENTIFYING_FIELD = "lft"
+
     objects = NS_NodeManager()
 
     _cached_attributes = (
@@ -141,7 +140,7 @@ class NS_Node(Node):
                 raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
         else:
             # creating the new object
-            newobj = get_result_class(cls)(**kwargs)
+            newobj = cls.tree_model()(**kwargs)
 
         newobj.depth = 1
         newobj.tree_id = newtree_id
@@ -189,7 +188,7 @@ class NS_Node(Node):
                 raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
         else:
             # creating a new object
-            newobj = get_result_class(self.__class__)(**kwargs)
+            newobj = self.tree_model()(**kwargs)
 
         newobj.tree_id = self.tree_id
         newobj.depth = self.depth + 1
@@ -219,7 +218,7 @@ class NS_Node(Node):
                 raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
         else:
             # creating a new object
-            newobj = get_result_class(self.__class__)(**kwargs)
+            newobj = self.tree_model()(**kwargs)
 
         newobj.depth = self.depth
 
@@ -304,7 +303,7 @@ class NS_Node(Node):
         """
 
         pos = self._prepare_pos_var_for_move(pos)
-        cls = get_result_class(self.__class__)
+        cls = self.tree_model()
         original_target = target
 
         parent = None
@@ -425,7 +424,7 @@ class NS_Node(Node):
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """Loads a list/dictionary structure to the tree."""
 
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
 
         # tree, iterative preorder
         added = []
@@ -472,7 +471,7 @@ class NS_Node(Node):
         """:returns: the root node for the current node object."""
         if self.lft == 1:
             return self
-        return get_result_class(self.__class__).objects.get(tree_id=self.tree_id, lft=1)
+        return self.tree_model().objects.get(tree_id=self.tree_id, lft=1)
 
     def is_root(self):
         """:returns: True if the node is a root node (else, returns False)"""
@@ -530,7 +529,7 @@ class NS_Node(Node):
             A *queryset* of nodes ordered as DFS, including the parent.
             If no parent is given, all trees are returned.
         """
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
 
         if parent is None:
             # return the entire tree
@@ -547,7 +546,7 @@ class NS_Node(Node):
         if include_self:
             return self.__class__.get_tree(self)
         if self.is_leaf():
-            return get_result_class(self.__class__).objects.none()
+            return self.tree_model().objects.none()
         return self.__class__.get_tree(self).exclude(pk=self.pk)
 
     def get_descendant_count(self):
@@ -560,8 +559,8 @@ class NS_Node(Node):
             starting by the root node and descending to the parent.
         """
         if self.is_root():
-            return get_result_class(self.__class__).objects.none()
-        return get_result_class(self.__class__).objects.filter(tree_id=self.tree_id, lft__lt=self.lft, rgt__gt=self.rgt)
+            return self.tree_model().objects.none()
+        return self.tree_model().objects.filter(tree_id=self.tree_id, lft__lt=self.lft, rgt__gt=self.rgt)
 
     def is_descendant_of(self, node):
         """
@@ -591,7 +590,7 @@ class NS_Node(Node):
     @classmethod
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
-        return get_result_class(cls).objects.filter(lft=1)
+        return cls.tree_model().objects.filter(lft=1)
 
     class Meta:
         """Abstract model."""

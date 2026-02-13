@@ -1,16 +1,12 @@
 """Adjacency List"""
 
-import functools
-
 from django.core import serializers
 from django.db import models, transaction
 from django.db.models import Max, Min
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
-from treebeard.models import Node, get_result_class_base
-
-get_result_class = functools.partial(get_result_class_base, identifying_field="parent")
+from treebeard.models import Node
 
 
 class AL_NodeManager(models.Manager):
@@ -30,6 +26,8 @@ class AL_Node(Node):
 
     objects = AL_NodeManager()
     node_order_by = None
+
+    TREEBEARD_IDENTIFYING_FIELD = "parent"
 
     _cached_attributes = (
         *Node._cached_attributes,
@@ -51,7 +49,7 @@ class AL_Node(Node):
 
         newobj._cached_depth = 1
         if not cls.node_order_by:
-            max = get_result_class(cls).objects.filter(parent__isnull=True).aggregate(max=Max("sib_order"))["max"] or 0
+            max = cls.tree_model().objects.filter(parent__isnull=True).aggregate(max=Max("sib_order"))["max"] or 0
             newobj.sib_order = max + 1
         newobj.save()
         return newobj
@@ -59,7 +57,7 @@ class AL_Node(Node):
     @classmethod
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
-        return get_result_class(cls).objects.filter(parent__isnull=True)
+        return cls.tree_model().objects.filter(parent__isnull=True)
 
     def get_depth(self, update=False):
         """
@@ -90,7 +88,7 @@ class AL_Node(Node):
 
     def get_children(self):
         """:returns: A queryset of all the node's children"""
-        return get_result_class(self.__class__).objects.filter(parent=self)
+        return self.tree_model().objects.filter(parent=self)
 
     def get_parent(self, update=False):
         """:returns: the parent node of the current node object."""
@@ -186,7 +184,7 @@ class AL_Node(Node):
     @transaction.atomic
     def add_child(self, **kwargs):
         """Adds a child to the node."""
-        cls = get_result_class(self.__class__)
+        cls = self.tree_model()
 
         if len(kwargs) == 1 and "instance" in kwargs:
             # adding the passed (unsaved) instance to the tree
@@ -252,7 +250,7 @@ class AL_Node(Node):
             itself.
         """
         if self.parent_id:
-            return get_result_class(self.__class__).objects.filter(parent_id=self.parent_id)
+            return self.tree_model().objects.filter(parent_id=self.parent_id)
         return self.__class__.get_root_nodes()
 
     def get_prev_sibling(self):
@@ -273,7 +271,7 @@ class AL_Node(Node):
                 raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
         else:
             # creating a new object
-            newobj = get_result_class(self.__class__)(**kwargs)
+            newobj = self.tree_model()(**kwargs)
 
         if not self.node_order_by:
             newobj.sib_order = self.__class__._get_new_sibling_order(pos, self)
@@ -287,7 +285,7 @@ class AL_Node(Node):
 
     @classmethod
     def _make_hole_in_db(cls, min, target_node):
-        qset = get_result_class(cls).objects.filter(sib_order__gte=min)
+        qset = cls.tree_model().objects.filter(sib_order__gte=min)
         if target_node.is_root():
             qset = qset.filter(parent__isnull=True)
         else:
