@@ -2,12 +2,11 @@ from collections import UserList
 from collections.abc import Iterable
 
 from django import forms
-from django.contrib.postgres.lookups import PostgresOperatorLookup
 from django.core.validators import RegexValidator
 from django.db.models import CharField, IntegerField
 from django.db.models.expressions import Func
 from django.db.models.fields import TextField
-from django.db.models.lookups import Transform
+from django.db.models.lookups import PostgresOperatorLookup, Transform
 from django.forms.widgets import TextInput
 
 # PathField implementation borrows significantly from https://github.com/mariocesar/django-ltree/blob/master/django_ltree/fields.py
