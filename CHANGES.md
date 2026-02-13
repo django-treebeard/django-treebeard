@@ -6,12 +6,13 @@ Treebeard 5.0.2 is a bugfix release.
 * MP and NS nodes are refreshed from the database after a move, for a better developer experience.
   Previously it was left to the developer to refresh manually if they needed to use the node, 
   and this was the source of numerous issues.
-* Fix handling of reverse ordering in `node_order_by`.
-* Fix handling of inherited models in `TreeAdmin`.
-* Fix adding root nodes for inherited models.
-* Handle null values of fields specified in `node_order_by` more gracefully: ignore the field
+* Fixed handling of reverse ordering in `node_order_by`.
+* Fixed handling of inherited models in `TreeAdmin`.
+* Fixed adding root nodes for inherited models.
+* Handled null values of fields specified in `node_order_by` more gracefully: ignore the field
   for the purpose of ordering and log a warning to indicate that the value likely needs to be 
   provided manually.
+* Modified `dump_bulk()` methods to use a queryset iterator to avoid loading large datasets into memory.
 
 Release 5.0.1 (Feb 11, 2026)
 ----------------------------

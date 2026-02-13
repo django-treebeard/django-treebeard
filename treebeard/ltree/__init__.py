@@ -414,12 +414,12 @@ class LT_Node(Node):
         # Because of fix_tree, this method assumes that the depth
         # and numchild properties in the nodes can be incorrect,
         # so no helper methods are used
-        qset = cls._get_serializable_model().objects.all()
+        qset = cls.objects.all()
         if parent:
             qset = qset.filter(path__descendants=parent.path)
         ret, lnk = [], {}
         pk_field = cls._meta.pk.attname
-        for pyobj in serializers.serialize("python", qset):
+        for pyobj in serializers.serialize("python", qset.iterator()):
             # django's serializer stores the attributes in 'fields'
             fields = pyobj["fields"]
             path = PathValue(fields["path"])
