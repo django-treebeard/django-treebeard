@@ -1,6 +1,7 @@
 """Unit/Functional tests"""
 
 import os
+import threading
 from unittest import mock
 from unittest.mock import patch
 
@@ -829,6 +830,42 @@ class TestAddChild(TestNonEmptyTree):
         parent.add_child(instance=child1)
         parent.add_child(instance=child2)
         assert list(parent.get_children().values_list("desc", flat=True)) == [child1.desc, child2.desc]
+
+    @pytest.mark.django_db(transaction=True)
+    @pytest.mark.skipif(
+        os.getenv("DATABASE_ENGINE", "") == "sqlite",
+        reason="SQLite doesn't support row-level locking",
+    )
+    def test_add_child_concurrent(self, model_without_data):
+        # TODO: fix for all node types
+        if not issubclass(model_without_data, MP_Node):
+            raise pytest.skip.Exception(f"Skipped concurrency check for {model_without_data.__name__}")
+
+        # 5 threads x 7 add_child each on same parent; no IntegrityError.
+        # Keep total children ≤ 35 so MP_TestNodeUuid (steplen=1, 36-char alphabet) doesn't PathOverflow.
+        num_threads = 5
+        per_thread = 7
+        parent = model_without_data.add_root(desc="parent")
+        parent_pk = parent.pk
+        errors = []
+
+        def add_children(thread_id):
+            try:
+                p = model_without_data.objects.get(pk=parent_pk)
+                for i in range(per_thread):
+                    p.add_child(desc=f"t{thread_id}-{i}")
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=add_children, args=(t,)) for t in range(num_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        if errors:
+            raise errors[0]
+        parent.refresh_from_db()
+        assert parent.get_children_count() == num_threads * per_thread
 
     def test_add_child_with_already_saved_instance(self, model):
         child = model.objects.get(desc="21")
