@@ -1,7 +1,6 @@
 """Materialized Path Trees"""
 
 import collections
-import functools
 from typing import Any
 
 from django.core import serializers
@@ -11,10 +10,8 @@ from django.db.models.functions import Concat, Greatest, Length, Substr
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
-from treebeard.models import Node, get_result_class_base
+from treebeard.models import Node
 from treebeard.numconv import NumConv
-
-get_result_class = functools.partial(get_result_class_base, identifying_field="path")
 
 
 class MP_NodeQuerySet(models.query.QuerySet):
@@ -62,7 +59,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
             else:
                 paths_to_remove.append(node.path)
 
-        model = get_result_class(self.model)
+        model = self.model.tree_model()
 
         # Save the updated numchild of all parents
         for path, num_lost in parents.items():
@@ -89,10 +86,10 @@ class MP_NodeManager(models.Manager):
 
 class MP_ComplexAddMoveHandler:
     def increment_numchild(self, path):
-        get_result_class(self.node_cls).objects.filter(path=path).update(numchild=F("numchild") + 1)
+        self.node_cls.tree_model().objects.filter(path=path).update(numchild=F("numchild") + 1)
 
     def decrement_numchild(self, path):
-        get_result_class(self.node_cls).objects.filter(path=path).update(numchild=F("numchild") - 1)
+        self.node_cls.tree_model().objects.filter(path=path).update(numchild=F("numchild") - 1)
 
     def reorder_nodes_before_add_or_move(self, pos, newpos, newdepth, target, siblings, oldpath=None, movebranch=False):
         """
@@ -195,7 +192,7 @@ class MP_ComplexAddMoveHandler:
             update_kwargs["depth"] = Length(new_path_value) / self.node_cls.steplen
         update_kwargs["path"] = new_path_value
 
-        get_result_class(self.node_cls).objects.filter(path__startswith=oldpath).update(**update_kwargs)
+        self.node_cls.tree_model().objects.filter(path__startswith=oldpath).update(**update_kwargs)
 
 
 class MP_AddRootHandler:
@@ -256,7 +253,7 @@ class MP_AddChildHandler:
             return self.node.get_last_child().add_sibling("sorted-sibling", **self.kwargs)
 
         # Lock parent row
-        parent_qs = get_result_class(self.node_cls).objects.filter(path=self.node.path).select_for_update()
+        parent_qs = self.node_cls.tree_model().objects.filter(path=self.node.path).select_for_update()
 
         if len(self.kwargs) == 1 and "instance" in self.kwargs:
             # adding the passed (unsaved) instance to the tree
@@ -418,7 +415,7 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
                 # moving as a target's first child
                 newpos = 1
                 self.pos = "first-sibling"
-                siblings = get_result_class(self.node_cls).objects.none()
+                siblings = self.node_cls.tree_model().objects.none()
             else:
                 self.target = self.target.get_last_child()
                 self.pos = {
@@ -444,6 +441,8 @@ class MP_Node(Node):
     path = models.CharField(max_length=255, unique=True)
     depth = models.PositiveIntegerField()
     numchild = models.PositiveIntegerField(default=0)
+
+    TREEBEARD_IDENTIFYING_FIELD = "path"
 
     objects = MP_NodeManager()
 
@@ -488,7 +487,7 @@ class MP_Node(Node):
     def dump_bulk(cls, parent=None, keep_ids=True):
         """Dumps a tree branch to a python data structure."""
 
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
 
         # Because of fix_tree, this method assumes that the depth
         # and numchild properties in the nodes can be incorrect,
@@ -548,7 +547,7 @@ class MP_Node(Node):
                      their path
                   5. a list of ids nodes that report a wrong number of children
         """
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
 
         evil_chars, bad_steplen, orphans = [], [], []
         wrong_depth, wrong_numchild = [], []
@@ -643,7 +642,7 @@ class MP_Node(Node):
 
             Fixing only part of a tree will only work if the parent itself is valid.
         """
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
 
         qs = cls.objects.filter(path__startswith=parent.path) if parent else cls.objects.all()
 
@@ -741,7 +740,7 @@ class MP_Node(Node):
             A *queryset* of nodes ordered as DFS, including the parent.
             If no parent is given, the entire tree is returned.
         """
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
 
         if parent is None:
             # return the entire tree
@@ -753,7 +752,7 @@ class MP_Node(Node):
     @classmethod
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
-        return get_result_class(cls).objects.filter(depth=1).order_by("path")
+        return cls.tree_model().objects.filter(depth=1).order_by("path")
 
     @classmethod
     def get_descendants_group_count(cls, parent=None):
@@ -770,7 +769,7 @@ class MP_Node(Node):
 
             A Queryset of node objects with an extra attribute: `descendants_count`.
         """
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
 
         qs = parent.get_children() if parent else cls.get_root_nodes()
         subquery = (
@@ -793,7 +792,7 @@ class MP_Node(Node):
         :returns: A queryset of all the node's siblings, including the node
             itself.
         """
-        qset = get_result_class(self.__class__).objects.filter(depth=self.depth).order_by("path")
+        qset = self.tree_model().objects.filter(depth=self.depth).order_by("path")
         if self.depth > 1:
             # making sure the non-root nodes share a parent
             parentpath = self._get_basepath(self.path, self.depth - 1)
@@ -803,9 +802,9 @@ class MP_Node(Node):
     def get_children(self):
         """:returns: A queryset of all the node's children"""
         if self.is_leaf():
-            return get_result_class(self.__class__).objects.none()
+            return self.tree_model().objects.none()
         return (
-            get_result_class(self.__class__)
+            self.tree_model()
             .objects.filter(depth=self.depth + 1, path__range=self._get_children_path_interval(self.path))
             .order_by("path")
         )
@@ -825,7 +824,7 @@ class MP_Node(Node):
         if include_self:
             return self.__class__.get_tree(self)
         if self.is_leaf():
-            return get_result_class(self.__class__).objects.none()
+            return self.tree_model().objects.none()
         return self.__class__.get_tree(self).exclude(pk=self.pk)
 
     def get_prev_sibling(self):
@@ -903,7 +902,7 @@ class MP_Node(Node):
 
     def get_root(self):
         """:returns: the root node for the current node object."""
-        return get_result_class(self.__class__).objects.get(path=self.path[0 : self.steplen])
+        return self.tree_model().objects.get(path=self.path[0 : self.steplen])
 
     def is_root(self):
         """:returns: True if the node is a root node (else, returns False)"""
@@ -919,10 +918,10 @@ class MP_Node(Node):
             starting by the root node and descending to the parent.
         """
         if self.is_root():
-            return get_result_class(self.__class__).objects.none()
+            return self.tree_model().objects.none()
 
         paths = [self.path[0:pos] for pos in range(0, len(self.path), self.steplen)[1:]]
-        return get_result_class(self.__class__).objects.filter(path__in=paths).order_by("depth")
+        return self.tree_model().objects.filter(path__in=paths).order_by("depth")
 
     def get_parent(self, update=False):
         """
@@ -940,7 +939,7 @@ class MP_Node(Node):
         except AttributeError:
             pass
         parentpath = self._get_basepath(self.path, depth - 1)
-        self._cached_parent_obj = get_result_class(self.__class__).objects.get(path=parentpath)
+        self._cached_parent_obj = self.tree_model().objects.get(path=parentpath)
         return self._cached_parent_obj
 
     @transaction.atomic

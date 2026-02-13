@@ -14,11 +14,9 @@ from django.db.models.functions import Concat
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
-from treebeard.models import Node, get_result_class_base
+from treebeard.models import Node
 
 from .fields import Ltree2Text, PathField, PathValue, Subpath, Text2LTree
-
-get_result_class = functools.partial(get_result_class_base, identifying_field="path")
 
 
 class InvalidLabelConstraints(Exception): ...
@@ -112,7 +110,7 @@ class LT_NodeQuerySet(models.query.QuerySet):
             if not found:
                 paths_to_remove.add(str(node.path))
 
-        model = get_result_class(self.model)
+        model = self.model.tree_model()
 
         if not paths_to_remove:
             return super(LT_NodeQuerySet, model.objects.none()).delete(*args, **kwargs)
@@ -140,7 +138,7 @@ class LT_ComplexAddMoveHandler:
         if insert_before_path and insert_after_path and insert_after_path > insert_before_path:
             raise ValueError("Invalid path constraints")
 
-        siblings = get_result_class(self.node_cls).objects.filter(path__descendants=prefix, path__depth=len(prefix) + 1)
+        siblings = self.node_cls.tree_model().objects.filter(path__descendants=prefix, path__depth=len(prefix) + 1)
 
         try:
             path = generate_path(
@@ -168,7 +166,7 @@ class LT_ComplexAddMoveHandler:
         Move the node and everything after it in the tree to the right. This is achieved simply by
         appending an extra character (A) to the topmost label in the path.
         """
-        result_class = get_result_class(self.node_cls)
+        result_class = self.node_cls.tree_model()
         node_depth = len(start_node.path)
         if node_depth > 1:
             result_class.objects.filter(path__gte=start_node.path, path__depth=node_depth).update(
@@ -369,7 +367,7 @@ class LT_MoveHandler(LT_ComplexAddMoveHandler):
             self.node.refresh_from_db()
 
         # Update the path for all the descendants of the node
-        result_class = get_result_class(self.node_cls)
+        result_class = self.node_cls.tree_model()
         result_class.objects.filter(path__descendants=self.node.path, path__depth__gt=len(self.node.path)).update(
             path=Concat(
                 Value(new_path, output_field=PathField()),
@@ -386,6 +384,8 @@ class LT_Node(Node):
 
     node_order_by = []
     path = PathField(unique=True)
+
+    TREEBEARD_IDENTIFYING_FIELD = "path"
 
     objects = LT_NodeManager()
 
@@ -409,7 +409,7 @@ class LT_Node(Node):
     def dump_bulk(cls, parent=None, keep_ids=True):
         """Dumps a tree branch to a python data structure."""
 
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
 
         # Because of fix_tree, this method assumes that the depth
         # and numchild properties in the nodes can be incorrect,
@@ -453,7 +453,7 @@ class LT_Node(Node):
             A *queryset* of nodes ordered as DFS, including the parent.
             If no parent is given, the entire tree is returned.
         """
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
 
         if parent is None:
             # return the entire tree
@@ -464,7 +464,7 @@ class LT_Node(Node):
     @classmethod
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
-        return get_result_class(cls).objects.filter(path__depth=1).order_by("path")
+        return cls.tree_model().objects.filter(path__depth=1).order_by("path")
 
     @classmethod
     def get_descendants_group_count(cls, parent=None):
@@ -481,7 +481,7 @@ class LT_Node(Node):
 
             A Queryset of node objects with an extra attribute: `descendants_count`.
         """
-        cls = get_result_class(cls)
+        cls = cls.tree_model()
         qs = parent.get_children() if parent else cls.get_root_nodes()
         subquery = (
             cls.objects.filter(path__descendants=OuterRef("path"))
@@ -502,15 +502,11 @@ class LT_Node(Node):
         :returns: A queryset of all the node's siblings, including the node
             itself.
         """
-        return get_result_class(self.__class__).objects.filter(
-            path__descendants=self.path[:-1], path__depth=len(self.path)
-        )
+        return self.tree_model().objects.filter(path__descendants=self.path[:-1], path__depth=len(self.path))
 
     def get_children(self):
         """:returns: A queryset of all the node's children"""
-        return get_result_class(self.__class__).objects.filter(
-            path__descendants=self.path, path__depth=len(self.path) + 1
-        )
+        return self.tree_model().objects.filter(path__descendants=self.path, path__depth=len(self.path) + 1)
 
     def get_next_sibling(self):
         """
@@ -595,7 +591,7 @@ class LT_Node(Node):
 
     def get_root(self):
         """:returns: the root node for the current node object."""
-        return get_result_class(self.__class__).objects.get(path=self.path[0])
+        return self.tree_model().objects.get(path=self.path[0])
 
     def is_root(self):
         """:returns: True if the node is a root node (else, returns False)"""
@@ -610,7 +606,7 @@ class LT_Node(Node):
         :returns: A queryset containing the current node object's ancestors,
             starting by the root node and descending to the parent.
         """
-        return get_result_class(self.__class__).objects.filter(path__ancestors=self.path).exclude(pk=self.pk)
+        return self.tree_model().objects.filter(path__ancestors=self.path).exclude(pk=self.pk)
 
     def get_parent(self, update=False):
         """
@@ -620,7 +616,7 @@ class LT_Node(Node):
             return
 
         parentpath = self.path[:-1]
-        return get_result_class(self.__class__).objects.get(path=parentpath)
+        return self.tree_model().objects.get(path=parentpath)
 
     @transaction.atomic
     def move(self, target, pos=None):
