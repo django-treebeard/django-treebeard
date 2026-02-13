@@ -1,4 +1,4 @@
-Release 5.0.2 (in development)
+Release 5.0.2 (Feb 13, 2026)
 ------------------------------
 
 Treebeard 5.0.2 is a bugfix release.
@@ -13,6 +13,8 @@ Treebeard 5.0.2 is a bugfix release.
   for the purpose of ordering and log a warning to indicate that the value likely needs to be 
   provided manually.
 * Modified `dump_bulk()` methods to use a queryset iterator to avoid loading large datasets into memory.
+* Fixed import error with Django 6 if `pyscopg` was not installed.
+
 
 Release 5.0.1 (Feb 11, 2026)
 ----------------------------
