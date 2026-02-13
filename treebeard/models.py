@@ -617,20 +617,6 @@ class Node(models.Model):
         return cls.get_annotated_list_qs(qs)
 
     @classmethod
-    def _get_serializable_model(cls):
-        """
-        Returns a model with a valid _meta.local_fields (serializable).
-
-        Basically, this means the original model, not a proxied model.
-
-        (this is a workaround for a bug in django)
-        """
-        current_class = cls
-        while current_class._meta.proxy:
-            current_class = current_class._meta.proxy_for_model
-        return current_class
-
-    @classmethod
     @cache
     def tree_model(cls):
         """

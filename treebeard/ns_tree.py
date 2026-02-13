@@ -489,10 +489,10 @@ class NS_Node(Node):
     @classmethod
     def dump_bulk(cls, parent=None, keep_ids=True):
         """Dumps a tree branch to a python data structure."""
-        qset = cls._get_serializable_model().get_tree(parent)
+        qset = cls.get_tree(parent)
         ret, lnk = [], {}
         pk_field = cls._meta.pk.attname
-        for pyobj in qset:
+        for pyobj in qset.iterator():
             serobj = serializers.serialize("python", [pyobj])[0]
             # django's serializer stores the attributes in 'fields'
             fields = serobj["fields"]

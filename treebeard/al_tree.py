@@ -145,12 +145,8 @@ class AL_Node(Node):
     def dump_bulk(cls, parent=None, keep_ids=True):
         """Dumps a tree branch to a python data structure."""
 
-        serializable_cls = cls._get_serializable_model()
-        if parent and serializable_cls != cls and parent.__class__ != serializable_cls:
-            parent = serializable_cls.objects.get(pk=parent.pk)
-
         # a list of nodes: not really a queryset, but it works
-        objs = serializable_cls.get_tree(parent)
+        objs = cls.get_tree(parent)
 
         ret, lnk = [], {}
         pk_field = cls._meta.pk.attname
