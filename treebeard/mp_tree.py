@@ -386,6 +386,8 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         )
 
         self.update_parent_counts_after_move(oldpath, newpath)
+        self.node.refresh_from_db()  # Node path and depth will have changed
+        self.target.refresh_from_db()
 
     def update_parent_counts_after_move(self, oldpath, newpath):
         """

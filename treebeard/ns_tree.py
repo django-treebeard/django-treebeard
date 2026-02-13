@@ -305,6 +305,7 @@ class NS_Node(Node):
 
         pos = self._prepare_pos_var_for_move(pos)
         cls = get_result_class(self.__class__)
+        original_target = target
 
         parent = None
 
@@ -389,7 +390,7 @@ class NS_Node(Node):
                 newpos = target.lft
                 cls._move_right(target.tree_id, newpos, True, gap)
 
-        # we reload 'self' because lft/rgt may have changed
+        # we refresh 'self' because lft/rgt may have changed
         self.refresh_from_db()
 
         depthdiff = target.depth - self.depth
@@ -407,6 +408,8 @@ class NS_Node(Node):
 
         # close the gap
         cls._close_gap(self.lft, self.rgt, self.tree_id)
+        self.refresh_from_db()  # Tree params will have changed
+        original_target.refresh_from_db()
 
     @classmethod
     def _close_gap(cls, drop_lft, drop_rgt, tree_id):

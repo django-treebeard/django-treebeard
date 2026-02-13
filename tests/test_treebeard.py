@@ -846,7 +846,6 @@ class TestAddChild(TestNonEmptyTree):
             @receiver(post_save, dispatch_uid="test_add_child_post_save")
             def on_post_save(instance, **kwargs):
                 parent = instance.get_parent()
-                parent.refresh_from_db()
                 assert parent.get_descendant_count() == 1
 
             # It's important that we're testing a leaf node
@@ -1696,7 +1695,8 @@ class TestMoveBranch(TestNonEmptyTree):
 
     def test_move_branch_first_child(self, model):
         target = model.objects.get(desc="23")
-        model.objects.get(desc="4").move(target, "first-child")
+        node = model.objects.get(desc="4")
+        node.move(target, "first-child")
         expected = [
             ("1", 1, 0),
             ("2", 1, 4),
@@ -1709,6 +1709,10 @@ class TestMoveBranch(TestNonEmptyTree):
             ("24", 2, 0),
             ("3", 1, 0),
         ]
+
+        # Check that for MP, NS and LT nodes, the depth was updated on the in-memory instances
+        assert node.get_depth() == 3
+        assert target.get_children_count() == 2
         assert self.got(model) == expected
 
     def test_move_branch_last_child(self, model):
@@ -2047,8 +2051,6 @@ class TestInheritedModels(TestTreeBase):
         node21 = inherited_model.objects.get(desc="21")
         node21.move(node1, "first-child")
 
-        node1.refresh_from_db()
-        node21.refresh_from_db()
         assert [node.desc for node in node1.get_children()] == ["21"]
         assert [node.desc for node in node21.get_children()] == ["211", "212"]
 
@@ -3072,23 +3074,3 @@ class TestMP_TreeDescendantsPerformance(TestTreeBase):
             with django_assert_num_queries(expected):
                 # converting to list to force queryset evaluation
                 list(node.get_descendants())
-
-
-@pytest.mark.django_db
-class TestRefreshFromDb:
-    def test_get_parent(self, model):
-        parent1 = model.objects.get(desc=2)
-        parent2 = model.objects.get(desc=4)
-        node = model.objects.get(desc=21)
-        assert node.get_parent() == parent1
-        node.move(parent2, pos="last-child")
-        node.refresh_from_db()
-        assert node.get_parent() == parent2
-
-    def test_get_depth(self, model):
-        node = model.objects.get(desc=1)
-        new_parent = model.objects.get(desc=2)
-        assert node.get_depth() == 1
-        node.move(new_parent, pos="last-child")
-        node.refresh_from_db()
-        assert node.get_depth() == 2
