@@ -31,6 +31,7 @@ from treebeard.exceptions import (
     PathOverflow,
 )
 from treebeard.forms import movenodeform_factory
+from treebeard.mp_tree import MP_Node
 from treebeard.ns_tree import NS_Node
 from treebeard.templatetags.admin_tree import tree_context
 
@@ -430,7 +431,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         ]
         for desc, expected in data:
             node = model.objects.get(desc=desc)
-            max_queries = 2 if issubclass(model, AL_Node) else 1
+            max_queries = 2 if issubclass(model, AL_Node) else 0
             with django_assert_max_num_queries(max_queries):
                 got = node.is_root()
             assert got == expected
@@ -443,7 +444,8 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         ]
         for desc, expected in data:
             node = model.objects.get(desc=desc)
-            with django_assert_max_num_queries(1):
+            max_queries = 0 if issubclass(model, (MP_Node, NS_Node)) else 1
+            with django_assert_max_num_queries(max_queries):
                 got = node.is_leaf()
             assert got == expected
 
@@ -522,7 +524,8 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         ]
         for desc, expected in data:
             node = model.objects.get(desc=desc)
-            with django_assert_max_num_queries(1):
+            max_queries = 0 if issubclass(model, MP_Node) else 1
+            with django_assert_max_num_queries(max_queries):
                 got = node.get_children_count()
             assert got == expected
 
@@ -725,7 +728,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc1, desc2, expected in data:
             node1 = model.objects.get(desc=desc1)
             node2 = model.objects.get(desc=desc2)
-            max_queries = 2 if issubclass(model, NS_Node) else 1
+            max_queries = 2 if issubclass(model, (NS_Node, AL_Node)) else 0
             with django_assert_max_num_queries(max_queries):
                 assert node1.is_sibling_of(node2) == expected
 
@@ -741,7 +744,8 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc1, desc2, expected in data:
             node1 = model.objects.get(desc=desc1)
             node2 = model.objects.get(desc=desc2)
-            with django_assert_max_num_queries(1):
+            max_queries = 1 if issubclass(model, (NS_Node, AL_Node)) else 0
+            with django_assert_max_num_queries(max_queries):
                 assert node1.is_child_of(node2) == expected
 
     def test_is_descendant_of(self, model, django_assert_max_num_queries):
@@ -756,7 +760,7 @@ class TestSimpleNodeMethods(TestNonEmptyTree):
         for desc1, desc2, expected in data:
             node1 = model.objects.get(desc=desc1)
             node2 = model.objects.get(desc=desc2)
-            max_queries = 6 if issubclass(model, AL_Node) else 1
+            max_queries = 6 if issubclass(model, AL_Node) else 0
             with django_assert_max_num_queries(max_queries):
                 assert node1.is_descendant_of(node2) == expected
 
