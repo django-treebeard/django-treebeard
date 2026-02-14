@@ -105,6 +105,7 @@ class NS_Node(Node):
     depth = models.PositiveIntegerField(db_index=True)
 
     TREEBEARD_IDENTIFYING_FIELD = "lft"
+    MOVENODE_FORM_EXCLUDED_FIELDS = ("depth", "lft", "rgt", "tree_id")
 
     objects = NS_NodeManager()
 

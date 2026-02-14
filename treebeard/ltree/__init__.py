@@ -386,6 +386,7 @@ class LT_Node(Node):
     path = PathField(unique=True)
 
     TREEBEARD_IDENTIFYING_FIELD = "path"
+    MOVENODE_FORM_EXCLUDED_FIELDS = ("path",)
 
     objects = LT_NodeManager()
 

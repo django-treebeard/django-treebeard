@@ -7,9 +7,6 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from treebeard.al_tree import AL_Node
-from treebeard.ltree import LT_Node
-from treebeard.mp_tree import MP_Node
-from treebeard.ns_tree import NS_Node
 
 
 class TreeNodeChoiceField(forms.ModelChoiceField):
@@ -199,20 +196,7 @@ def movenodeform_factory(model, form=MoveNodeForm, exclude=None, **kwargs):
 
     :return: A :py:class:`MoveNodeForm` subclass
     """
-    _exclude = _get_exclude_for_model(model, exclude)
-    return django_modelform_factory(model, form, exclude=_exclude, **kwargs)
-
-
-def _get_exclude_for_model(model, exclude):
-    if issubclass(model, AL_Node):
-        to_exclude = ("sib_order", "parent")
-    elif issubclass(model, MP_Node):
-        to_exclude = ("depth", "numchild", "path")
-    elif issubclass(model, NS_Node):
-        to_exclude = ("depth", "lft", "rgt", "tree_id")
-    elif issubclass(model, LT_Node):
-        to_exclude = ("path",)
-    else:
-        to_exclude = ()
-
-    return tuple(exclude or ()) + to_exclude
+    if exclude is None:
+        exclude = ()
+    exclude += getattr(model, "MOVENODE_FORM_EXCLUDED_FIELDS", ())
+    return django_modelform_factory(model, form, exclude=exclude, **kwargs)

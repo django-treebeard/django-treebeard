@@ -17,6 +17,8 @@ class Node(models.Model):
     # Subclasses must override this to provide the name of a field
     # that identifies the model.
     TREEBEARD_IDENTIFYING_FIELD = None
+    # Fields to be excluded from MoveNodeForm
+    MOVENODE_FORM_EXCLUDED_FIELDS = ()
     _cached_attributes = ()
 
     @classmethod
