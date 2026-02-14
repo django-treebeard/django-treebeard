@@ -28,6 +28,7 @@ class AL_Node(Node):
     node_order_by = None
 
     TREEBEARD_IDENTIFYING_FIELD = "parent"
+    MOVENODE_FORM_EXCLUDED_FIELDS = ("sib_order", "parent")
 
     _cached_attributes = (
         *Node._cached_attributes,

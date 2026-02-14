@@ -443,6 +443,7 @@ class MP_Node(Node):
     numchild = models.PositiveIntegerField(default=0)
 
     TREEBEARD_IDENTIFYING_FIELD = "path"
+    MOVENODE_FORM_EXCLUDED_FIELDS = ("path", "depth", "numchild")
 
     objects = MP_NodeManager()
 
