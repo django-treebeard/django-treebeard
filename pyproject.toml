@@ -47,9 +47,6 @@ test = [
 
 [tool.ruff]
 line-length = 120
-lint.ignore = [
-    "UP031"     # Allow percent formatters    
-]
 lint.select = [
     "PLE",   # pylint errors
     "UP",   # pyupgrade

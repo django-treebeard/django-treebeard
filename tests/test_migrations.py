@@ -27,8 +27,8 @@ class TestForMigrations(TestCase):
         )
 
         if conflicts:
-            name_str = "; ".join("%s in %s" % (", ".join(names), app) for app, names in conflicts.items())
-            self.fail("Conflicting migrations detected (%s)." % name_str)
+            name_str = "; ".join(f"{', '.join(names)} in {app}" for app, names in conflicts.items())
+            self.fail(f"Conflicting migrations detected ({name_str}).")
 
         autodetector = MigrationAutodetector(
             loader.project_state(),
@@ -52,4 +52,4 @@ class TestForMigrations(TestCase):
                 for migration in migrations
             )
 
-            self.fail("Model changes with no migrations detected:\n%s" % migrations)
+            self.fail(f"Model changes with no migrations detected:\n{migrations}")

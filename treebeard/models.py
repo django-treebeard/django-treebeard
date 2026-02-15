@@ -498,10 +498,10 @@ class Node(models.Model):
             else:
                 pos = "last-sibling"
         if pos not in valid_pos:
-            raise InvalidPosition("Invalid relative position: %s" % (pos,))
+            raise InvalidPosition(f"Invalid relative position: {pos}")
         if self.node_order_by and pos not in valid_sorted_pos:
             raise InvalidPosition(
-                "Must use %s in %s when node_order_by is enabled" % (" or ".join(valid_sorted_pos), method_name)
+                f"Must use {' or '.join(valid_sorted_pos)} in {method_name} when node_order_by is enabled"
             )
         if pos in valid_sorted_pos and not self.node_order_by:
             raise MissingNodeOrderBy("Missing node_order_by attribute.")

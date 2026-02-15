@@ -347,7 +347,7 @@ class TestClassMethods(TestNonEmptyTree):
     def test_load_and_dump_bulk_with_fk(self, related_model):
         # https://bitbucket.org/tabo/django-treebeard/issue/48/
         related_model.objects.all().delete()
-        related, created = models.RelatedModel.objects.get_or_create(desc="Test %s" % related_model.__name__)
+        related, _ = models.RelatedModel.objects.get_or_create(desc=f"Test {related_model.__name__}")
 
         related_data = [
             {"data": {"desc": "1", "related": related.pk}},
@@ -2433,7 +2433,7 @@ class TestMP_TreeFix(TestTreeBase):
 @pytest.mark.django_db
 class TestMoveNodeForm(TestNonEmptyTree):
     def _get_nodes_list(self, nodes):
-        return [(str(pk), "%s%s" % ("&nbsp;" * 4 * (depth - 1), _str)) for pk, _str, depth in nodes]
+        return [(str(pk), f"{'&nbsp;' * 4 * (depth - 1)}{_str}") for pk, _str, depth in nodes]
 
     def _assert_nodes_in_choices(self, form, nodes):
         choices = list(form.fields["treebeard_ref_node"].choices)
