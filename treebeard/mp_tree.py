@@ -1,6 +1,7 @@
 """Materialized Path Trees"""
 
 import collections
+from functools import cache
 from typing import Any
 
 from django.core import serializers
@@ -463,10 +464,9 @@ class MP_Node(Node):
         return cls.numconv_obj().str2int(num)
 
     @classmethod
+    @cache
     def numconv_obj(cls):
-        if cls.numconv_obj_ is None:
-            cls.numconv_obj_ = NumConv(len(cls.alphabet), cls.alphabet)
-        return cls.numconv_obj_
+        return NumConv(cls.alphabet)
 
     @classmethod
     @transaction.atomic
