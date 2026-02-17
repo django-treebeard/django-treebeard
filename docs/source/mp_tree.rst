@@ -198,7 +198,6 @@ extra steps, materialized path is more efficient than other approaches.
 
         ``django-treebeard`` uses `numconv`_ for path encoding.
 
-
   .. attribute:: depth
 
      ``PositiveIntegerField``, depth of a node in the tree. A root node
@@ -208,60 +207,55 @@ extra steps, materialized path is more efficient than other approaches.
 
      ``PositiveIntegerField``, the number of children of the node.
 
-  .. automethod:: add_root
-
-     See: :meth:`treebeard.models.Node.add_root`
-
-  .. automethod:: add_child
-
-     See: :meth:`treebeard.models.Node.add_child`
-
-  .. automethod:: add_sibling
-
-     See: :meth:`treebeard.models.Node.add_sibling`
-
   .. automethod:: move
 
      See: :meth:`treebeard.models.Node.move`
+  
+
+.. autoclass:: MP_NodeManager
+  :show-inheritance:
 
   .. automethod:: get_tree
 
-     See: :meth:`treebeard.models.Node.get_tree`
+     See: :meth:`treebeard.models.NodeManager.get_tree`
 
      .. note::
 
         This method returns a queryset.
 
+  .. automethod:: add_root
+
+     See: :meth:`treebeard.models.NodeManager.add_root`
+
+  .. automethod:: add_child
+
+     See: :meth:`treebeard.models.NodeManager.add_child`
+
+  .. automethod:: add_sibling
+
+     See: :meth:`treebeard.models.NodeManager.add_sibling`
+
   .. automethod:: find_problems
 
-     .. note::
-
-        A node won't appear in more than one list, even when it exhibits
-        more than one problem. This method stops checking a node when it
-        finds a problem and continues to the next node.
-
-     .. note::
-
-        Problems 1, 2 and 3 can't be solved automatically.
-
-     Example:
+   Example:
 
      .. code-block:: python
 
-        MyNodeModel.find_problems()
+        MyNodeModel.objects.find_problems()
 
+   .. note::
+
+      A node won't appear in more than one list, even when it exhibits
+      more than one problem. This method stops checking a node when it
+      finds a problem and continues to the next node.
+
+   .. note::
+
+      Problems 1, 2 and 3 can't be solved automatically.
+  
   .. automethod:: fix_tree
 
-     Example:
-
-     .. code-block:: python
-
-        MyNodeModel.fix_tree()
-
   .. automethod:: load_bulk
-
-.. autoclass:: MP_NodeManager
-  :show-inheritance:
 
 .. autoclass:: MP_NodeQuerySet
   :show-inheritance:

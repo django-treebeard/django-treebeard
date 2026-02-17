@@ -1,7 +1,63 @@
+
+Release 6.0.0 (in development)
+------------------------------
+
+Treebeard 6.0.0 is a major release. It features a change to Treebeard's API.
+
+The following methods that previously existing on the `Node` model class have now moved to the 
+model manager instead:
+
+- `load_bulk`
+- `dump_bulk`
+- `find_problems`
+- `fix_tree`
+- `get_tree`
+- `get_descendants_group_count`
+- `get_annotated_list_qs`
+- `get_annotated_list`
+- `get_root_nodes`
+- `get_first_root_node`
+- `get_last_root_node`
+- `get_children`
+- `get_children_count`
+- `get_siblings`
+- `get_descendants`
+- `get_descendant_count`
+- `get_first_child`
+- `get_last_child`
+- `get_first_sibling`
+- `get_last_sibling`
+- `get_prev_sibling`
+- `get_next_sibling`
+- `get_root`
+- `get_parent`
+- `get_ancestors`
+
+So, for example, code like this:
+
+```python
+    node.get_children()
+```
+
+Would need to be rewritten as:
+
+```python
+    MyModel.objects.get_children(node)
+```
+
+Putting these methods on the model manager instead of the model class is more consistent with
+Django's design patterns, and provides much more flexibility with their use. It also keeps the 
+model class slim, avoiding conflicts with code layered on top.
+
+Backward compatibility exists for all these methods, which will be removed in Treebeard 7.
+
+It is now mandatory for the default model manager for a Treebeard model to subclass
+Treebeard's manager. An error will be raised if this is not the case.
+
 Release 5.3.0 (Jun 24, 2026)
 ----------------------------
 
-Treebeard 5.3.0 is a minor release release.
+Treebeard 5.3.0 is a minor release.
 
 - Added support for loading data for many-to-many relationships with `load_bulk()`. These were previously
   exported when using `dump_bulk()`, but were not handled when loading the same data.

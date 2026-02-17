@@ -11,6 +11,8 @@ from django.apps import apps
 from django.db import connection
 from django.db.models.signals import pre_migrate
 
+from tests.admin import register_all as admin_register_all
+
 
 def pytest_report_header(config):
     return "Django: " + django.get_version()
@@ -18,6 +20,7 @@ def pytest_report_header(config):
 
 def pytest_configure(config):
     django.setup()
+    admin_register_all()
 
 
 def _pre_migration(*args, **kwargs):

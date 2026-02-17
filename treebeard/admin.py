@@ -91,7 +91,7 @@ class TreeAdmin(admin.ModelAdmin):
 
     def try_to_move_node(self, as_child, node, pos, request, target):
         try:
-            node.move(target, pos=pos)
+            self.model.objects.move(node, target, pos=pos)
             # Call the save method on the (reloaded) node in order to trigger
             # possible signal handlers etc.
             node = self.get_node(node.pk)
