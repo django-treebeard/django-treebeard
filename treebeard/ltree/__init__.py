@@ -199,6 +199,9 @@ class LT_AddRootHandler:
         self.kwargs = kwargs
 
     def process(self):
+        # Lock all root node rows to avoid integrity errors. We must force evaluation of the queryset
+        list(self.cls.get_root_nodes().select_for_update().only("pk"))
+
         # do we have a root node already?
         last_root = self.cls.get_last_root_node()
 
@@ -241,6 +244,8 @@ class LT_AddChildHandler:
         self.kwargs = creation_kwargs
 
     def process(self):
+        # Lock parent row
+        self.node_cls.tree_model().objects.filter(pk=self.node.pk).select_for_update().only("pk").get()
         if self.node_cls.node_order_by and not self.node.is_leaf():
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
