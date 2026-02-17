@@ -1,20 +1,22 @@
 """Materialized Path Trees"""
 
 import collections
+import warnings
 from functools import cache
 from typing import Any
 
-from django.core import checks, serializers
+from django.core import serializers
 from django.db import connections, models, router, transaction
 from django.db.models import F, Func, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Concat, Greatest, Length, Substr
 from django.dispatch import Signal
 from django.utils.translation import gettext_noop as _
 
-from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
-from treebeard.models import Node
+from treebeard.deprecation import RemovedInTreebeard7Warning
+from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow
+from treebeard.models import Node, NodeManager
 from treebeard.numconv import NumConv
-from treebeard.utils import prepare_dumpdata_for_loading, save_m2m
+from treebeard.utils import check_create_args, prepare_dumpdata_for_loading, save_m2m
 
 path_updated = Signal()
 nodes_deleted = Signal()
@@ -65,7 +67,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
             else:
                 paths_to_remove.append(node.path)
 
-        model = self.model.tree_model()
+        model = self.model.objects.tree_model
 
         # Save the updated numchild of all parents
         for path, num_lost in parents.items():
@@ -87,563 +89,30 @@ class MP_NodeQuerySet(models.query.QuerySet):
     delete.queryset_only = True
 
 
-class MP_NodeManager(models.Manager):
+class MP_NodeManager(NodeManager):
     """Custom manager for nodes in a Materialized Path tree."""
 
     def get_queryset(self):
         """Sets the custom queryset as the default."""
         return MP_NodeQuerySet(self.model, using=self._db).order_by("path")
 
-
-class MP_ComplexAddMoveHandler:
-    def increment_numchild(self, path):
-        self.node_cls.tree_model().objects.filter(path=path).update(numchild=F("numchild") + 1)
-
-    def decrement_numchild(self, path):
-        self.node_cls.tree_model().objects.filter(path=path).update(numchild=F("numchild") - 1)
-
-    def reorder_nodes_before_add_or_move(self, pos, newpos, newdepth, target, siblings, oldpath=None, movebranch=False):
+    def get_tree(self, parent=None):
         """
-        Handles the reordering of nodes and branches when adding/moving
-        nodes.
+        :returns:
 
-        :returns: A tuple containing the old path and the new path.
+            A *queryset* of nodes ordered as DFS, including the parent.
+            If no parent is given, the entire tree is returned.
         """
-        if (pos == "last-sibling") or (pos == "right" and target == target.get_last_sibling()):
-            # easy, the last node
-            last = target.get_last_sibling()
-            newpath = last._inc_path()
-            if movebranch:
-                self.set_newpath_in_branches(oldpath, newpath)
-            return oldpath, newpath
-
-        if newpos is None:
-            siblings = target.get_siblings()
-            siblings = {
-                "left": siblings.filter(path__gte=target.path),
-                "right": siblings.filter(path__gt=target.path),
-                "first-sibling": siblings,
-            }[pos]
-            basenum = target._get_lastpos_in_path()
-            newpos = {"first-sibling": 1, "left": basenum, "right": basenum + 1}[pos]
-
-        newpath = self.node_cls._get_path(target.path, newdepth, newpos)
-
-        # If the move is amongst siblings and is to the left and there
-        # are siblings to the right of its new position then to be on
-        # the safe side we temporarily dump it on the end of the list
-        tempnewpath = None
-        if movebranch and len(oldpath) == len(newpath):
-            parentoldpath = self.node_cls._get_basepath(oldpath, int(len(oldpath) / self.node_cls.steplen) - 1)
-            parentnewpath = self.node_cls._get_basepath(newpath, newdepth - 1)
-            if parentoldpath == parentnewpath and siblings and newpath < oldpath:
-                last = target.get_last_sibling()
-                basenum = last._get_lastpos_in_path()
-                tempnewpath = self.node_cls._get_path(newpath, newdepth, basenum + 2)
-                self.set_newpath_in_branches(oldpath, tempnewpath)
-
-        # Optimisation to only move siblings which need moving
-        # (i.e. if we've got holes, allow them to compress)
-        movesiblings = []
-        priorpath = newpath
-        for node in siblings:
-            # If the path of the node is already greater than the path
-            # of the previous node it doesn't need shifting
-            if node.path > priorpath:
-                break
-            # It does need shifting, so add to the list
-            movesiblings.append(node)
-            # Calculate the path that it would be moved to, as that's
-            # the next "priorpath"
-            priorpath = node._inc_path()
-        movesiblings.reverse()
-
-        for node in movesiblings:
-            # moving the siblings (and their branches) at the right of the
-            # related position one step to the right
-            _inc_path = node._inc_path()
-            self.set_newpath_in_branches(node.path, node._inc_path())
-
-            if movebranch:
-                if oldpath.startswith(node.path):
-                    # if moving to a parent, update oldpath since we just
-                    # increased the path of the entire branch
-                    oldpath = _inc_path + oldpath[len(_inc_path) :]
-                if target.path.startswith(node.path):
-                    # and if we moved the target, update the object
-                    # django made for us, since the update won't do it
-                    # maybe useful in loops
-                    target.path = _inc_path + target.path[len(_inc_path) :]
-        if movebranch:
-            # node to move
-            self.set_newpath_in_branches(tempnewpath or oldpath, newpath)
-        return oldpath, newpath
-
-    def set_newpath_in_branches(self, oldpath, newpath):
-        """
-        .. note::
-
-           The query will only update depth values if needed.
-
-        """
-
-        new_path_value = Concat(Value(newpath), Substr("path", len(oldpath) + 1))
-        update_kwargs = {}
-
-        # Warning: MySQL processes multiple assigments left to right, using the updated value
-        # for any column that is referenced in a subsequent assignment. This behavior differs from standard SQL.
-        # See https://dev.mysql.com/doc/refman/8.4/en/update.html
-        # For a table with schema name (VARCHAR), length (INT) and row (name="bob", length=3), the query:
-        # `UPDATE table SET name='alice', length=LENGTH(name);`
-        # would set `length` to 5 in MySQL, but 3 on other databases, because they use the original source value.
-        # To avoid having to special case for MySQL, we need to supply the depth as the first parameter to
-        # update_kwargs.
-
-        if len(oldpath) != len(newpath):
-            update_kwargs["depth"] = Length(new_path_value) / self.node_cls.steplen
-        update_kwargs["path"] = new_path_value
-
-        model = self.node_cls.tree_model()
-        queryset = model.objects.filter(path__startswith=oldpath)
-        update_count = queryset.update(**update_kwargs)
-        if update_count > 0:
-            path_updated.send(sender=model, old_path=oldpath, new_path=newpath, using=queryset.db)
-
-
-class MP_AddRootHandler:
-    def __init__(self, cls, **kwargs):
-        super().__init__()
-        self.cls = cls
-        self.kwargs = kwargs
-
-    def process(self):
-        # do we have a root node already?
-        last_root = self.cls.get_last_root_node()
-
-        if last_root and last_root.node_order_by:
-            # There are root nodes and node_order_by has been set.
-            # Delegate sorted insertion to add_sibling.
-            # We must pass an instance here to ensure that the right object is created for
-            # models with multi-table inheritance.
-            return last_root.add_sibling(
-                "sorted-sibling", instance=self.kwargs.get("instance") or self.cls(**self.kwargs)
-            )
-
-        if last_root:
-            # adding the new root node as the last one
-            newpath = last_root._inc_path()
-        else:
-            # adding the first root node
-            newpath = self.cls._get_path(None, 1, 1)
-
-        if len(self.kwargs) == 1 and "instance" in self.kwargs:
-            # adding the passed (unsaved) instance to the tree
-            newobj = self.kwargs["instance"]
-            if not newobj._state.adding:
-                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
-        else:
-            # creating the new object
-            newobj = self.cls(**self.kwargs)
-
-        newobj.depth = 1
-        newobj.path = newpath
-        # saving the instance before returning it
-        newobj.save()
-        return newobj
-
-
-class MP_AddChildHandler:
-    def __init__(self, node, creation_kwargs: dict[str, Any]):
-        super().__init__()
-        self.node = node
-        self.node_cls = node.__class__
-        # These are deliberately not extracted in the function signature to avoid collision with model field names
-        self.kwargs = creation_kwargs
-
-    def process(self):
-        # Lock the parent row
-        node = self.node_cls.objects.select_for_update().get(pk=self.node.pk)
-        if self.node_cls.node_order_by and not node.is_leaf():
-            # there are child nodes and node_order_by has been set
-            # delegate sorted insertion to add_sibling
-            self.node.numchild += 1
-            return node.get_last_child().add_sibling("sorted-sibling", **self.kwargs)
-
-        if len(self.kwargs) == 1 and "instance" in self.kwargs:
-            # adding the passed (unsaved) instance to the tree
-            newobj = self.kwargs["instance"]
-            if not newobj._state.adding:
-                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
-        else:
-            # creating a new object
-            newobj = self.node_cls(**self.kwargs)
-
-        newobj.depth = node.depth + 1
-        if node.is_leaf():
-            # the node had no children, adding the first child
-            newobj.path = self.node_cls._get_path(node.path, newobj.depth, 1)
-            max_length = self.node_cls._meta.get_field("path").max_length
-            if len(newobj.path) > max_length:
-                raise PathOverflow(
-                    _(
-                        "The new node is too deep in the tree, try"
-                        " increasing the path.max_length property"
-                        " and UPDATE your database"
-                    )
-                )
-        else:
-            # adding the new child as the last one
-            newobj.path = node.get_last_child()._inc_path()
-
-        # Increment numchild on the parent, and also update the object in memory in case the caller reuses it
-        self.node_cls.tree_model().objects.filter(pk=node.pk).update(numchild=F("numchild") + 1)
-        self.node.numchild = node.numchild + 1
-
-        # saving the instance before returning it
-        newobj._cached_parent_obj = self.node
-        newobj.save()
-
-        return newobj
-
-
-class MP_AddSiblingHandler(MP_ComplexAddMoveHandler):
-    def __init__(self, node, pos, creation_kwargs: dict[str, Any]):
-        super().__init__()
-        self.node = node
-        self.node_cls = node.__class__
-        self.pos = pos
-        # These are deliberately not extracted in the function signature to avoid collision with model field names
-        self.kwargs = creation_kwargs
-
-    def process(self):
-        self.pos = self.node._prepare_pos_var_for_add_sibling(self.pos)
-
-        if len(self.kwargs) == 1 and "instance" in self.kwargs:
-            # adding the passed (unsaved) instance to the tree
-            newobj = self.kwargs["instance"]
-            if not newobj._state.adding:
-                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
-        else:
-            # creating a new object
-            newobj = self.node_cls(**self.kwargs)
-
-        newobj.depth = self.node.depth
-
-        if self.pos == "sorted-sibling":
-            siblings = self.node.get_sorted_pos_queryset(self.node.get_siblings(), newobj)
-            first = siblings.first()
-            newpos = first._get_lastpos_in_path() if first else None
-            if newpos is None:
-                self.pos = "last-sibling"
-        else:
-            newpos, siblings = None, []
-
-        _, newpath = self.reorder_nodes_before_add_or_move(
-            self.pos, newpos, self.node.depth, self.node, siblings, None, False
-        )
-
-        parentpath = self.node._get_basepath(newpath, self.node.depth - 1)
-
-        if parentpath:
-            self.increment_numchild(parentpath)
-
-        # saving the instance before returning it
-        newobj.path = newpath
-        newobj.save()
-
-        return newobj
-
-
-class MP_MoveHandler(MP_ComplexAddMoveHandler):
-    def __init__(self, node, target, pos=None):
-        super().__init__()
-        self.node = node
-        self.node_cls = node.__class__
-        self.target = target
-        self.pos = pos
-
-    def process(self):
-        self.pos = self.node._prepare_pos_var_for_move(self.pos)
-
-        # initialize variables and if moving to a child, updates "move to
-        # child" to become a "move to sibling" if possible (if it can't
-        # be done, it means that we are  adding the first child)
-        newdepth, siblings, newpos = self.update_move_to_child_vars()
-
-        if self.target.is_descendant_of(self.node):
-            raise InvalidMoveToDescendant(_("Can't move node to a descendant."))
-
-        if self.pos == "sorted-sibling":
-            siblings = self.node.get_sorted_pos_queryset(self.target.get_siblings(), self.node)
-            if first := siblings.first():
-                newpos = first._get_lastpos_in_path()
-                if self.node._get_lastpos_in_path() == newpos - 1:
-                    # The node is already in the right place, nothing to do
-                    return
-            else:
-                newpos = None
-                self.pos = "last-sibling"
-
-        # Handle special cases where nothing needs to be done
-        if newdepth == self.node.get_depth():
-            if self.pos == "first-sibling" and self.node == self.target.get_first_sibling():
-                return
-
-            if self.pos == "last-sibling" and self.node == self.target.get_last_sibling():
-                return
-
-        if self.node == self.target and (
-            # Moving a node to left/right of itself is a noop
-            self.pos == "left"
-            or (self.pos in ("right", "last-sibling") and self.target == self.target.get_last_sibling())
-        ):
-            return
-
-        # Move nodes
-        oldpath, newpath = self.reorder_nodes_before_add_or_move(
-            self.pos, newpos, newdepth, self.target, siblings, self.node.path, True
-        )
-
-        self.update_parent_counts_after_move(oldpath, newpath)
-        self.node.refresh_from_db()  # Node path and depth will have changed
-        self.target.refresh_from_db()
-
-    def update_parent_counts_after_move(self, oldpath, newpath):
-        """
-        Update the numchild value of parent nodes after performing a move.
-        """
-        oldparentpath = self.node_cls._get_parent_path_from_path(oldpath)
-        newparentpath = self.node_cls._get_parent_path_from_path(newpath)
-        if oldparentpath != newparentpath:
-            # node changed parent, updating counts
-            if oldparentpath:
-                self.decrement_numchild(oldparentpath)
-            if newparentpath:
-                self.increment_numchild(newparentpath)
-
-    def update_move_to_child_vars(self):
-        """Update preliminary vars in :meth:`move` when moving to a child"""
-        newdepth = self.target.depth
-        newpos = None
-        siblings = []
-        if self.pos in ("first-child", "last-child", "sorted-child"):
-            if self.target == self.node:
-                raise InvalidMoveToDescendant(_("Can't move node to itself."))
-
-            # moving to a child
-            parent = self.target
-            newdepth += 1
-            if self.target.is_leaf():
-                # moving as a target's first child
-                newpos = 1
-                self.pos = "first-sibling"
-                siblings = self.node_cls.tree_model().objects.none()
-            else:
-                self.target = self.target.get_last_child()
-                self.pos = {
-                    "first-child": "first-sibling",
-                    "last-child": "last-sibling",
-                    "sorted-child": "sorted-sibling",
-                }[self.pos]
-
-            # this is not for save(), since if needed, will be handled with a
-            # custom UPDATE, this is only here to update django's object,
-            # should be useful in loops
-            parent.numchild += 1
-
-        return newdepth, siblings, newpos
-
-
-class MP_Node(Node):
-    """Abstract model to create your own Materialized Path Trees."""
-
-    steplen = 4
-    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    node_order_by = []
-    path = models.CharField(max_length=255, unique=True)
-    depth = models.PositiveIntegerField()
-    numchild = models.PositiveIntegerField(default=0)
-
-    TREEBEARD_IDENTIFYING_FIELD = "path"
-    MOVENODE_FORM_EXCLUDED_FIELDS = ("path", "depth", "numchild")
-
-    objects = MP_NodeManager()
-
-    numconv_obj_ = None
-
-    _cached_attributes = (
-        *Node._cached_attributes,
-        "_cached_parent_obj",
-    )
-
-    @classmethod
-    def _int2str(cls, num):
-        return cls.numconv_obj().int2str(num)
-
-    @classmethod
-    def _str2int(cls, num):
-        return cls.numconv_obj().str2int(num)
-
-    @classmethod
-    @cache
-    def numconv_obj(cls):
-        return NumConv(cls.alphabet)
-
-    @classmethod
-    @transaction.atomic
-    def add_root(cls, **kwargs):
-        """
-        Adds a root node to the tree.
-
-        This method saves the node in database. The object is populated as if via:
-
-        ```
-        obj = cls(**kwargs)
-        ```
-
-        :raise PathOverflow: when no more root objects can be added
-        """
-        return MP_AddRootHandler(cls, **kwargs).process()
-
-    @classmethod
-    def dump_bulk(cls, parent=None, keep_ids=True):
-        """Dumps a tree branch to a python data structure."""
-
-        cls = cls.tree_model()
-
-        # Because of fix_tree, this method assumes that the depth
-        # and numchild properties in the nodes can be incorrect,
-        # so no helper methods are used
-        qset = cls.objects.all().order_by("depth", "path")
-        if parent:
-            qset = qset.filter(path__startswith=parent.path)
-        ret, lnk = [], {}
-        pk_field = cls._meta.pk.attname
-        for pyobj in serializers.serialize("python", qset.iterator()):
-            # django's serializer stores the attributes in 'fields'
-            fields = pyobj["fields"]
-            path = fields["path"]
-            depth = int(len(path) / cls.steplen)
-            # this will be useless in load_bulk
-            del fields["depth"]
-            del fields["path"]
-            del fields["numchild"]
-            if pk_field in fields:
-                # this happens immediately after a load_bulk
-                del fields[pk_field]
-
-            newobj = {"data": fields}
-            if keep_ids:
-                newobj[pk_field] = pyobj["pk"]
-
-            if (not parent and depth == 1) or (parent and len(path) == len(parent.path)):
-                ret.append(newobj)
-            else:
-                parentpath = cls._get_basepath(path, depth - 1)
-                parentobj = lnk[parentpath]
-                if "children" not in parentobj:
-                    parentobj["children"] = []
-                parentobj["children"].append(newobj)
-            lnk[path] = newobj
-        return ret
-
-    @classmethod
-    def find_problems(cls, parent=None):
-        """
-        Checks for problems in the tree structure, problems can occur when:
-
-           1. your code breaks and you get incomplete transactions (always
-              use transactions!)
-           2. changing the ``steplen`` value in a model (you must
-              :meth:`dump_bulk` first, change ``steplen`` and then
-              :meth:`load_bulk`
-
-        :param parent:
-
-            If provided, limits the check to the descendants of this node.
-            If not provided, the entire tree will be checked.
-
-        :returns: A tuple of five lists:
-
-                  1. a list of ids of nodes with characters not found in the
-                     ``alphabet``
-                  2. a list of ids of nodes when a wrong ``path`` length
-                     according to ``steplen``
-                  3. a list of ids of orphaned nodes
-                  4. a list of ids of nodes with the wrong depth value for
-                     their path
-                  5. a list of ids nodes that report a wrong number of children
-        """
-        cls = cls.tree_model()
-
-        if parent is not None:
-            qs = cls.objects.filter(path__startswith=parent.path)
-        else:
-            qs = cls.objects.all()
-
-        evil_chars, bad_steplen, orphans = [], [], []
-        wrong_depth, wrong_numchild = [], []
-        for node in qs.iterator():
-            found_error = False
-            for char in node.path:
-                if char not in cls.alphabet:
-                    evil_chars.append(node.pk)
-                    found_error = True
-                    break
-            if found_error:
-                continue
-            if len(node.path) % cls.steplen:
-                bad_steplen.append(node.pk)
-                continue
-            try:
-                node.get_parent(True)
-            except cls.DoesNotExist:
-                orphans.append(node.pk)
-                continue
-
-            if node.depth != int(len(node.path) / cls.steplen):
-                wrong_depth.append(node.pk)
-                continue
-
-            real_numchild = (
-                cls.objects.alias(computed_depth=Length("path") / cls.steplen)
-                .filter(path__range=cls._get_children_path_interval(node.path), computed_depth=node.depth + 1)
-                .count()
-            )
-            if real_numchild != node.numchild:
-                wrong_numchild.append(node.pk)
-                continue
-
-        return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
-
-    @classmethod
-    def _fix_numchild(cls, result_class, qs):
-        vendor = connections[router.db_for_write(result_class)].vendor
-        child_subquery = (
-            result_class.objects.alias(path_length=Length("path"))
-            .order_by()
-            .filter(path__startswith=OuterRef("path"), path_length=Length(OuterRef("path")) + cls.steplen)
-            .annotate(count=Func(F("pk"), function="Count"))
-            .values("count")
-        )
-        qs = qs.annotate(real_numchild=Subquery(child_subquery, output_field=models.IntegerField())).exclude(
-            numchild=F("real_numchild")
-        )
-
-        if vendor != "mysql":
-            qs.update(numchild=F("real_numchild"))
-        else:
-            # Our friend MySQL doesn't support update queries that use a select from the same table
-            # So we have to update each object individually
-            to_update = []
-            for node in qs.iterator():
-                node.numchild = node.real_numchild
-                to_update.append(node)
-
-            result_class.objects.bulk_update(to_update, ["numchild"])
-
-    @classmethod
-    def fix_tree(cls, fix_paths=False, parent=None):
+        cls = self.tree_model
+
+        if parent is None:
+            # return the entire tree
+            return cls.objects.all()
+        if parent.is_leaf():
+            return cls.objects.filter(pk=parent.pk)
+        return cls.objects.filter(path__startswith=parent.path, depth__gte=parent.depth).order_by("path")
+
+    def fix_tree(self, fix_paths=False, parent=None):
         """
         Solves some problems that can appear when transactions are not used and
         a piece of code breaks, leaving the tree in an inconsistent state.
@@ -674,7 +143,7 @@ class MP_Node(Node):
 
             Fixing only part of a tree will only work if the parent itself is valid.
         """
-        cls = cls.tree_model()
+        cls = self.tree_model
 
         qs = cls.objects.filter(path__startswith=parent.path) if parent else cls.objects.all()
 
@@ -682,7 +151,7 @@ class MP_Node(Node):
         qs.exclude(depth=Length("path") / cls.steplen).update(depth=Length("path") / cls.steplen)
 
         # fix the numchild field
-        cls._fix_numchild(cls, qs)
+        self._fix_numchild(qs)
 
         if fix_paths:
             with transaction.atomic():
@@ -738,7 +207,7 @@ class MP_Node(Node):
                                     previous_max_path = cls._get_path(parent_path, depth, max_position - 1)
                                     raise PathOverflow(_(f"Path Overflow from: '{previous_max_path}'"))
 
-                                cls._rewrite_node_path(old_path, new_path)
+                                self._rewrite_node_path(old_path, new_path)
                                 # update actual_sequence to reflect the new position
                                 actual_sequence[max_position] = occupant
                                 del actual_sequence[desired_position]
@@ -747,7 +216,7 @@ class MP_Node(Node):
                             # move item into the (now vacated) desired position
                             old_path = item["path"]
                             new_path = cls._get_path(parent_path, depth, desired_position)
-                            cls._rewrite_node_path(old_path, new_path)
+                            self._rewrite_node_path(old_path, new_path)
                             # update actual_sequence to reflect the new position
                             actual_sequence[desired_position] = item
                             del actual_sequence[actual_position]
@@ -758,37 +227,349 @@ class MP_Node(Node):
                             # node into its final position, so it's safe to add to children_to_fix
                             children_to_fix.append((item["path"], depth + 1))
 
-    @classmethod
-    def _rewrite_node_path(cls, old_path, new_path):
-        queryset = cls.objects.filter(path__startswith=old_path)
+    def _rewrite_node_path(self, old_path, new_path):
+        queryset = self.tree_model.objects.filter(path__startswith=old_path)
         update_count = queryset.update(path=Concat(Value(new_path), Substr("path", len(old_path) + 1)))
         if update_count > 0:
-            path_updated.send(sender=cls, old_path=old_path, new_path=new_path, using=queryset.db)
+            path_updated.send(sender=self.tree_model, old_path=old_path, new_path=new_path, using=queryset.db)
 
-    @classmethod
-    def get_tree(cls, parent=None):
+    def _fix_numchild(self, qs):
+        vendor = connections[router.db_for_write(self.tree_model)].vendor
+        child_subquery = (
+            self.tree_model.objects.alias(path_length=Length("path"))
+            .order_by()
+            .filter(path__startswith=OuterRef("path"), path_length=Length(OuterRef("path")) + self.model.steplen)
+            .annotate(count=Func(F("pk"), function="Count"))
+            .values("count")
+        )
+        qs = qs.annotate(real_numchild=Subquery(child_subquery, output_field=models.IntegerField())).exclude(
+            numchild=F("real_numchild")
+        )
+
+        if vendor != "mysql":
+            qs.update(numchild=F("real_numchild"))
+        else:  # pragma: no cover
+            # Our friend MySQL doesn't support update queries that use a select from the same table
+            # So we have to update each object individually
+            to_update = []
+            for node in qs.iterator():
+                node.numchild = node.real_numchild
+                to_update.append(node)
+
+            self.tree_model.objects.bulk_update(to_update, ["numchild"])
+
+    def find_problems(self, parent=None):
         """
-        :returns:
+        Checks for problems in the tree structure, problems can occur when:
 
-            A *queryset* of nodes ordered as DFS, including the parent.
-            If no parent is given, the entire tree is returned.
+           1. your code breaks and you get incomplete transactions (always
+              use transactions!)
+           2. changing the ``steplen`` value in a model (you must
+              :meth:`dump_bulk` first, change ``steplen`` and then
+              :meth:`load_bulk`
+
+        :param parent:
+
+            If provided, limits the check to the descendants of this node.
+            If not provided, the entire tree will be checked.
+
+        :returns: A tuple of five lists:
+
+                  1. a list of ids of nodes with characters not found in the
+                     ``alphabet``
+                  2. a list of ids of nodes when a wrong ``path`` length
+                     according to ``steplen``
+                  3. a list of ids of orphaned nodes
+                  4. a list of ids of nodes with the wrong depth value for
+                     their path
+                  5. a list of ids nodes that report a wrong number of children
         """
-        cls = cls.tree_model()
+        cls = self.tree_model
 
-        if parent is None:
-            # return the entire tree
-            return cls.objects.all()
-        if parent.is_leaf():
-            return cls.objects.filter(pk=parent.pk)
-        return cls.objects.filter(path__startswith=parent.path, depth__gte=parent.depth).order_by("path")
+        if parent is not None:
+            qs = cls.objects.filter(path__startswith=parent.path)
+        else:
+            qs = cls.objects.all()
 
-    @classmethod
-    def get_root_nodes(cls):
+        evil_chars, bad_steplen, orphans = [], [], []
+        wrong_depth, wrong_numchild = [], []
+        for node in qs.iterator():
+            found_error = False
+            for char in node.path:
+                if char not in cls.alphabet:
+                    evil_chars.append(node.pk)
+                    found_error = True
+                    break
+            if found_error:
+                continue
+            if len(node.path) % cls.steplen:
+                bad_steplen.append(node.pk)
+                continue
+            try:
+                self.get_parent(node, update=True)
+            except cls.DoesNotExist:
+                orphans.append(node.pk)
+                continue
+
+            if node.depth != int(len(node.path) / cls.steplen):
+                wrong_depth.append(node.pk)
+                continue
+
+            real_numchild = (
+                cls.objects.alias(computed_depth=Length("path") / cls.steplen)
+                .filter(path__range=cls._get_children_path_interval(node.path), computed_depth=node.depth + 1)
+                .count()
+            )
+            if real_numchild != node.numchild:
+                wrong_numchild.append(node.pk)
+                continue
+
+        return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
+
+    @transaction.atomic
+    @check_create_args
+    def add_root(self, create_kwargs=None, *, instance=None):
+        """
+        Adds a root node to the tree.
+
+        This method saves the node in database. The object is populated as if via:
+
+        ```
+        obj = self.model(**create_kwargs)
+        ```
+
+        if create_kwargs are supplied. If an unsaved model `instance` is supplied, it is used directly.
+
+        :raise PathOverflow: when no more root objects can be added
+        """
+        # do we have a root node already?
+        last_root = self.get_last_root_node()
+
+        if last_root and last_root.node_order_by:
+            # There are root nodes and node_order_by has been set.
+            # Delegate sorted insertion to add_sibling.
+            # We must pass an instance here to ensure that the right object is created for
+            # models with multi-table inheritance.
+            return self.add_sibling(
+                last_root,
+                "sorted-sibling",
+                instance=instance or self.model(**create_kwargs),
+            )
+
+        if last_root:
+            # adding the new root node as the last one
+            newpath = last_root._inc_path()
+        else:
+            # adding the first root node
+            newpath = self.model._get_path(None, 1, 1)
+
+        newobj = instance or self.model(**create_kwargs)
+        newobj.depth = 1
+        newobj.path = newpath
+        # saving the instance before returning it
+        newobj.save(using=self._db)
+        return newobj
+
+    @transaction.atomic
+    @check_create_args
+    def add_child(self, target, create_kwargs=None, *, instance=None):
+        """
+        Adds a child to the node.
+
+        This method saves the node in database. The object is populated as if via:
+
+        ```
+        obj = self.__class__(**create_kwargs)
+        ```
+
+        if `create_kwargs` are supplied. If an unsaved model `instance` is supplied, it is used directly.
+
+        :raise PathOverflow: when no more child nodes can be added
+        """
+        # Lock the parent row
+        node = self.select_for_update().get(pk=target.pk)
+        if self.model.node_order_by and not node.is_leaf():
+            # there are child nodes and node_order_by has been set
+            # delegate sorted insertion to add_sibling
+            target.numchild += 1
+            return self.add_sibling(self.get_last_child(node), "sorted-sibling", create_kwargs, instance=instance)
+
+        newobj = instance or self.model(**create_kwargs)
+        newobj.depth = node.depth + 1
+
+        if node.is_leaf():
+            # the node had no children, adding the first child
+            newobj.path = self.model._get_path(node.path, newobj.depth, 1)
+            max_length = self.model._meta.get_field("path").max_length
+            if len(newobj.path) > max_length:
+                raise PathOverflow(
+                    _(
+                        "The new node is too deep in the tree, try"
+                        " increasing the path.max_length property"
+                        " and UPDATE your database"
+                    )
+                )
+        else:
+            # adding the new child as the last one
+            newobj.path = self.get_last_child(node)._inc_path()
+
+        # Increment numchild on the parent, and also update the object in memory in case the caller reuses it
+        self.tree_model.objects.filter(pk=node.pk).update(numchild=F("numchild") + 1)
+        target.numchild = node.numchild + 1
+
+        # saving the instance before returning it
+        newobj._cached_parent_obj = target
+        newobj.save(using=self._db)
+
+        return newobj
+
+    @transaction.atomic
+    @check_create_args
+    def add_sibling(self, target, pos=None, create_kwargs=None, *, instance=None):
+        """
+        Adds a new node as a sibling to the current node object.
+
+        This method saves the node in database. The object is populated as if via:
+
+        ```
+        obj = self.__class__(**create_kwargs)
+        ```
+
+        if `create_kwargs` are supplied. If an unsaved model `instance` is supplied, it is used directly.
+
+        :raise PathOverflow: when the library can't make room for the
+           node's new position
+        """
+        pos = self._prepare_pos_var_for_add_sibling(pos)
+
+        newobj = instance or self.model(**create_kwargs)
+        newobj.depth = target.depth
+
+        if pos == "sorted-sibling":
+            siblings = self.get_sorted_pos_queryset(self.get_siblings(target), newobj)
+            first = siblings.first()
+            newpos = first._get_lastpos_in_path() if first else None
+            if newpos is None:
+                pos = "last-sibling"
+        else:
+            newpos, siblings = None, []
+
+        _, newpath = self._reorder_nodes_before_add_or_move(pos, newpos, target.depth, target, siblings, None, False)
+
+        parentpath = target._get_basepath(newpath, target.depth - 1)
+
+        if parentpath:
+            self._increment_numchild(parentpath)
+
+        # saving the instance before returning it
+        newobj.path = newpath
+        newobj.save(using=self._db)
+
+        return newobj
+
+    @transaction.atomic
+    def move(self, node, target, pos=None):
+        """
+        Moves node and all its descendants to a new position
+        relative to another node.
+
+        :raise PathOverflow: when the library can't make room for the
+           node's new position
+        """
+        pos = self._prepare_pos_var_for_move(pos)
+
+        # initialize variables and if moving to a child, updates "move to
+        # child" to become a "move to sibling" if possible (if it can't
+        # be done, it means that we are  adding the first child)
+        target, newdepth, siblings, newpos, pos = self.update_move_to_child_vars(node=node, target=target, pos=pos)
+
+        if target.is_descendant_of(node):
+            raise InvalidMoveToDescendant(_("Can't move node to a descendant."))
+
+        if pos == "sorted-sibling":
+            siblings = self.get_sorted_pos_queryset(self.get_siblings(target), node)
+            if first := siblings.first():
+                newpos = first._get_lastpos_in_path()
+                if node._get_lastpos_in_path() == newpos - 1:
+                    # The node is already in the right place, nothing to do
+                    return
+            else:
+                newpos = None
+                pos = "last-sibling"
+
+        # Handle special cases where nothing needs to be done
+        if newdepth == node.get_depth():
+            if pos == "first-sibling" and node == self.get_first_sibling(target):
+                return
+
+            if pos == "last-sibling" and node == self.get_last_sibling(target):
+                return
+
+        if node == target and (
+            # Moving a node to left/right of itself is a noop
+            pos == "left" or (pos in ("right", "last-sibling") and target == self.get_last_sibling(target))
+        ):
+            return
+
+        # Move nodes
+        oldpath, newpath = self._reorder_nodes_before_add_or_move(
+            pos, newpos, newdepth, target, siblings, node.path, True
+        )
+
+        self.update_parent_counts_after_move(oldpath, newpath)
+        node.refresh_from_db()  # Node path and depth will have changed
+        target.refresh_from_db()
+
+    def update_parent_counts_after_move(self, oldpath, newpath):
+        """
+        Update the numchild value of parent nodes after performing a move.
+        """
+        oldparentpath = self.model._get_parent_path_from_path(oldpath)
+        newparentpath = self.model._get_parent_path_from_path(newpath)
+        if oldparentpath != newparentpath:
+            # node changed parent, updating counts
+            if oldparentpath:
+                self._decrement_numchild(oldparentpath)
+            if newparentpath:
+                self._increment_numchild(newparentpath)
+
+    def update_move_to_child_vars(self, node, target, pos):
+        """Update preliminary vars in :meth:`move` when moving to a child"""
+        newdepth = target.depth
+        newpos = None
+        siblings = []
+        if pos in ("first-child", "last-child", "sorted-child"):
+            if target == node:
+                raise InvalidMoveToDescendant(_("Can't move node to itself."))
+
+            # moving to a child
+            parent = target
+            newdepth += 1
+            if target.is_leaf():
+                # moving as a target's first child
+                newpos = 1
+                pos = "first-sibling"
+                siblings = self.tree_model.objects.none()
+            else:
+                target = self.get_last_child(target)
+                pos = {
+                    "first-child": "first-sibling",
+                    "last-child": "last-sibling",
+                    "sorted-child": "sorted-sibling",
+                }[pos]
+
+            # this is not for save(), since if needed, will be handled with a
+            # custom UPDATE, this is only here to update django's object,
+            # should be useful in loops
+            parent.numchild += 1
+
+        return target, newdepth, siblings, newpos, pos
+
+    def get_root_nodes(self):
         """:returns: A queryset containing the root nodes in the tree."""
-        return cls.tree_model().objects.filter(depth=1).order_by("path")
+        return self.tree_model.objects.filter(depth=1).order_by("path")
 
-    @classmethod
-    def get_descendants_group_count(cls, parent=None):
+    def get_descendants_group_count(self, parent=None):
         """
         Helper for a very common case: get a group of siblings and the number
         of *descendants* (not only children) in every sibling.
@@ -802,9 +583,9 @@ class MP_Node(Node):
 
             A Queryset of node objects with an extra attribute: `descendants_count`.
         """
-        cls = cls.tree_model()
+        cls = self.tree_model
 
-        qs = parent.get_children() if parent else cls.get_root_nodes()
+        qs = self.get_children(parent) if parent else cls.objects.get_root_nodes()
         subquery = (
             cls.objects.filter(path__startswith=OuterRef("path"))
             .order_by()
@@ -816,228 +597,9 @@ class MP_Node(Node):
         )  # Subtract the parent node from the count
         return qs
 
-    def get_depth(self):
-        """:returns: the depth (level) of the node"""
-        return self.depth
-
-    def get_siblings(self):
-        """
-        :returns: A queryset of all the node's siblings, including the node
-            itself.
-        """
-        qset = self.tree_model().objects.filter(depth=self.depth).order_by("path")
-        if self.depth > 1:
-            # making sure the non-root nodes share a parent
-            parentpath = self._get_basepath(self.path, self.depth - 1)
-            qset = qset.filter(path__range=self._get_children_path_interval(parentpath))
-        return qset
-
-    def get_children(self):
-        """:returns: A queryset of all the node's children"""
-        if self.is_leaf():
-            return self.tree_model().objects.none()
-        return (
-            self.tree_model()
-            .objects.filter(depth=self.depth + 1, path__range=self._get_children_path_interval(self.path))
-            .order_by("path")
-        )
-
-    def get_next_sibling(self):
-        """
-        :returns: The next node's sibling, or None if it was the rightmost
-            sibling.
-        """
-        return self.get_siblings().filter(path__gt=self.path).first()
-
-    def get_descendants(self, include_self=False):
-        """
-        :returns: A queryset of all the node's descendants as DFS, doesn't
-            include the node itself if `include_self` is False
-        """
-        if include_self:
-            return self.__class__.get_tree(self)
-        if self.is_leaf():
-            return self.tree_model().objects.none()
-        return self.__class__.get_tree(self).exclude(pk=self.pk)
-
-    def get_prev_sibling(self):
-        """
-        :returns: The previous node's sibling, or None if it was the leftmost
-            sibling.
-        """
-        return self.get_siblings().filter(path__lt=self.path).last()
-
-    def get_children_count(self):
-        """
-        :returns: The number the node's children, calculated in the most
-        efficient possible way.
-        """
-        return self.numchild
-
-    def is_sibling_of(self, node):
-        """
-        :returns: ``True`` if the node is a sibling of another node given as an
-            argument, else, returns ``False``
-        """
-        if self.depth != node.depth:
-            return False
-
-        if self.depth == 1:
-            return True  # Root nodes are always siblings
-
-        # making sure the non-root nodes share a parent
-        return node.path.startswith(self._get_basepath(self.path, self.depth - 1))
-
-    def is_child_of(self, node):
-        """
-        :returns: ``True`` is the node if a child of another node given as an
-            argument, else, returns ``False``
-        """
-        return self.path.startswith(node.path) and self.depth == node.depth + 1
-
-    def is_descendant_of(self, node):
-        """
-        :returns: ``True`` if the node is a descendant of another node given
-            as an argument, else, returns ``False``
-        """
-        return self.path.startswith(node.path) and self.depth > node.depth
-
-    @transaction.atomic
-    def add_child(self, **kwargs):
-        """
-        Adds a child to the node.
-
-        This method saves the node in database. The object is populated as if via:
-
-        ```
-        obj = self.__class__(**kwargs)
-        ```
-
-        :raise PathOverflow: when no more child nodes can be added
-        """
-        return MP_AddChildHandler(self, kwargs).process()
-
-    @transaction.atomic
-    def add_sibling(self, pos=None, **kwargs):
-        """
-        Adds a new node as a sibling to the current node object.
-
-        This method saves the node in database. The object is populated as if via:
-
-        ```
-        obj = self.__class__(**kwargs)
-        ```
-
-        :raise PathOverflow: when the library can't make room for the
-           node's new position
-        """
-        return MP_AddSiblingHandler(self, pos, kwargs).process()
-
-    def get_root(self):
-        """:returns: the root node for the current node object."""
-        if self.is_root():
-            return self
-
-        return self.tree_model().objects.get(path=self.path[0 : self.steplen])
-
-    def is_root(self):
-        """:returns: True if the node is a root node (else, returns False)"""
-        return self.depth == 1
-
-    def is_leaf(self):
-        """:returns: True if the node is a leaf node (else, returns False)"""
-        return self.numchild == 0
-
-    def get_ancestors(self):
-        """
-        :returns: A queryset containing the current node object's ancestors,
-            starting by the root node and descending to the parent.
-        """
-        if self.is_root():
-            return self.tree_model().objects.none()
-
-        # This is necessary to ensure the index is used as opposed to a table scan
-        paths = [self.path[0:pos] for pos in range(0, len(self.path), self.steplen)[1:]]
-        return self.tree_model().objects.filter(path__in=paths).order_by("depth")
-
-    def get_parent(self, update=False):
-        """
-        :returns: the parent node of the current node object.
-            Caches the result in the object itself to help in loops.
-        """
-        depth = int(len(self.path) / self.steplen)
-        if depth <= 1:
-            return
-        try:
-            if update:
-                del self._cached_parent_obj
-            else:
-                return self._cached_parent_obj
-        except AttributeError:
-            pass
-        parentpath = self._get_basepath(self.path, depth - 1)
-        self._cached_parent_obj = self.tree_model().objects.get(path=parentpath)
-        return self._cached_parent_obj
-
-    @transaction.atomic
-    def move(self, target, pos=None):
-        """
-        Moves the current node and all it's descendants to a new position
-        relative to another node.
-
-        :raise PathOverflow: when the library can't make room for the
-           node's new position
-        """
-        return MP_MoveHandler(self, target, pos).process()
-
-    @classmethod
-    def _get_basepath(cls, path, depth):
-        """:returns: The base path of another path up to a given depth"""
-        if path:
-            return path[0 : depth * cls.steplen]
-        return ""
-
-    @classmethod
-    def _get_path(cls, path, depth, newstep):
-        """
-        Builds a path given some values
-
-        :param path: the base path
-        :param depth: the depth of the  node
-        :param newstep: the value (integer) of the new step
-        """
-        parentpath = cls._get_basepath(path, depth - 1)
-        key = cls._int2str(newstep)
-        return f"{parentpath}{cls.alphabet[0] * (cls.steplen - len(key))}{key}"
-
-    def _inc_path(self):
-        """:returns: The path of the next sibling of a given node path."""
-        newpos = self._str2int(self.path[-self.steplen :]) + 1
-        key = self._int2str(newpos)
-        if len(key) > self.steplen:
-            raise PathOverflow(_(f"Path Overflow from: '{self.path}'"))
-        return f"{self.path[: -self.steplen]}{self.alphabet[0] * (self.steplen - len(key))}{key}"
-
-    def _get_lastpos_in_path(self):
-        """:returns: The integer value of the last step in a path."""
-        return self._str2int(self.path[-self.steplen :])
-
-    @classmethod
-    def _get_parent_path_from_path(cls, path):
-        """:returns: The parent path for a given path"""
-        if path:
-            return path[0 : len(path) - cls.steplen]
-        return ""
-
-    @classmethod
-    def _get_children_path_interval(cls, path):
-        """:returns: An interval of all possible children paths for a node."""
-        return (path + cls.alphabet[0] * cls.steplen, path + cls.alphabet[-1] * cls.steplen)
-
-    @classmethod
     @transaction.atomic
     def load_bulk(
-        cls,
+        self,
         bulk_data,
         parent=None,
         keep_ids=False,
@@ -1091,12 +653,12 @@ class MP_Node(Node):
         if not bulk_create:
             return super().load_bulk(bulk_data, parent=parent, keep_ids=keep_ids)
 
-        conn = connections[router.db_for_write(cls)]
+        conn = connections[router.db_for_write(self.model)]
         if not conn.features.can_return_rows_from_bulk_insert or conn.vendor == "microsoft":
             raise ValueError("Database backend does not support bulk load. Use load_bulk without bulk_create=True.")
 
         added = []
-        bulk_data = prepare_dumpdata_for_loading(cls, data=bulk_data, keep_ids=keep_ids)
+        bulk_data = prepare_dumpdata_for_loading(self.model, data=bulk_data, keep_ids=keep_ids)
         children_to_create = []
 
         def _build_children(parent_node, children) -> None:
@@ -1105,7 +667,7 @@ class MP_Node(Node):
             for i, child in enumerate(children):
                 child.object.depth = child_depth
                 child.object.numchild = len(child.children)
-                child.object.path = cls._get_path(parent_node.path, child_depth, i + 1)
+                child.object.path = self.model._get_path(parent_node.path, child_depth, i + 1)
 
                 children_to_create.append(child)
 
@@ -1116,16 +678,16 @@ class MP_Node(Node):
         for deserialized_obj in bulk_data:
             deserialized_obj.object.numchild = len(deserialized_obj.children)  # Set numchild manually
             node_obj = (
-                parent.add_child(instance=deserialized_obj.object)
+                self.add_child(parent, instance=deserialized_obj.object)
                 if parent
-                else cls.add_root(instance=deserialized_obj.object)
+                else self.add_root(instance=deserialized_obj.object)
             )
             save_m2m(node_obj, deserialized_obj)
             added.append(node_obj.pk)
             _build_children(node_obj, deserialized_obj.children)
 
         # Bulk create descendants
-        created = cls.objects.bulk_create([obj.object for obj in children_to_create], batch_size=batch_size)
+        created = self.bulk_create([obj.object for obj in children_to_create], batch_size=batch_size)
 
         # Save m2m relationships
         for obj, source in zip(created, children_to_create):
@@ -1135,22 +697,431 @@ class MP_Node(Node):
 
         return added
 
+    def dump_bulk(self, parent=None, keep_ids=True):
+        """Dumps a tree branch to a python data structure."""
+
+        cls = self.tree_model
+
+        # Because of fix_tree, this method assumes that the depth
+        # and numchild properties in the nodes can be incorrect,
+        # so no helper methods are used
+        qset = cls.objects.all().order_by("depth", "path")
+        if parent:
+            qset = qset.filter(path__startswith=parent.path)
+        ret, lnk = [], {}
+        pk_field = cls._meta.pk.attname
+        for pyobj in serializers.serialize("python", qset.iterator()):
+            # django's serializer stores the attributes in 'fields'
+            fields = pyobj["fields"]
+            path = fields["path"]
+            depth = int(len(path) / cls.steplen)
+            # this will be useless in load_bulk
+            del fields["depth"]
+            del fields["path"]
+            del fields["numchild"]
+            fields.pop(pk_field, None)  # this happens immediately after a load_bulk
+
+            newobj = {"data": fields}
+            if keep_ids:
+                newobj[pk_field] = pyobj["pk"]
+
+            if (not parent and depth == 1) or (parent and len(path) == len(parent.path)):
+                ret.append(newobj)
+            else:
+                parentpath = cls._get_basepath(path, depth - 1)
+                parentobj = lnk[parentpath]
+                if "children" not in parentobj:
+                    parentobj["children"] = []
+                parentobj["children"].append(newobj)
+            lnk[path] = newobj
+        return ret
+
+    def _increment_numchild(self, path):
+        self.tree_model.objects.filter(path=path).update(numchild=F("numchild") + 1)
+
+    def _decrement_numchild(self, path):
+        self.tree_model.objects.filter(path=path).update(numchild=F("numchild") - 1)
+
+    def _reorder_nodes_before_add_or_move(
+        self, pos, newpos, newdepth, target, siblings, oldpath=None, movebranch=False
+    ):
+        """
+        Handles the reordering of nodes and branches when adding/moving
+        nodes.
+
+        :returns: A tuple containing the old path and the new path.
+        """
+        if (pos == "last-sibling") or (pos == "right" and target == self.get_last_sibling(target)):
+            # easy, the last node
+            last = self.get_last_sibling(target)
+            newpath = last._inc_path()
+            if movebranch:
+                self._set_newpath_in_branches(oldpath, newpath)
+            return oldpath, newpath
+
+        if newpos is None:
+            siblings = self.get_siblings(target)
+            siblings = {
+                "left": siblings.filter(path__gte=target.path),
+                "right": siblings.filter(path__gt=target.path),
+                "first-sibling": siblings,
+            }[pos]
+            basenum = target._get_lastpos_in_path()
+            newpos = {"first-sibling": 1, "left": basenum, "right": basenum + 1}[pos]
+
+        newpath = self.model._get_path(target.path, newdepth, newpos)
+
+        # If the move is amongst siblings and is to the left and there
+        # are siblings to the right of its new position then to be on
+        # the safe side we temporarily dump it on the end of the list
+        tempnewpath = None
+        if movebranch and len(oldpath) == len(newpath):
+            parentoldpath = self.model._get_basepath(oldpath, int(len(oldpath) / self.model.steplen) - 1)
+            parentnewpath = self.model._get_basepath(newpath, newdepth - 1)
+            if parentoldpath == parentnewpath and siblings and newpath < oldpath:
+                last = self.get_last_sibling(target)
+                basenum = last._get_lastpos_in_path()
+                tempnewpath = self.model._get_path(newpath, newdepth, basenum + 2)
+                self._set_newpath_in_branches(oldpath, tempnewpath)
+
+        # Optimisation to only move siblings which need moving
+        # (i.e. if we've got holes, allow them to compress)
+        movesiblings = []
+        priorpath = newpath
+        for node in siblings:
+            # If the path of the node is already greater than the path
+            # of the previous node it doesn't need shifting
+            if node.path > priorpath:
+                break
+            # It does need shifting, so add to the list
+            movesiblings.append(node)
+            # Calculate the path that it would be moved to, as that's
+            # the next "priorpath"
+            priorpath = node._inc_path()
+        movesiblings.reverse()
+
+        for node in movesiblings:
+            # moving the siblings (and their branches) at the right of the
+            # related position one step to the right
+            _inc_path = node._inc_path()
+            self._set_newpath_in_branches(node.path, node._inc_path())
+
+            if movebranch:
+                if oldpath.startswith(node.path):
+                    # if moving to a parent, update oldpath since we just
+                    # increased the path of the entire branch
+                    oldpath = _inc_path + oldpath[len(_inc_path) :]
+                if target.path.startswith(node.path):
+                    # and if we moved the target, update the object
+                    # django made for us, since the update won't do it
+                    # maybe useful in loops
+                    target.path = _inc_path + target.path[len(_inc_path) :]
+        if movebranch:
+            # node to move
+            self._set_newpath_in_branches(tempnewpath or oldpath, newpath)
+        return oldpath, newpath
+
+    def _set_newpath_in_branches(self, oldpath, newpath):
+        """
+        .. note::
+
+           The query will only update depth values if needed.
+
+        """
+
+        new_path_value = Concat(Value(newpath), Substr("path", len(oldpath) + 1))
+        update_kwargs = {}
+
+        # Warning: MySQL processes multiple assigments left to right, using the updated value
+        # for any column that is referenced in a subsequent assignment. This behavior differs from standard SQL.
+        # See https://dev.mysql.com/doc/refman/8.4/en/update.html
+        # For a table with schema name (VARCHAR), length (INT) and row (name="bob", length=3), the query:
+        # `UPDATE table SET name='alice', length=LENGTH(name);`
+        # would set `length` to 5 in MySQL, but 3 on other databases, because they use the original source value.
+        # To avoid having to special case for MySQL, we need to supply the depth as the first parameter to
+        # update_kwargs.
+
+        if len(oldpath) != len(newpath):
+            update_kwargs["depth"] = Length(new_path_value) / self.model.steplen
+        update_kwargs["path"] = new_path_value
+
+        model = self.tree_model
+        queryset = model.objects.filter(path__startswith=oldpath)
+        update_count = queryset.update(**update_kwargs)
+        if update_count > 0:
+            path_updated.send(sender=model, old_path=oldpath, new_path=newpath, using=queryset.db)
+
+    def get_children(self, node):
+        """:returns: A queryset of all the node's children"""
+        if node.is_leaf():
+            return self.tree_model.objects.none()
+        return self.tree_model.objects.filter(
+            depth=node.depth + 1, path__range=node._get_children_path_interval(node.path)
+        ).order_by("path")
+
+    def get_children_count(self, node):
+        """
+        :returns: The number the node's children, calculated in the most
+        efficient possible way.
+        """
+        return node.numchild
+
+    def get_siblings(self, node):
+        """
+        :returns: A queryset of all the node's siblings, including the node
+            itself.
+        """
+        qset = self.tree_model.objects.filter(depth=node.depth).order_by("path")
+        if node.depth > 1:
+            # making sure the non-root nodes share a parent
+            parentpath = node._get_basepath(node.path, node.depth - 1)
+            qset = qset.filter(path__range=node._get_children_path_interval(parentpath))
+        return qset
+
+    def get_descendants(self, node, include_self=False):
+        """
+        :returns: A queryset of all the node's descendants as DFS, doesn't
+            include the node itself if `include_self` is False
+        """
+        manager = self.tree_model.objects
+        if include_self:
+            return manager.get_tree(node)
+        if node.is_leaf():
+            return manager.none()
+        return manager.get_tree(node).exclude(pk=node.pk)
+
+    def get_root(self, node):
+        """:returns: the root node for the current node object."""
+        if node.is_root():
+            return node
+
+        return self.tree_model.objects.get(path=node.path[0 : node.steplen])
+
+    def get_parent(self, node, update=False):
+        """
+        :returns: the parent node of the current node object.
+            Caches the result in the object itself to help in loops.
+        """
+        depth = int(len(node.path) / node.steplen)
+        if depth <= 1:
+            return
+        try:
+            if update:
+                del node._cached_parent_obj
+            else:
+                return node._cached_parent_obj
+        except AttributeError:
+            pass
+        parentpath = node._get_basepath(node.path, depth - 1)
+        node._cached_parent_obj = self.tree_model.objects.get(path=parentpath)
+        return node._cached_parent_obj
+
+    def get_ancestors(self, node):
+        """
+        :returns: A queryset containing the current node object's ancestors,
+            starting by the root node and descending to the parent.
+        """
+        if node.is_root():
+            return self.tree_model.objects.none()
+
+        # This is necessary to ensure the index is used as opposed to a table scan
+        paths = [node.path[0:pos] for pos in range(0, len(node.path), node.steplen)[1:]]
+        return self.tree_model.objects.filter(path__in=paths).order_by("depth")
+
+    def get_next_sibling(self, node):
+        """
+        :returns: The node's next sibling, or None if it was the rightmost
+            sibling.
+        """
+        return self.get_siblings(node).filter(path__gt=node.path).first()
+
+    def get_prev_sibling(self, node):
+        """
+        :returns: The node's previous sibling, or None if it was the leftmost
+            sibling.
+        """
+        return self.get_siblings(node).filter(path__lt=node.path).last()
+
+
+class MP_AddRootHandler:
+    def __init__(self, cls, **kwargs):
+        warnings.warn(
+            "MP_AddRootHandler is deprecated. Use Node.objects.add_root() instead.",
+            RemovedInTreebeard7Warning,
+            stacklevel=2,
+        )
+        self.cls = cls
+        self.kwargs = kwargs
+
+    def process(self):
+        instance = self.kwargs.pop("instance", None)
+        return self.cls.objects.add_root(self.kwargs, instance=instance)
+
+
+class MP_AddChildHandler:
+    def __init__(self, node, creation_kwargs: dict[str, Any]):
+        warnings.warn(
+            "MP_AddChildHandler is deprecated. Use Node.objects.add_child() instead.",
+            RemovedInTreebeard7Warning,
+            stacklevel=2,
+        )
+        self.node = node
+        self.kwargs = creation_kwargs
+
+    def process(self):
+        instance = self.kwargs.pop("instance", None)
+        return self.node.__class__.objects.add_child(self.node, self.kwargs, instance=instance)
+
+
+class MP_AddSiblingHandler:
+    def __init__(self, node, pos, creation_kwargs: dict[str, Any]):
+        warnings.warn(
+            "MP_AddSiblingHandler is deprecated. Use Node.objects.add_child() instead.",
+            RemovedInTreebeard7Warning,
+            stacklevel=2,
+        )
+        self.node = node
+        self.pos = pos
+        self.kwargs = creation_kwargs
+
+    def process(self):
+        instance = self.kwargs.pop("instance", None)
+        return self.node.__class__.objects.add_sibling(self.node, self.pos, self.kwargs, instance=instance)
+
+
+class MP_MoveHandler:
+    def __init__(self, node, target, pos=None):
+        warnings.warn(
+            "MP_MoveHandler is deprecated. Use Node.objects.move() instead.", RemovedInTreebeard7Warning, stacklevel=2
+        )
+        self.node = node
+        self.node_cls = node.__class__
+        self.target = target
+        self.pos = pos
+
+    def process(self):
+        return self.node.__class__.objects.move(self.node, self.target, self.pos)
+
+
+class MP_Node(Node):
+    """Abstract model to create your own Materialized Path Trees."""
+
+    steplen = 4
+    alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    node_order_by = []
+    path = models.CharField(max_length=255, unique=True)
+    depth = models.PositiveIntegerField()
+    numchild = models.PositiveIntegerField(default=0)
+
+    TREEBEARD_IDENTIFYING_FIELD = "path"
+    MOVENODE_FORM_EXCLUDED_FIELDS = ("path", "depth", "numchild")
+    _DEFAULT_TREEBEARD_MANAGER = MP_NodeManager
+
+    objects = MP_NodeManager()
+
+    numconv_obj_ = None
+
+    _cached_attributes = (
+        *Node._cached_attributes,
+        "_cached_parent_obj",
+    )
+
     @classmethod
-    def check(cls, **kwargs):
-        errors = super().check(**kwargs)
-        manager_cls = cls._default_manager.__class__
-        # Raise a warning if the default manager for the model doesn't subclass MP_NodeManager
-        # This will allow us to move class-level methods into the manager in future (see issue #44)
-        if not issubclass(manager_cls, MP_NodeManager):
-            errors.append(
-                checks.Warning(
-                    f"{manager_cls.__module__}.{manager_cls.__name__} does not subclass "
-                    "treebeard.mp_tree.MP_NodeManager. This will cause an error in Treebeard 6.",
-                    obj=manager_cls,
-                    id="treebeard.E001",
-                )
-            )
-        return errors
+    def _int2str(cls, num):
+        return cls.numconv_obj().int2str(num)
+
+    @classmethod
+    def _str2int(cls, num):
+        return cls.numconv_obj().str2int(num)
+
+    @classmethod
+    @cache
+    def numconv_obj(cls):
+        return NumConv(cls.alphabet)
+
+    def get_depth(self):
+        """:returns: the depth (level) of the node"""
+        return self.depth
+
+    def is_sibling_of(self, node):
+        """
+        :returns: ``True`` if the node is a sibling of another node given as an
+            argument, else, returns ``False``
+        """
+        if self.depth != node.depth:
+            return False
+
+        if self.depth == 1:
+            return True  # Root nodes are always siblings
+
+        # making sure the non-root nodes share a parent
+        return node.path.startswith(self._get_basepath(self.path, self.depth - 1))
+
+    def is_child_of(self, node):
+        """
+        :returns: ``True`` is the node if a child of another node given as an
+            argument, else, returns ``False``
+        """
+        return self.path.startswith(node.path) and self.depth == node.depth + 1
+
+    def is_descendant_of(self, node):
+        """
+        :returns: ``True`` if the node is a descendant of another node given
+            as an argument, else, returns ``False``
+        """
+        return self.path.startswith(node.path) and self.depth > node.depth
+
+    def is_root(self):
+        """:returns: True if the node is a root node (else, returns False)"""
+        return self.depth == 1
+
+    def is_leaf(self):
+        """:returns: True if the node is a leaf node (else, returns False)"""
+        return self.numchild == 0
+
+    @classmethod
+    def _get_basepath(cls, path, depth):
+        """:returns: The base path of another path up to a given depth"""
+        if path:
+            return path[0 : depth * cls.steplen]
+        return ""
+
+    @classmethod
+    def _get_path(cls, path, depth, newstep):
+        """
+        Builds a path given some values
+
+        :param path: the base path
+        :param depth: the depth of the  node
+        :param newstep: the value (integer) of the new step
+        """
+        parentpath = cls._get_basepath(path, depth - 1)
+        key = cls._int2str(newstep)
+        return f"{parentpath}{cls.alphabet[0] * (cls.steplen - len(key))}{key}"
+
+    def _inc_path(self):
+        """:returns: The path of the next sibling of a given node path."""
+        newpos = self._str2int(self.path[-self.steplen :]) + 1
+        key = self._int2str(newpos)
+        if len(key) > self.steplen:
+            raise PathOverflow(_(f"Path Overflow from: '{self.path}'"))
+        return f"{self.path[: -self.steplen]}{self.alphabet[0] * (self.steplen - len(key))}{key}"
+
+    def _get_lastpos_in_path(self):
+        """:returns: The integer value of the last step in a path."""
+        return self._str2int(self.path[-self.steplen :])
+
+    @classmethod
+    def _get_parent_path_from_path(cls, path):
+        """:returns: The parent path for a given path"""
+        if path:
+            return path[0 : len(path) - cls.steplen]
+        return ""
+
+    @classmethod
+    def _get_children_path_interval(cls, path):
+        """:returns: An interval of all possible children paths for a node."""
+        return (path + cls.alphabet[0] * cls.steplen, path + cls.alphabet[-1] * cls.steplen)
 
     class Meta:
         """Abstract model."""

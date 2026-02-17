@@ -4,11 +4,11 @@ from django.template import Library
 register = Library()
 
 
-def _get_parent_id(node):
+def _get_parent_id(node, model):
     """Return the node's parent id or 0 if node is a root node."""
     if node.is_root():
         return 0
-    return node.get_parent().pk
+    return model.objects.get_parent(node).pk
 
 
 @register.inclusion_tag("admin/change_list_results.html")
@@ -26,7 +26,7 @@ def tree_context(cl):
     return [
         {
             "node-id": str(obj.pk),
-            "parent-id": _get_parent_id(obj),
+            "parent-id": _get_parent_id(obj, cl.model),
             "level": obj.get_depth(),
             "has-children": int(not obj.is_leaf()),
         }
