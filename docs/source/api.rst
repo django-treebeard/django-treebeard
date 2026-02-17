@@ -7,61 +7,11 @@ API
 .. autoclass:: Node
   :show-inheritance:
 
-  This is the base class that defines the API of all tree models in this
-  library:
-
-     - :class:`treebeard.mp_tree.MP_Node` (materialized path)
-     - :class:`treebeard.ns_tree.NS_Node` (nested sets)
-     - :class:`treebeard.al_tree.AL_Node` (adjacency list)
+  This is the base class that defines the API of all tree models in this library.
 
   .. warning::
 
       Please be aware of the :doc:`caveats` when using this library.
-
-  .. automethod:: Node.add_root
-
-     Example:
-
-     .. code-block:: python
-
-        MyNode.add_root(numval=1, strval='abcd')
-
-     Or, to pass in an existing instance:
-
-     .. code-block:: python
-
-        new_node = MyNode(numval=1, strval='abcd')
-        MyNode.add_root(instance=new_node)
-
-  .. automethod:: add_child
-
-     Example:
-
-     .. code-block:: python
-
-        node.add_child(numval=1, strval='abcd')
-
-     Or, to pass in an existing instance:
-
-     .. code-block:: python
-
-        new_node = MyNode(numval=1, strval='abcd')
-        node.add_child(instance=new_node)
-
-  .. automethod:: add_sibling
-
-     Examples:
-
-     .. code-block:: python
-
-        node.add_sibling('sorted-sibling', numval=1, strval='abc')
-
-     Or, to pass in an existing instance:
-
-     .. code-block:: python
-
-        new_node = MyNode(numval=1, strval='abc')
-        node.add_sibling('sorted-sibling', instance=new_node)
 
   .. automethod:: delete
 
@@ -70,8 +20,6 @@ API
            Call our queryset's delete to handle children removal. Subclasses
            will handle extra maintenance.
 
-  .. automethod:: get_tree
-
   .. automethod:: get_depth
 
      Example:
@@ -79,118 +27,6 @@ API
      .. code-block:: python
 
         node.get_depth()
-
-  .. automethod:: get_ancestors
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_ancestors()
-
-  .. automethod:: get_children
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_children()
-
-  .. automethod:: get_children_count
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_children_count()
-
-  .. automethod:: get_descendants
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_descendants()
-
-  .. automethod:: get_descendant_count
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_descendant_count()
-
-  .. automethod:: get_first_child
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_first_child()
-
-  .. automethod:: get_last_child
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_last_child()
-
-  .. automethod:: get_first_sibling
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_first_sibling()
-
-  .. automethod:: get_last_sibling
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_last_sibling()
-
-  .. automethod:: get_prev_sibling
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_prev_sibling()
-
-  .. automethod:: get_next_sibling
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_next_sibling()
-
-  .. automethod:: get_parent
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_parent()
-
-  .. automethod:: get_root
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_root()
-
-  .. automethod:: get_siblings
-
-     Example:
-
-     .. code-block:: python
-
-        node.get_siblings()
 
   .. automethod:: is_child_of
 
@@ -232,6 +68,56 @@ API
 
         node.is_leaf()
 
+
+.. autoclass:: NodeManager
+
+  This is the base manager class for models subclassing ``Node``.
+
+  .. automethod:: NodeManager.add_root
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.add_root({"numval": 1, "strval"="abcd"})
+
+     Or, to pass in an existing instance:
+
+     .. code-block:: python
+
+        new_node = MyNode(numval=1, strval='abcd')
+        MyNode.objects.add_root(instance=new_node)
+
+  .. automethod:: add_child
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.add_child(node, {"numval": 1, "strval": "abcd"})
+
+     Or, to pass in an existing instance:
+
+     .. code-block:: python
+
+        new_node = MyNode(numval=1, strval='abcd')
+        MyNode.objects.add_child(node, instance=new_node)
+
+  .. automethod:: add_sibling
+
+     Examples:
+
+     .. code-block:: python
+
+        MyNode.objects.add_sibling(node, "sorted-sibling", {"numval": 1, "strval": "abc"})
+
+     Or, to pass in an existing instance:
+
+     .. code-block:: python
+
+        new_node = MyNode(numval=1, strval='abc')
+        MyNode.objects.add_sibling(node, "sorted-sibling", instance=new_node)
+
   .. automethod:: move
 
      .. note:: The node can be moved under another root node.
@@ -240,10 +126,10 @@ API
 
      .. code-block:: python
 
-        node.move(node2, 'sorted-child')
-        node.move(node2, 'prev-sibling')
+        MyNode.objects.move(node, target=node2, pos='sorted-child')
+        MyNode.move(node, target=node2, pos='prev-sibling')
 
-  .. automethod:: save
+  .. automethod:: get_tree
 
   .. automethod:: get_first_root_node
 
@@ -251,7 +137,7 @@ API
 
      .. code-block:: python
 
-        MyNodeModel.get_first_root_node()
+        MyNodeModel.objects.get_first_root_node()
 
   .. automethod:: get_last_root_node
 
@@ -259,7 +145,7 @@ API
 
      .. code-block:: python
 
-        MyNodeModel.get_last_root_node()
+        MyNodeModel.objects.get_last_root_node()
 
   .. automethod:: get_root_nodes
 
@@ -267,7 +153,120 @@ API
 
      .. code-block:: python
 
-        MyNodeModel.get_root_nodes()
+        MyNodeModel.objects.get_root_nodes()
+
+  .. automethod:: get_ancestors
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_ancestors(node)
+
+  .. automethod:: get_children
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_children(node)
+
+  .. automethod:: get_children_count
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_children_count(node)
+
+  .. automethod:: get_descendants
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_descendants(node)
+
+  .. automethod:: get_descendant_count
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_descendant_count(node)
+
+  .. automethod:: get_first_child
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_first_child(node)
+
+  .. automethod:: get_last_child
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_last_child(node)
+
+  .. automethod:: get_first_sibling
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_first_sibling(node)
+
+  .. automethod:: get_last_sibling
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_last_sibling(node)
+
+  .. automethod:: get_prev_sibling
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_prev_sibling(node)
+
+  .. automethod:: get_next_sibling
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_next_sibling(node)
+
+  .. automethod:: get_parent
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_parent(node)
+
+  .. automethod:: get_root
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.get_root(node)
+
+  .. automethod:: get_siblings
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.object.get_siblings(node)
+
 
   .. automethod:: load_bulk
 
@@ -301,7 +300,7 @@ API
                     ]},
             ]
             # parent = None
-            MyNodeModel.load_bulk(data, None)
+            MyNodeModel.objects.load_bulk(data, None)
 
      Will create:
 
@@ -323,12 +322,8 @@ API
 
      .. code-block:: python
 
-        tree = MyNodeModel.dump_bulk()
-        branch = MyNodeModel.dump_bulk(node_obj)
-
-  .. automethod:: find_problems
-
-  .. automethod:: fix_tree
+        tree = MyNodeModel.objects.dump_bulk()
+        branch = MyNodeModel.objects.dump_bulk(node_obj)
 
   .. automethod:: get_descendants_group_count
 
@@ -345,12 +340,11 @@ API
 
   .. automethod:: get_annotated_list
 
-
      Example:
 
      .. code-block:: python
 
-        annotated_list = MyModel.get_annotated_list()
+        annotated_list = MyModel.objects.get_annotated_list()
 
      With data:
 
@@ -399,8 +393,6 @@ API
         This method was contributed originally by
         `Alexey Kinyov <rudi@05bit.com>`_, using an idea borrowed from
         `django-mptt`_.
-
-     .. versionadded:: 1.55
 
 
   .. automethod:: get_annotated_list_qs

@@ -23,13 +23,13 @@ def create_nodes(cls):
     """
     roots = []
     for i in range(5):
-        roots.append(cls.add_root(desc=f"root-{i}"))
+        roots.append(cls.add_root({"desc": f"root-{i}"}))
 
     for root in roots:
         depth = 1
         node = root
         while depth < 20:
-            node = node.add_child(desc=f"{root.desc}-child-{depth}")
+            node = node.add_child({"desc": f"{root.desc}-child-{depth}"})
             depth += 1
 
 
@@ -39,11 +39,11 @@ def create_sorted_nodes(cls):
     """
     roots = []
     for i in range(5):
-        roots.append(cls.add_root(desc=f"root-{i}", val1=randint(0, 100), val2=randint(0, 100)))
+        roots.append(cls.add_root({"desc": f"root-{i}", "val1": randint(0, 100), "val2": randint(0, 100)}))
 
     for root in roots:
         for n in range(20):
-            root.add_child(desc=f"{root.desc}-child-{n}", val1=randint(0, 100), val2=randint(0, 100))
+            root.add_child({"desc": f"{root.desc}-child-{n}", "val1": randint(0, 100), "val2": randint(0, 100)})
 
 
 def get_descendants(cls):
@@ -61,17 +61,17 @@ def move(cls):
     """
     root = cls.objects.get(desc="root-1")
     child = cls.objects.get(desc="root-2-child-18")
-    root.move(child, "first-sibling")
+    cls.objects.move(root, child, "first-sibling")
 
     child = cls.objects.get(desc="root-3-child-18")
     root = cls.objects.get(desc="root-2")
-    child.move(root, "first-sibling")
+    cls.objects.move(child, root, "first-sibling")
 
 
 def move_sorted(cls):
     root = cls.objects.get(desc="root-1")
     child = cls.objects.get(desc="root-2-child-18")
-    root.move(child, "sorted-sibling")
+    cls.objects.move(root, child, "sorted-sibling")
 
 
 def delete(cls):

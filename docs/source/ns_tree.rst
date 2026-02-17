@@ -67,15 +67,22 @@ write/delete operations.
 
      ``PositiveIntegerField``
 
+
   .. automethod:: get_tree
 
         See: :meth:`treebeard.models.Node.get_tree`
 
-        .. note::
 
-            This method returns a queryset.
+.. autoclass:: NS_NodeManager
+  :show-inheritance:
 
   .. automethod:: find_problems
+
+   Example:
+
+     .. code-block:: python
+
+        MyNodeModel.objects.find_problems()
 
      .. note::
 
@@ -86,16 +93,6 @@ write/delete operations.
      .. note::
 
         These problems can't be solved automatically.
-
-     Example:
-
-     .. code-block:: python
-
-        MyNodeModel.find_problems()
-
-
-.. autoclass:: NS_NodeManager
-  :show-inheritance:
 
 .. autoclass:: NS_NodeQuerySet
   :show-inheritance:
