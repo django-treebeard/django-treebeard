@@ -67,6 +67,12 @@ write/delete operations.
 
      ``PositiveIntegerField``
 
+.. autoclass:: NS_NodeManager
+  :show-inheritance:
+
+.. autoclass:: NS_NodeQuerySet
+  :show-inheritance:
+
   .. automethod:: get_tree
 
         See: :meth:`treebeard.models.Node.get_tree`
@@ -74,13 +80,6 @@ write/delete operations.
         .. note::
 
             This method returns a queryset.
-
-
-.. autoclass:: NS_NodeManager
-  :show-inheritance:
-
-.. autoclass:: NS_NodeQuerySet
-  :show-inheritance:
 
 
 

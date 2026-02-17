@@ -198,7 +198,6 @@ extra steps, materialized path is more efficient than other approaches.
 
         ``django-treebeard`` uses `numconv`_ for path encoding.
 
-
   .. attribute:: depth
 
      ``PositiveIntegerField``, depth of a node in the tree. A root node
@@ -207,10 +206,6 @@ extra steps, materialized path is more efficient than other approaches.
   .. attribute:: numchild
 
      ``PositiveIntegerField``, the number of children of the node.
-
-  .. automethod:: add_root
-
-     See: :meth:`treebeard.models.Node.add_root`
 
   .. automethod:: add_child
 
@@ -223,14 +218,22 @@ extra steps, materialized path is more efficient than other approaches.
   .. automethod:: move
 
      See: :meth:`treebeard.models.Node.move`
+  
+
+.. autoclass:: MP_NodeManager
+  :show-inheritance:
 
   .. automethod:: get_tree
 
-     See: :meth:`treebeard.models.Node.get_tree`
+     See: :meth:`treebeard.models.NodeManager.get_tree`
 
      .. note::
 
         This method returns a queryset.
+
+  .. automethod:: add_root
+
+     See: :meth:`treebeard.models.NodeManager.add_root`
 
   .. automethod:: find_problems
 
@@ -248,20 +251,15 @@ extra steps, materialized path is more efficient than other approaches.
 
      .. code-block:: python
 
-        MyNodeModel.find_problems()
-
+        MyNodeModel.objects.find_problems()
+  
   .. automethod:: fix_tree
 
      Example:
 
      .. code-block:: python
 
-        MyNodeModel.fix_tree()
-
-
-
-.. autoclass:: MP_NodeManager
-  :show-inheritance:
+        MyNodeModel.objects.fix_tree()
 
 .. autoclass:: MP_NodeQuerySet
   :show-inheritance:

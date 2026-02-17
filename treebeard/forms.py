@@ -102,7 +102,7 @@ class MoveNodeForm(forms.ModelForm):
         Excludes the instance and its descendants since a move relative to those would be invalid
         """
         if issubclass(opts.model, AL_Node):
-            choices = opts.model.get_tree()
+            choices = opts.model.objects.get_tree()
             descendants = instance.get_descendants(include_self=True) if instance else []
             field = self.fields["treebeard_ref_node"]
             self.fields["treebeard_ref_node"]._choices = [("", "--------")] + [
@@ -116,7 +116,7 @@ class MoveNodeForm(forms.ModelForm):
             self.fields["treebeard_ref_node"].queryset = opts.model.objects.all()
             return
 
-        queryset = opts.model.get_tree()
+        queryset = opts.model.objects.get_tree()
         descendants = instance.get_descendants(include_self=True) if instance else None
         if descendants:
             queryset = queryset.exclude(pk__in=descendants.values_list("pk", flat=True))
@@ -165,14 +165,14 @@ class MoveNodeForm(forms.ModelForm):
                 self.instance = reference_node.add_child(instance=self.instance)
                 self.instance.move(reference_node, pos=position_type)
             else:
-                self.instance = self._meta.model.add_root(instance=self.instance)
+                self.instance = self._meta.model.objects.add_root(instance=self.instance)
         else:
             self.instance.save()
             if reference_node:
                 self.instance.move(reference_node, pos=position_type)
             else:
                 pos = "sorted-sibling" if self.is_sorted else "first-sibling"
-                self.instance.move(self._meta.model.get_first_root_node(), pos)
+                self.instance.move(self._meta.model.objects.get_first_root_node(), pos)
         # Reload the instance
         self.instance.refresh_from_db()
         super().save(commit=commit)

@@ -6,10 +6,10 @@ from django.db.models import Max, Min
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
-from treebeard.models import Node
+from treebeard.models import Node, NodeManager
 
 
-class AL_NodeManager(models.Manager):
+class AL_NodeManager(NodeManager):
     """Custom manager for nodes in an Adjacency List tree."""
 
     def get_queryset(self):
@@ -19,6 +19,90 @@ class AL_NodeManager(models.Manager):
         else:
             order_by = ["parent", "sib_order"]
         return super().get_queryset().order_by(*order_by)
+
+    def get_tree(self, parent=None):
+        """
+        :returns: A list of nodes ordered as DFS, including the parent. If
+                  no parent is given, the entire tree is returned.
+        """
+        if parent:
+            depth = parent.get_depth() + 1
+            results = [parent]
+        else:
+            depth = 1
+            results = []
+        self._get_tree_recursively(results, parent, depth)
+        return results
+
+    def _get_tree_recursively(self, results, parent, depth):
+        if parent:
+            nodes = parent.get_children()
+        else:
+            nodes = self.get_root_nodes()
+        for node in nodes:
+            node._cached_depth = depth
+            results.append(node)
+            self._get_tree_recursively(results, node, depth + 1)
+
+    @transaction.atomic
+    def add_root(self, **kwargs):
+        """Adds a root node to the tree."""
+
+        if len(kwargs) == 1 and "instance" in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs["instance"]
+            if not newobj._state.adding:
+                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
+        else:
+            newobj = self.model(**kwargs)
+
+        newobj._cached_depth = 1
+        if not self.model.node_order_by:
+            max = (
+                self.model.tree_model().objects.filter(parent__isnull=True).aggregate(max=Max("sib_order"))["max"] or 0
+            )
+            newobj.sib_order = max + 1
+        newobj.save()
+        return newobj
+
+    def get_root_nodes(self):
+        """:returns: A queryset containing the root nodes in the tree."""
+        return self.model.tree_model().objects.filter(parent__isnull=True)
+
+    def dump_bulk(self, parent=None, keep_ids=True):
+        """Dumps a tree branch to a python data structure."""
+
+        # a list of nodes: not really a queryset, but it works
+        objs = self.get_tree(parent)
+
+        ret, lnk = [], {}
+        pk_field = self.model._meta.pk.attname
+        for node, pyobj in zip(objs, serializers.serialize("python", objs)):
+            depth = node.get_depth()
+            # django's serializer stores the attributes in 'fields'
+            fields = pyobj["fields"]
+            del fields["parent"]
+
+            # non-sorted trees have this
+            if "sib_order" in fields:
+                del fields["sib_order"]
+
+            if pk_field in fields:
+                del fields[pk_field]
+
+            newobj = {"data": fields}
+            if keep_ids:
+                newobj[pk_field] = pyobj["pk"]
+
+            if (not parent and depth == 1) or (parent and depth == parent.get_depth()):
+                ret.append(newobj)
+            else:
+                parentobj = lnk[node.parent_id]
+                if "children" not in parentobj:
+                    parentobj["children"] = []
+                parentobj["children"].append(newobj)
+            lnk[node.pk] = newobj
+        return ret
 
 
 class AL_Node(Node):
@@ -34,31 +118,6 @@ class AL_Node(Node):
         *Node._cached_attributes,
         "_cached_depth",
     )
-
-    @classmethod
-    @transaction.atomic
-    def add_root(cls, **kwargs):
-        """Adds a root node to the tree."""
-
-        if len(kwargs) == 1 and "instance" in kwargs:
-            # adding the passed (unsaved) instance to the tree
-            newobj = kwargs["instance"]
-            if not newobj._state.adding:
-                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
-        else:
-            newobj = cls(**kwargs)
-
-        newobj._cached_depth = 1
-        if not cls.node_order_by:
-            max = cls.tree_model().objects.filter(parent__isnull=True).aggregate(max=Max("sib_order"))["max"] or 0
-            newobj.sib_order = max + 1
-        newobj.save()
-        return newobj
-
-    @classmethod
-    def get_root_nodes(cls):
-        """:returns: A queryset containing the root nodes in the tree."""
-        return cls.tree_model().objects.filter(parent__isnull=True)
 
     def get_depth(self, update=False):
         """
@@ -142,42 +201,6 @@ class AL_Node(Node):
         """
         return self.pk in (obj.pk for obj in node.get_descendants())
 
-    @classmethod
-    def dump_bulk(cls, parent=None, keep_ids=True):
-        """Dumps a tree branch to a python data structure."""
-
-        # a list of nodes: not really a queryset, but it works
-        objs = cls.get_tree(parent)
-
-        ret, lnk = [], {}
-        pk_field = cls._meta.pk.attname
-        for node, pyobj in zip(objs, serializers.serialize("python", objs)):
-            depth = node.get_depth()
-            # django's serializer stores the attributes in 'fields'
-            fields = pyobj["fields"]
-            del fields["parent"]
-
-            # non-sorted trees have this
-            if "sib_order" in fields:
-                del fields["sib_order"]
-
-            if pk_field in fields:
-                del fields[pk_field]
-
-            newobj = {"data": fields}
-            if keep_ids:
-                newobj[pk_field] = pyobj["pk"]
-
-            if (not parent and depth == 1) or (parent and depth == parent.get_depth()):
-                ret.append(newobj)
-            else:
-                parentobj = lnk[node.parent_id]
-                if "children" not in parentobj:
-                    parentobj["children"] = []
-                parentobj["children"].append(newobj)
-            lnk[node.pk] = newobj
-        return ret
-
     @transaction.atomic
     def add_child(self, **kwargs):
         """Adds a child to the node."""
@@ -202,40 +225,14 @@ class AL_Node(Node):
         newobj.save()
         return newobj
 
-    @classmethod
-    def _get_tree_recursively(cls, results, parent, depth):
-        if parent:
-            nodes = parent.get_children()
-        else:
-            nodes = cls.get_root_nodes()
-        for node in nodes:
-            node._cached_depth = depth
-            results.append(node)
-            cls._get_tree_recursively(results, node, depth + 1)
-
-    @classmethod
-    def get_tree(cls, parent=None):
-        """
-        :returns: A list of nodes ordered as DFS, including the parent. If
-                  no parent is given, the entire tree is returned.
-        """
-        if parent:
-            depth = parent.get_depth() + 1
-            results = [parent]
-        else:
-            depth = 1
-            results = []
-        cls._get_tree_recursively(results, parent, depth)
-        return results
-
     def get_descendants(self, include_self=False):
         """
         :returns: A *list* of all the node's descendants, doesn't
             include the node itself if `include_self` is False
         """
         if include_self:
-            return self.__class__.get_tree(self)
-        return self.__class__.get_tree(parent=self)[1:]
+            return self.__class__.objects.get_tree(self)
+        return self.__class__.objects.get_tree(parent=self)[1:]
 
     def get_descendant_count(self):
         """:returns: the number of descendants of a nodee"""
@@ -248,7 +245,7 @@ class AL_Node(Node):
         """
         if self.parent_id:
             return self.tree_model().objects.filter(parent_id=self.parent_id)
-        return self.__class__.get_root_nodes()
+        return self.__class__.objects.get_root_nodes()
 
     def get_prev_sibling(self):
         return self.get_siblings().filter(sib_order__lt=self.sib_order).last()

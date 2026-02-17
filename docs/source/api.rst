@@ -8,30 +8,11 @@ API
   :show-inheritance:
 
   This is the base class that defines the API of all tree models in this
-  library:
-
-     - :class:`treebeard.mp_tree.MP_Node` (materialized path)
-     - :class:`treebeard.ns_tree.NS_Node` (nested sets)
-     - :class:`treebeard.al_tree.AL_Node` (adjacency list)
+  library.
 
   .. warning::
 
       Please be aware of the :doc:`caveats` when using this library.
-
-  .. automethod:: Node.add_root
-
-     Example:
-
-     .. code-block:: python
-
-        MyNode.add_root(numval=1, strval='abcd')
-
-     Or, to pass in an existing instance:
-
-     .. code-block:: python
-
-        new_node = MyNode(numval=1, strval='abcd')
-        MyNode.add_root(instance=new_node)
 
   .. automethod:: add_child
 
@@ -69,8 +50,6 @@ API
 
            Call our queryset's delete to handle children removal. Subclasses
            will handle extra maintenance.
-
-  .. automethod:: get_tree
 
   .. automethod:: get_depth
 
@@ -245,13 +224,39 @@ API
 
   .. automethod:: save
 
+  .. automethod:: find_problems
+
+  .. automethod:: fix_tree
+
+
+.. autoclass:: NodeManager
+
+  This is the base manager class for models subclassing ``Node``.
+
+  .. automethod:: NodeManager.add_root
+
+     Example:
+
+     .. code-block:: python
+
+        MyNode.objects.add_root(numval=1, strval='abcd')
+
+     Or, to pass in an existing instance:
+
+     .. code-block:: python
+
+        new_node = MyNode(numval=1, strval='abcd')
+        MyNode.objects.add_root(instance=new_node)
+
+  .. automethod:: get_tree
+
   .. automethod:: get_first_root_node
 
      Example:
 
      .. code-block:: python
 
-        MyNodeModel.get_first_root_node()
+        MyNodeModel.objects.get_first_root_node()
 
   .. automethod:: get_last_root_node
 
@@ -259,7 +264,7 @@ API
 
      .. code-block:: python
 
-        MyNodeModel.get_last_root_node()
+        MyNodeModel.objects.get_last_root_node()
 
   .. automethod:: get_root_nodes
 
@@ -267,7 +272,7 @@ API
 
      .. code-block:: python
 
-        MyNodeModel.get_root_nodes()
+        MyNodeModel.objects.get_root_nodes()
 
   .. automethod:: load_bulk
 
@@ -309,7 +314,7 @@ API
                     ]},
             ]
             # parent = None
-            MyNodeModel.load_bulk(data, None)
+            MyNodeModel.objects.load_bulk(data, None)
 
      Will create:
 
@@ -331,8 +336,8 @@ API
 
      .. code-block:: python
 
-        tree = MyNodeModel.dump_bulk()
-        branch = MyNodeModel.dump_bulk(node_obj)
+        tree = MyNodeModel.objects.dump_bulk()
+        branch = MyNodeModel.objects.dump_bulk(node_obj)
 
   .. automethod:: find_problems
 
@@ -353,12 +358,11 @@ API
 
   .. automethod:: get_annotated_list
 
-
      Example:
 
      .. code-block:: python
 
-        annotated_list = MyModel.get_annotated_list()
+        annotated_list = MyModel.objects.get_annotated_list()
 
      With data:
 
@@ -407,8 +411,6 @@ API
         This method was contributed originally by
         `Alexey Kinyov <rudi@05bit.com>`_, using an idea borrowed from
         `django-mptt`_.
-
-     .. versionadded:: 1.55
 
 
   .. automethod:: get_annotated_list_qs

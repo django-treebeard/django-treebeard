@@ -79,7 +79,7 @@ UNCHANGED = [
 
 @pytest.fixture(scope="function", params=models.BASE_MODELS + models.PROXY_MODELS)
 def model(request):
-    request.param.load_bulk(BASE_DATA)
+    request.param.objects.load_bulk(BASE_DATA)
     return request.param
 
 
@@ -90,7 +90,7 @@ def model_without_data(request):
 
 @pytest.fixture(scope="function", params=models.BASE_MODELS)
 def model_without_proxy(request):
-    request.param.load_bulk(BASE_DATA)
+    request.param.objects.load_bulk(BASE_DATA)
     return request.param
 
 
@@ -142,10 +142,10 @@ class TestTreeBase:
                 good_edges = list(range(1, len(got_edges) + 1))
                 assert sorted(got_edges) == good_edges
 
-        return [(o.desc, o.get_depth(), o.get_children_count()) for o in model.get_tree()]
+        return [(o.desc, o.get_depth(), o.get_children_count()) for o in model.objects.get_tree()]
 
     def _assert_get_annotated_list(self, model, expected, parent=None):
-        results = model.get_annotated_list(parent)
+        results = model.objects.get_annotated_list(parent)
         got = [(obj[0].desc, obj[1]["open"], obj[1]["close"], obj[1]["level"]) for obj in results]
         assert expected == got
         assert all(isinstance(obj[0], model) for obj in results)
@@ -154,35 +154,35 @@ class TestTreeBase:
 @pytest.mark.django_db
 class TestEmptyTree(TestTreeBase):
     def test_load_bulk_empty(self, model_without_data):
-        ids = model_without_data.load_bulk(BASE_DATA)
+        ids = model_without_data.objects.load_bulk(BASE_DATA)
         got_descs = [obj.desc for obj in model_without_data.objects.filter(pk__in=ids)]
         expected_descs = [x[0] for x in UNCHANGED]
         assert sorted(got_descs) == sorted(expected_descs)
         assert self.got(model_without_data) == UNCHANGED
 
     def test_dump_bulk_empty(self, model_without_data):
-        assert model_without_data.dump_bulk() == []
+        assert model_without_data.objects.dump_bulk() == []
 
     def test_add_root_empty(self, model_without_data):
-        model_without_data.add_root(desc="1")
+        model_without_data.objects.add_root(desc="1")
         expected = [("1", 1, 0)]
         assert self.got(model_without_data) == expected
 
     def test_get_root_nodes_empty(self, model_without_data):
-        got = model_without_data.get_root_nodes()
+        got = model_without_data.objects.get_root_nodes()
         expected = []
         assert [node.desc for node in got] == expected
 
     def test_get_first_root_node_empty(self, model_without_data):
-        got = model_without_data.get_first_root_node()
+        got = model_without_data.objects.get_first_root_node()
         assert got is None
 
     def test_get_last_root_node_empty(self, model_without_data):
-        got = model_without_data.get_last_root_node()
+        got = model_without_data.objects.get_last_root_node()
         assert got is None
 
     def test_get_tree(self, model_without_data):
-        got = list(model_without_data.get_tree())
+        got = list(model_without_data.objects.get_tree())
         assert got == []
 
     def test_get_annotated_list(self, model_without_data):
@@ -190,10 +190,10 @@ class TestEmptyTree(TestTreeBase):
         self._assert_get_annotated_list(model_without_data, expected)
 
     def test_add_multiple_root_nodes_adds_sibling_leaves(self, model_without_data):
-        model_without_data.add_root(desc="1")
-        model_without_data.add_root(desc="2")
-        model_without_data.add_root(desc="3")
-        model_without_data.add_root(desc="4")
+        model_without_data.objects.add_root(desc="1")
+        model_without_data.objects.add_root(desc="2")
+        model_without_data.objects.add_root(desc="3")
+        model_without_data.objects.add_root(desc="4")
         # these are all sibling root nodes (depth=1), and leaf nodes (children=0)
         expected = [("1", 1, 0), ("2", 1, 0), ("3", 1, 0), ("4", 1, 0)]
         assert self.got(model_without_data) == expected
@@ -208,7 +208,7 @@ class TestClassMethods(TestNonEmptyTree):
     def test_load_bulk_existing(self, model):
         # inserting on an existing node
         node = model.objects.get(desc="231")
-        ids = model.load_bulk(BASE_DATA, node)
+        ids = model.objects.load_bulk(BASE_DATA, node)
         expected = [
             ("1", 1, 0),
             ("2", 1, 4),
@@ -239,24 +239,24 @@ class TestClassMethods(TestNonEmptyTree):
     def test_get_tree_all(self, model, django_assert_max_num_queries):
         max_queries = 11 if issubclass(model, AL_Node) else 1
         with django_assert_max_num_queries(max_queries):
-            nodes = model.get_tree()
+            nodes = model.objects.get_tree()
         got = [(o.desc, o.get_depth(), o.get_children_count()) for o in nodes]
         assert got == UNCHANGED
         assert all(isinstance(o, model) for o in nodes)
 
     def test_dump_bulk_all(self, model):
-        assert model.dump_bulk(keep_ids=False) == BASE_DATA
+        assert model.objects.dump_bulk(keep_ids=False) == BASE_DATA
 
     def test_get_tree_node(self, model, django_assert_max_num_queries):
         node = model.objects.get(desc="231")
-        model.load_bulk(BASE_DATA, node)
+        model.objects.load_bulk(BASE_DATA, node)
 
         # the tree was modified by load_bulk, so we reload our node object
         node = model.objects.get(pk=node.pk)
 
         max_queries = 13 if issubclass(model, AL_Node) else 1
         with django_assert_max_num_queries(max_queries):
-            nodes = model.get_tree(node)
+            nodes = model.objects.get_tree(node)
 
         got = [(o.desc, o.get_depth(), o.get_children_count()) for o in nodes]
         expected = [
@@ -281,7 +281,7 @@ class TestClassMethods(TestNonEmptyTree):
         assert 0 == node.get_children_count()
 
         with django_assert_max_num_queries(1):
-            nodes = model.get_tree(node)
+            nodes = model.objects.get_tree(node)
         got = [(o.desc, o.get_depth(), o.get_children_count()) for o in nodes]
         expected = [("1", 1, 0)]
         assert got == expected
@@ -326,23 +326,23 @@ class TestClassMethods(TestNonEmptyTree):
 
     def test_dump_bulk_node(self, model):
         node = model.objects.get(desc="231")
-        model.load_bulk(BASE_DATA, node)
+        model.objects.load_bulk(BASE_DATA, node)
 
         # the tree was modified by load_bulk, so we reload our node object
         node = model.objects.get(pk=node.pk)
 
-        got = model.dump_bulk(node, False)
+        got = model.objects.dump_bulk(node, False)
         expected = [{"data": {"desc": "231"}, "children": BASE_DATA}]
         assert got == expected
 
     def test_load_and_dump_bulk_keeping_ids(self, model):
-        exp = model.dump_bulk(keep_ids=True)
+        exp = model.objects.dump_bulk(keep_ids=True)
         model.objects.all().delete()
-        model.load_bulk(exp, None, True)
-        got = model.dump_bulk(keep_ids=True)
+        model.objects.load_bulk(exp, None, True)
+        got = model.objects.dump_bulk(keep_ids=True)
         assert got == exp
         # do we really have an unchanged tree after the dump/delete/load?
-        got = [(o.desc, o.get_depth(), o.get_children_count()) for o in model.get_tree()]
+        got = [(o.desc, o.get_depth(), o.get_children_count()) for o in model.objects.get_tree()]
         assert got == UNCHANGED
 
     def test_load_and_dump_bulk_with_fk(self, related_model):
@@ -374,48 +374,48 @@ class TestClassMethods(TestNonEmptyTree):
                 ],
             },
         ]
-        related_model.load_bulk(related_data)
-        got = related_model.dump_bulk(keep_ids=False)
+        related_model.objects.load_bulk(related_data)
+        got = related_model.objects.dump_bulk(keep_ids=False)
         assert got == related_data
 
     def test_get_root_nodes(self, model, django_assert_max_num_queries):
         with django_assert_max_num_queries(1):
-            got = model.get_root_nodes()
+            got = model.objects.get_root_nodes()
         expected = ["1", "2", "3", "4"]
         assert [node.desc for node in got] == expected
         assert all(isinstance(node, model) for node in got)
 
     def test_get_first_root_node(self, model, django_assert_max_num_queries):
         with django_assert_max_num_queries(1):
-            got = model.get_first_root_node()
+            got = model.objects.get_first_root_node()
         assert got.desc == "1"
         assert isinstance(got, model)
 
     def test_get_last_root_node(self, model, django_assert_max_num_queries):
         with django_assert_max_num_queries(1):
-            got = model.get_last_root_node()
+            got = model.objects.get_last_root_node()
         assert got.desc == "4"
         assert isinstance(got, model)
 
     def test_add_root(self, model):
-        obj = model.add_root(desc="5")
+        obj = model.objects.add_root(desc="5")
         assert obj.get_depth() == 1
-        got = model.get_last_root_node()
+        got = model.objects.get_last_root_node()
         assert got.desc == "5"
         assert isinstance(got, model)
 
     def test_add_root_with_passed_instance(self, model):
         obj = model(desc="5")
-        result = model.add_root(instance=obj)
+        result = model.objects.add_root(instance=obj)
         assert result == obj
-        got = model.get_last_root_node()
+        got = model.objects.get_last_root_node()
         assert got.desc == "5"
         assert isinstance(got, model)
 
     def test_add_root_with_already_saved_instance(self, model):
         obj = model.objects.get(desc="4")
         with pytest.raises(NodeAlreadySaved):
-            model.add_root(instance=obj)
+            model.objects.add_root(instance=obj)
 
     @pytest.mark.django_db(transaction=True)
     @pytest.mark.skipif(
@@ -429,12 +429,12 @@ class TestClassMethods(TestNonEmptyTree):
         num_threads = 3
         per_thread = 5
         errors = []
-        model_without_data.add_root(desc="first")
+        model_without_data.objects.add_root(desc="first")
 
         def add_root(thread_id):
             try:
                 for i in range(per_thread):
-                    model_without_data.add_root(desc=f"t{thread_id}-{i}")
+                    model_without_data.objects.add_root(desc=f"t{thread_id}-{i}")
             except Exception as e:
                 errors.append(e)
 
@@ -446,7 +446,7 @@ class TestClassMethods(TestNonEmptyTree):
         if errors:
             raise errors[0]
 
-        assert model_without_data.get_root_nodes().count() == num_threads * per_thread + 1
+        assert model_without_data.objects.get_root_nodes().count() == num_threads * per_thread + 1
 
 
 @pytest.mark.django_db
@@ -854,7 +854,7 @@ class TestAddChild(TestNonEmptyTree):
 
     def test_add_child_called_consecutively(self, model_without_data):
         # Regression test for https://github.com/django-treebeard/django-treebeard/issues/307
-        parent = model_without_data.add_root(desc="1")
+        parent = model_without_data.objects.add_root(desc="1")
         child1 = model_without_data(desc="11")
         child2 = model_without_data(desc="12")
         assert parent.get_children_count() == 0
@@ -871,7 +871,7 @@ class TestAddChild(TestNonEmptyTree):
         # 5 threads x 5 add_child each on same parent; no IntegrityError.
         num_threads = 5
         per_thread = 5
-        parent = model_without_data.add_root(desc="parent")
+        parent = model_without_data.objects.add_root(desc="parent")
         parent_pk = parent.pk
         errors = []
 
@@ -1171,7 +1171,7 @@ class TestDelete(TestTreeBase):
     )
     def delete_dep_model_pair(request):
         base_model, dep_model = request.param
-        base_model.load_bulk(BASE_DATA)
+        base_model.objects.load_bulk(BASE_DATA)
         for node in base_model.objects.all():
             dep_model(node=node).save()
         return base_model, dep_model
@@ -1245,7 +1245,7 @@ class TestDelete(TestTreeBase):
 
     def test_delete_all_root_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
-        result = delete_model.get_root_nodes().delete()
+        result = delete_model.objects.get_root_nodes().delete()
         assert result == (20, {delete_model._meta.label: 10, dep_model._meta.label: 10})
         assert delete_model.objects.count() == 0
 
@@ -1292,7 +1292,7 @@ class TestMoveErrors(TestNonEmptyTree):
 @pytest.mark.django_db
 class TestMoveSortedErrors(TestTreeBase):
     def test_nonsorted_move_in_sorted(self, sorted_model):
-        node = sorted_model.add_root(val1=3, val2=3, desc="zxy")
+        node = sorted_model.objects.add_root(val1=3, val2=3, desc="zxy")
         with pytest.raises(InvalidPosition):
             node.move(node, "left")
 
@@ -1803,17 +1803,19 @@ class TestMoveBranch(TestNonEmptyTree):
 @pytest.mark.django_db
 class TestTreeSorted(TestTreeBase):
     def got(self, sorted_model):
-        return [(o.val1, o.val2, o.desc, o.get_depth(), o.get_children_count()) for o in sorted_model.get_tree()]
+        return [
+            (o.val1, o.val2, o.desc, o.get_depth(), o.get_children_count()) for o in sorted_model.objects.get_tree()
+        ]
 
     def test_add_root_sorted(self, sorted_model):
-        sorted_model.add_root(val1=3, val2=3, desc="zxy")
-        sorted_model.add_root(val1=1, val2=4, desc="bcd")
-        sorted_model.add_root(val1=2, val2=5, desc="zxy")
-        sorted_model.add_root(val1=3, val2=3, desc="abc")
-        sorted_model.add_root(val1=4, val2=1, desc="fgh")
-        sorted_model.add_root(val1=3, val2=3, desc="abc")
-        sorted_model.add_root(val1=2, val2=2, desc="qwe")
-        sorted_model.add_root(val1=3, val2=2, desc="vcx")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="zxy")
+        sorted_model.objects.add_root(val1=1, val2=4, desc="bcd")
+        sorted_model.objects.add_root(val1=2, val2=5, desc="zxy")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="abc")
+        sorted_model.objects.add_root(val1=4, val2=1, desc="fgh")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="abc")
+        sorted_model.objects.add_root(val1=2, val2=2, desc="qwe")
+        sorted_model.objects.add_root(val1=3, val2=2, desc="vcx")
         expected = [
             (1, 4, "bcd", 1, 0),
             (2, 2, "qwe", 1, 0),
@@ -1827,7 +1829,7 @@ class TestTreeSorted(TestTreeBase):
         assert self.got(sorted_model) == expected
 
     def test_add_child_root_sorted(self, sorted_model):
-        root = sorted_model.add_root(val1=0, val2=0, desc="aaa")
+        root = sorted_model.objects.add_root(val1=0, val2=0, desc="aaa")
         root.add_child(val1=3, val2=3, desc="zxy")
         root.add_child(val1=1, val2=4, desc="bcd")
         root.add_child(val1=2, val2=5, desc="zxy")
@@ -1853,7 +1855,7 @@ class TestTreeSorted(TestTreeBase):
         def get_node(node_id):
             return sorted_model.objects.get(pk=node_id)
 
-        root_id = sorted_model.add_root(val1=0, val2=0, desc="a").pk
+        root_id = sorted_model.objects.add_root(val1=0, val2=0, desc="a").pk
         node_id = get_node(root_id).add_child(val1=0, val2=0, desc="ac").pk
         get_node(root_id).add_child(val1=0, val2=0, desc="aa")
         get_node(root_id).add_child(val1=0, val2=0, desc="av")
@@ -1873,15 +1875,15 @@ class TestTreeSorted(TestTreeBase):
         assert self.got(sorted_model) == expected
 
     def test_move_sorted(self, sorted_model):
-        sorted_model.add_root(val1=3, val2=3, desc="zxy")
-        sorted_model.add_root(val1=1, val2=4, desc="bcd")
-        sorted_model.add_root(val1=2, val2=5, desc="zxy")
-        sorted_model.add_root(val1=3, val2=3, desc="abc")
-        sorted_model.add_root(val1=4, val2=1, desc="fgh")
-        sorted_model.add_root(val1=3, val2=3, desc="abc")
-        sorted_model.add_root(val1=2, val2=2, desc="qwe")
-        sorted_model.add_root(val1=3, val2=2, desc="vcx")
-        root_nodes = sorted_model.get_root_nodes()
+        sorted_model.objects.add_root(val1=3, val2=3, desc="zxy")
+        sorted_model.objects.add_root(val1=1, val2=4, desc="bcd")
+        sorted_model.objects.add_root(val1=2, val2=5, desc="zxy")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="abc")
+        sorted_model.objects.add_root(val1=4, val2=1, desc="fgh")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="abc")
+        sorted_model.objects.add_root(val1=2, val2=2, desc="qwe")
+        sorted_model.objects.add_root(val1=3, val2=2, desc="vcx")
+        root_nodes = sorted_model.objects.get_root_nodes()
         target = root_nodes[0]
         for node in root_nodes[1:]:
             # because raw queries don't update django objects
@@ -1902,15 +1904,15 @@ class TestTreeSorted(TestTreeBase):
 
     def test_move_sortedsibling(self, sorted_model):
         # https://bitbucket.org/tabo/django-treebeard/issue/27
-        sorted_model.add_root(val1=3, val2=3, desc="zxy")
-        sorted_model.add_root(val1=1, val2=4, desc="bcd")
-        sorted_model.add_root(val1=2, val2=5, desc="zxy")
-        sorted_model.add_root(val1=3, val2=3, desc="abc")
-        sorted_model.add_root(val1=4, val2=1, desc="fgh")
-        sorted_model.add_root(val1=3, val2=3, desc="abc")
-        sorted_model.add_root(val1=2, val2=2, desc="qwe")
-        sorted_model.add_root(val1=3, val2=2, desc="vcx")
-        root_nodes = sorted_model.get_root_nodes()
+        sorted_model.objects.add_root(val1=3, val2=3, desc="zxy")
+        sorted_model.objects.add_root(val1=1, val2=4, desc="bcd")
+        sorted_model.objects.add_root(val1=2, val2=5, desc="zxy")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="abc")
+        sorted_model.objects.add_root(val1=4, val2=1, desc="fgh")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="abc")
+        sorted_model.objects.add_root(val1=2, val2=2, desc="qwe")
+        sorted_model.objects.add_root(val1=3, val2=2, desc="vcx")
+        root_nodes = sorted_model.objects.get_root_nodes()
         target = root_nodes[0]
         for node in root_nodes[1:]:
             # because raw queries don't update django objects
@@ -1942,8 +1944,8 @@ class TestInheritedModels(TestTreeBase):
     )
     def inherited_model(request):
         base_model, inherited_model = request.param
-        base_model.add_root(desc="1")
-        base_model.add_root(desc="2")
+        base_model.objects.add_root(desc="1")
+        base_model.objects.add_root(desc="2")
 
         node21 = inherited_model(desc="21")
         base_model.objects.get(desc="2").add_child(instance=node21)
@@ -1953,7 +1955,7 @@ class TestInheritedModels(TestTreeBase):
         base_model.objects.get(desc="2").add_child(desc="22")
 
         node3 = inherited_model(desc="3")
-        base_model.add_root(instance=node3)
+        base_model.objects.add_root(instance=node3)
         return inherited_model
 
     @staticmethod
@@ -1966,7 +1968,7 @@ class TestInheritedModels(TestTreeBase):
         return request.param
 
     def test_get_tree_all(self, inherited_model):
-        got = [(o.desc, o.get_depth(), o.get_children_count()) for o in inherited_model.get_tree()]
+        got = [(o.desc, o.get_depth(), o.get_children_count()) for o in inherited_model.objects.get_tree()]
         expected = [
             ("1", 1, 0),
             ("2", 1, 2),
@@ -1981,7 +1983,7 @@ class TestInheritedModels(TestTreeBase):
     def test_get_tree_node(self, inherited_model):
         node = inherited_model.objects.get(desc="21")
 
-        got = [(o.desc, o.get_depth(), o.get_children_count()) for o in inherited_model.get_tree(node)]
+        got = [(o.desc, o.get_depth(), o.get_children_count()) for o in inherited_model.objects.get_tree(node)]
         expected = [
             ("21", 2, 2),
             ("211", 3, 0),
@@ -1990,16 +1992,16 @@ class TestInheritedModels(TestTreeBase):
         assert got == expected
 
     def test_get_root_nodes(self, inherited_model):
-        got = inherited_model.get_root_nodes()
+        got = inherited_model.objects.get_root_nodes()
         expected = ["1", "2", "3"]
         assert [node.desc for node in got] == expected
 
     def test_get_first_root_node(self, inherited_model):
-        got = inherited_model.get_first_root_node()
+        got = inherited_model.objects.get_first_root_node()
         assert got.desc == "1"
 
     def test_get_last_root_node(self, inherited_model):
-        got = inherited_model.get_last_root_node()
+        got = inherited_model.objects.get_last_root_node()
         assert got.desc == "3"
 
     def test_is_root(self, inherited_model):
@@ -2123,10 +2125,10 @@ class TestInheritedModels(TestTreeBase):
 
     def test_get_descendants_group_count(self, inherited_model):
         base_model = inherited_model.__bases__[0]
-        for node in base_model.get_descendants_group_count():
+        for node in base_model.objects.get_descendants_group_count():
             assert node.descendants_count == node.get_descendant_count()
 
-        for node in inherited_model.get_descendants_group_count():
+        for node in inherited_model.objects.get_descendants_group_count():
             assert node.descendants_count == node.get_descendant_count()
 
     def test_add_root_with_node_order_by(self, inherited_model_with_sort):
@@ -2137,8 +2139,8 @@ class TestInheritedModels(TestTreeBase):
         to the parent class.
         """
         _, inherited_model = inherited_model_with_sort
-        inherited_model.add_root(val1=2, val2=3, desc="A")
-        inherited_model.add_root(val1=2, val2=3, desc="B")
+        inherited_model.objects.add_root(val1=2, val2=3, desc="A")
+        inherited_model.objects.add_root(val1=2, val2=3, desc="B")
         assert list(inherited_model.objects.values_list("desc", flat=True)) == ["B", "A"]
 
 
@@ -2171,7 +2173,7 @@ class TestMP_TreeAlphabet(TestTreeBase):
             # insert root nodes
             for pos in range(len(alphabet) * 2):
                 try:
-                    added = mpalphabet_model.add_root(numval=pos)
+                    added = mpalphabet_model.objects.add_root(numval=pos)
                 except Exception:
                     got_err = True
                     break
@@ -2198,21 +2200,21 @@ class TestHelpers(TestTreeBase):
     @pytest.fixture(scope="function", params=models.BASE_MODELS + models.PROXY_MODELS)
     def helpers_model(request):
         model = request.param
-        model.load_bulk(BASE_DATA)
-        for node in model.get_root_nodes():
-            model.load_bulk(BASE_DATA, node)
-        model.add_root(desc="5")
+        model.objects.load_bulk(BASE_DATA)
+        for node in model.objects.get_root_nodes():
+            model.objects.load_bulk(BASE_DATA, node)
+        model.objects.add_root(desc="5")
         return model
 
     def test_descendants_group_count_root(self, helpers_model):
-        expected = [(o.desc, o.get_descendant_count()) for o in helpers_model.get_root_nodes()]
-        got = [(o.desc, o.descendants_count) for o in helpers_model.get_descendants_group_count()]
+        expected = [(o.desc, o.get_descendant_count()) for o in helpers_model.objects.get_root_nodes()]
+        got = [(o.desc, o.descendants_count) for o in helpers_model.objects.get_descendants_group_count()]
         assert got == expected
 
     def test_descendants_group_count_node(self, helpers_model):
-        parent = helpers_model.get_root_nodes().get(desc="2")
+        parent = helpers_model.objects.get_root_nodes().get(desc="2")
         expected = [(o.desc, o.get_descendant_count()) for o in parent.get_children()]
-        got = [(o.desc, o.descendants_count) for o in helpers_model.get_descendants_group_count(parent)]
+        got = [(o.desc, o.descendants_count) for o in helpers_model.objects.get_descendants_group_count(parent)]
         assert got == expected
 
 
@@ -2227,30 +2229,30 @@ class TestMP_TreeSortedAutoNow(TestTreeBase):
     """
 
     def test_sorted_by_autonow_ignores_and_warns(self, mpsortedautonow_model):
-        mpsortedautonow_model.add_root(desc="node1")
+        mpsortedautonow_model.objects.add_root(desc="node1")
         with pytest.warns(RuntimeWarning, match="Received a null value for field 'created'"):
-            mpsortedautonow_model.add_root(desc="node2")
+            mpsortedautonow_model.objects.add_root(desc="node2")
 
         # Object was still created, but `created` order isn't respected
         assert list(mpsortedautonow_model.objects.values_list("desc", flat=True)) == ["node2", "node1"]
 
     def test_sorted_by_autonow_value_added_manually(self, mpsortedautonow_model):
-        mpsortedautonow_model.add_root(desc="node1", created=now())
-        mpsortedautonow_model.add_root(desc="node2", created=now())
+        mpsortedautonow_model.objects.add_root(desc="node1", created=now())
+        mpsortedautonow_model.objects.add_root(desc="node2", created=now())
         assert list(mpsortedautonow_model.objects.values_list("desc", flat=True)) == ["node1", "node2"]
 
 
 @pytest.mark.django_db
 class TestMP_TreeStepOverflow(TestTreeBase):
     def test_add_root(self, mpsmallstep_model):
-        method = mpsmallstep_model.add_root
+        method = mpsmallstep_model.objects.add_root
         for i in range(1, 10):
             method()
         with pytest.raises(PathOverflow):
             method()
 
     def test_add_child(self, mpsmallstep_model):
-        root = mpsmallstep_model.add_root()
+        root = mpsmallstep_model.objects.add_root()
         method = root.add_child
         for i in range(1, 10):
             method()
@@ -2258,7 +2260,7 @@ class TestMP_TreeStepOverflow(TestTreeBase):
             method()
 
     def test_add_sibling(self, mpsmallstep_model):
-        root = mpsmallstep_model.add_root()
+        root = mpsmallstep_model.objects.add_root()
         for i in range(1, 10):
             root.add_child()
         positions = ("first-sibling", "left", "right", "last-sibling")
@@ -2267,10 +2269,10 @@ class TestMP_TreeStepOverflow(TestTreeBase):
                 root.get_last_child().add_sibling(pos)
 
     def test_move(self, mpsmallstep_model):
-        root = mpsmallstep_model.add_root()
+        root = mpsmallstep_model.objects.add_root()
         for i in range(1, 10):
             root.add_child()
-        newroot = mpsmallstep_model.add_root()
+        newroot = mpsmallstep_model.objects.add_root()
         targets = [
             (root, ["first-child", "last-child"]),
             (
@@ -2291,7 +2293,7 @@ class TestMP_TreeShortPath(TestTreeBase):
     """
 
     def test_short_path(self, mpshortnotsorted_model):
-        obj = mpshortnotsorted_model.add_root()
+        obj = mpshortnotsorted_model.objects.add_root()
         obj = obj.add_child().add_child().add_child()
         with pytest.raises(PathOverflow):
             obj.add_child()
@@ -2323,7 +2325,7 @@ class TestMP_TreeFindProblems(TestTreeBase):
             orphans,
             wrong_depth,
             wrong_numchild,
-        ) = mpalphabet_model.find_problems()
+        ) = mpalphabet_model.objects.find_problems()
         assert ["abcd", "qa#$%!"] == got(evil_chars)
         assert ["1", "111"] == got(bad_steplen)
         assert ["0201", "020201"] == got(orphans)
@@ -2403,7 +2405,7 @@ class TestMP_TreeFix(TestTreeBase):
     }
 
     def got(self, model):
-        return [(o.path, o.desc, o.get_depth(), o.get_children_count()) for o in model.get_tree()]
+        return [(o.path, o.desc, o.get_depth(), o.get_children_count()) for o in model.objects.get_tree()]
 
     def add_broken_test_data(self, model):
         model(path="4", depth=2, numchild=2, desc="a").save()
@@ -2423,19 +2425,19 @@ class TestMP_TreeFix(TestTreeBase):
 
     def test_fix_tree_no_fix_paths(self, mpshort_model):
         self.add_broken_test_data(mpshort_model)
-        mpshort_model.fix_tree(fix_paths=False)
+        mpshort_model.objects.fix_tree(fix_paths=False)
         got = self.got(mpshort_model)
         expected = self.expected_with_holes[mpshort_model]
         assert got == expected
-        assert all(not group for group in mpshort_model.find_problems())
+        assert all(not group for group in mpshort_model.objects.find_problems())
 
     def test_fix_tree_fix_paths(self, mpshort_model):
         self.add_broken_test_data(mpshort_model)
-        mpshort_model.fix_tree(fix_paths=True)
+        mpshort_model.objects.fix_tree(fix_paths=True)
         got = self.got(mpshort_model)
         expected = self.expected_no_holes[mpshort_model]
         assert got == expected
-        assert all(not group for group in mpshort_model.find_problems())
+        assert all(not group for group in mpshort_model.objects.find_problems())
 
     def test_fix_tree_with_parent(self, mpshort_model):
         """
@@ -2444,12 +2446,12 @@ class TestMP_TreeFix(TestTreeBase):
         """
 
         self.add_broken_test_data(mpshort_model)
-        mpshort_model.fix_tree(parent=mpshort_model.objects.get(path="4"))
+        mpshort_model.objects.fix_tree(parent=mpshort_model.objects.get(path="4"))
         got = self.got(mpshort_model)
         expected = self.expected_with_holes[mpshort_model]
 
         assert got[7:] == expected[7:]  # Only compare items from path 4 onwards
-        problems = mpshort_model.find_problems()
+        problems = mpshort_model.objects.find_problems()
         assert not any([problems[0], problems[1], problems[2], problems[4]])
         assert set(problems[3]) == set(mpshort_model.objects.exclude(path__startswith="4").values_list("pk", flat=True))
 
@@ -2464,7 +2466,7 @@ class TestMP_TreeFix(TestTreeBase):
         # Fix the depth on the parent - we need a valid parent to operate on only part of a tree
         parent.depth = 1
         parent.save()
-        mpshort_model.fix_tree(parent=parent, fix_paths=True)
+        mpshort_model.objects.fix_tree(parent=parent, fix_paths=True)
         got = self.got(mpshort_model)
         expected_partial = {
             models.MP_TestNodeShortPath: [
@@ -2488,7 +2490,7 @@ class TestMP_TreeFix(TestTreeBase):
         }
 
         assert got[7:] == expected_partial[mpshort_model]  # Only compare items from path 4 onwards
-        problems = mpshort_model.find_problems()
+        problems = mpshort_model.objects.find_problems()
         assert not any([problems[0], problems[1], problems[2], problems[4]])
         assert set(problems[3]) == set(mpshort_model.objects.exclude(path__startswith="4").values_list("pk", flat=True))
 
@@ -2516,14 +2518,14 @@ class TestMoveNodeForm(TestNonEmptyTree):
         return [(node.pk, str(node), node.get_depth()) for node in nodes]
 
     def test_form_root_node(self, model):
-        nodes = list(model.get_tree())
+        nodes = list(model.objects.get_tree())
         node = nodes.pop(0)
         safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
         self._move_node_helper(node, safe_parent_nodes)
 
     def test_form_admin(self, model):
         request = None
-        nodes = list(model.get_tree())
+        nodes = list(model.objects.get_tree())
         safe_parent_nodes = self._get_node_ids_strs_and_depths(nodes)
         for node in model.objects.all():
             site = AdminSite()
@@ -2546,14 +2548,14 @@ class TestMoveNodeForm(TestNonEmptyTree):
 @pytest.mark.django_db
 class TestSortedForm(TestTreeSorted):
     def test_sorted_form(self, sorted_model):
-        sorted_model.add_root(val1=3, val2=3, desc="zxy")
-        sorted_model.add_root(val1=1, val2=4, desc="bcd")
-        sorted_model.add_root(val1=2, val2=5, desc="zxy")
-        sorted_model.add_root(val1=3, val2=3, desc="abc")
-        sorted_model.add_root(val1=4, val2=1, desc="fgh")
-        sorted_model.add_root(val1=3, val2=3, desc="abc")
-        sorted_model.add_root(val1=2, val2=2, desc="qwe")
-        sorted_model.add_root(val1=3, val2=2, desc="vcx")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="zxy")
+        sorted_model.objects.add_root(val1=1, val2=4, desc="bcd")
+        sorted_model.objects.add_root(val1=2, val2=5, desc="zxy")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="abc")
+        sorted_model.objects.add_root(val1=4, val2=1, desc="fgh")
+        sorted_model.objects.add_root(val1=3, val2=3, desc="abc")
+        sorted_model.objects.add_root(val1=2, val2=2, desc="qwe")
+        sorted_model.objects.add_root(val1=3, val2=2, desc="vcx")
 
         form_class = movenodeform_factory(sorted_model)
         form = form_class()
@@ -2867,7 +2869,7 @@ class TestAdminTreeList(TestNonEmptyTree):
         Verifies that inclusion tag result_list generates a table when with
         default ModelAdmin settings.
         """
-        object = model.add_root(desc="<>")
+        object = model.objects.add_root(desc="<>")
         request = RequestFactory().get("/admin/tree/")
         request.user = AnonymousUser()
         site = AdminSite()
@@ -3115,7 +3117,7 @@ class TestTreeAdmin(TestNonEmptyTree):
 class TestMPFormPerformance:
     def test_form_choices_no_of_queries(self, django_assert_num_queries):
         model = models.MP_TestNode
-        model.load_bulk(BASE_DATA)
+        model.objects.load_bulk(BASE_DATA)
         form_class = movenodeform_factory(model)
         form = form_class()
         with django_assert_num_queries(2):
@@ -3126,7 +3128,7 @@ class TestMPFormPerformance:
 class TestMP_TreeDescendantsPerformance(TestTreeBase):
     def test_get_descendants_no_of_queries(self, django_assert_num_queries):
         model = models.MP_TestNode
-        model.load_bulk(BASE_DATA)
+        model.objects.load_bulk(BASE_DATA)
 
         data = [
             ("2", 1),

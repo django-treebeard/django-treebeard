@@ -8,6 +8,7 @@ from functools import cache, reduce
 from django.db import models, transaction
 from django.db.models import Q
 
+from treebeard.deprecation import RemovedInTreebeard6Warning
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
 
 
@@ -23,197 +24,87 @@ class Node(models.Model):
 
     @classmethod
     def add_root(cls, **kwargs):  # pragma: no cover
-        """
-        Adds a root node to the tree. The new root node will be the new
-        rightmost root node. If you want to insert a root node at a specific
-        position, use :meth:`add_sibling` in an already existing root node
-        instead.
-
-        :param `**kwargs`: object creation data that will be passed to the
-            inherited Node model
-        :param instance: Instead of passing object creation data, you can
-            pass an already-constructed (but not yet saved) model instance to
-            be inserted into the tree.
-
-        :returns: the created node object. It will be save()d by this method.
-
-        :raise NodeAlreadySaved: when the passed ``instance`` already exists
-            in the database
-        """
-        raise NotImplementedError
+        warnings.warn(
+            f"Using {cls.__name__}.add_root() is deprecated. Use {cls.__name__}.objects.add_root() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.add_root(**kwargs)
 
     @classmethod
-    def get_foreign_keys(cls):
-        """Get foreign keys and models they refer to, so we can pre-process
-        the data for load_bulk
-        """
-        foreign_keys = {}
-        for field in cls._meta.fields:
-            if field.get_internal_type() == "ForeignKey" and field.name != "parent":
-                foreign_keys[field.name] = field.remote_field.model
-        return foreign_keys
+    def load_bulk(cls, *args, **kwargs):  # pragma: no cover
+        warnings.warn(
+            f"Using {cls.__name__}.load_bulk() is deprecated. Use {cls.__name__}.objects.load_bulk() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.load_bulk(*args, **kwargs)
 
     @classmethod
-    def _process_foreign_keys(cls, foreign_keys, node_data):
-        """For each foreign key try to load the actual object so load_bulk
-        doesn't fail trying to load an int where django expects a
-        model instance
-        """
-        for key in foreign_keys.keys():
-            if key in node_data:
-                node_data[key] = foreign_keys[key].objects.get(pk=node_data[key])
-
-    @classmethod
-    @transaction.atomic
-    def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
-        """
-        Loads a list/dictionary structure to the tree.
-
-
-        :param bulk_data:
-
-            The data that will be loaded, the structure is a list of
-            dictionaries with 2 keys:
-
-            - ``data``: will store arguments that will be passed for object
-              creation, and
-
-            - ``children``: a list of dictionaries, each one has it's own
-              ``data`` and ``children`` keys (a recursive structure)
-
-
-        :param parent:
-
-            The node that will receive the structure as children, if not
-            specified the first level of the structure will be loaded as root
-            nodes
-
-
-        :param keep_ids:
-
-            If enabled, loads the nodes with the same primary keys that are
-            given in the structure. Will error if there are nodes without
-            primary key info or if the primary keys are already used.
-
-
-        :returns: A list of the added node ids.
-        """
-
-        # tree, iterative preorder
-        added = []
-        # stack of nodes to analyze
-        stack = [(parent, node) for node in bulk_data[::-1]]
-        foreign_keys = cls.get_foreign_keys()
-        pk_field = cls._meta.pk.attname
-
-        while stack:
-            parent, node_struct = stack.pop()
-            # shallow copy of the data structure so it doesn't persist...
-            node_data = node_struct["data"].copy()
-            cls._process_foreign_keys(foreign_keys, node_data)
-            if keep_ids:
-                node_data[pk_field] = node_struct[pk_field]
-            if parent:
-                node_obj = parent.add_child(**node_data)
-            else:
-                node_obj = cls.add_root(**node_data)
-            added.append(node_obj.pk)
-            if "children" in node_struct:
-                # extending the stack with the current node as the parent of
-                # the new nodes
-                stack.extend([(node_obj, node) for node in node_struct["children"][::-1]])
-        return added
-
-    @classmethod
-    def dump_bulk(cls, parent=None, keep_ids=True):  # pragma: no cover
-        """
-        Dumps a tree branch to a python data structure.
-
-        :param parent:
-
-            The node whose descendants will be dumped. The node itself will be
-            included in the dump. If not given, the entire tree will be dumped.
-
-        :param keep_ids:
-
-            Stores the pk value (primary key) of every node. Enabled by
-            default.
-
-        :returns: A python data structure, described with detail in
-                  :meth:`load_bulk`
-        """
-        raise NotImplementedError
+    def dump_bulk(cls, *args, **kwargs):  # pragma: no cover
+        warnings.warn(
+            f"Using {cls.__name__}.dump_bulk() is deprecated. Use {cls.__name__}.objects.dump_bulk() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.dump_bulk(*args, **kwargs)
 
     @classmethod
     def get_root_nodes(cls):  # pragma: no cover
-        """:returns: A queryset containing the root nodes in the tree."""
-        raise NotImplementedError
+        warnings.warn(
+            f"Using {cls.__name__}.get_root_nodes() is deprecated. "
+            "Use {cls.__name__}.objects.get_root_nodes() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.get_root_nodes()
 
     @classmethod
-    def get_first_root_node(cls):
-        """
-        :returns:
-
-            The first root node in the tree or ``None`` if it is empty.
-        """
-        return cls.get_root_nodes().first()
+    def get_first_root_node(cls):  # pragma: no cover
+        warnings.warn(
+            f"Using {cls.__name__}.get_first_root_node() is deprecated. "
+            "Use {cls.__name__}.objects.get_first_root_node() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.get_first_root_node()
 
     @classmethod
-    def get_last_root_node(cls):
-        """
-        :returns:
-
-            The last root node in the tree or ``None`` if it is empty.
-        """
-        return cls.get_root_nodes().last()
+    def get_last_root_node(cls):  # pragma: no cover
+        warnings.warn(
+            f"Using {cls.__name__}.get_last_root_node() is deprecated. "
+            "Use {cls.__name__}.objects.get_last_root_node() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.get_last_root_node()
 
     @classmethod
     def find_problems(cls):  # pragma: no cover
-        """Checks for problems in the tree structure."""
-        raise NotImplementedError
+        warnings.warn(
+            f"Using {cls.__name__}.find_problems() is deprecated. Use {cls.__name__}.objects.find_problems() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.find_problems()
 
     @classmethod
-    def fix_tree(cls):  # pragma: no cover
-        """
-        Solves problems that can appear when transactions are not used and
-        a piece of code breaks, leaving the tree in an inconsistent state.
-        """
-        raise NotImplementedError
+    def fix_tree(cls, *args, **kwargs):  # pragma: no cover
+        warnings.warn(
+            f"Using {cls.__name__}.fix_tree() is deprecated. Use {cls.__name__}.objects.fix_tree() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.fix_tree(*args, **kwargs)
 
     @classmethod
-    def get_tree(cls, parent=None):
-        """
-        :returns:
-
-            A list of nodes ordered as DFS, including the parent. If
-            no parent is given, the entire tree is returned.
-        """
-        raise NotImplementedError
+    def get_tree(cls, parent=None):  # pragma: no cover
+        warnings.warn(
+            f"Using {cls.__name__}.get_tree() is deprecated. Use {cls.__name__}.objects.get_tree() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.get_tree(parent)
 
     @classmethod
-    def get_descendants_group_count(cls, parent=None):
-        """
-        Helper for a very common case: get a group of siblings and the number
-        of *descendants* (not only children) in every sibling.
-
-        :param parent:
-
-            The parent of the siblings to return. If no parent is given, the
-            root nodes will be returned.
-
-        :returns:
-
-            A `list` (**NOT** a Queryset) of node objects with an extra
-            attribute: `descendants_count`.
-        """
-        if parent is None:
-            qset = cls.get_root_nodes()
-        else:
-            qset = parent.get_children()
-        nodes = list(qset)
-        for node in nodes:
-            node.descendants_count = node.get_descendant_count()
-        return nodes
+    def get_descendants_group_count(cls, parent=None):  # pragma: no cover
+        warnings.warn(
+            f"Using {cls.__name__}.get_descendants_group_count() is deprecated. "
+            "Use {cls.__name__}.objects.get_descendants_group_count() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.get_descendants_group_count(parent)
 
     def get_depth(self):  # pragma: no cover
         """:returns: the depth (level) of the node"""
@@ -569,54 +460,21 @@ class Node(models.Model):
 
     @classmethod
     def get_annotated_list_qs(cls, qs):
-        """
-        Efficiently generates an annotated list from a queryset.
-
-        The queryset MUST be ordered by path, otherwise it will yield
-        incorrect results. The queryset must also represent the entirety of
-        a branch of a tree: excluded objects will not be fetched and will
-        result in gaps in the tree.
-        """
-        result, info = [], {}
-        start_depth, prev_depth = (None, None)
-        for node in qs:
-            depth = node.get_depth()
-            if start_depth is None:
-                start_depth = depth
-            open = depth and (prev_depth is None or depth > prev_depth)
-            if prev_depth is not None and depth < prev_depth:
-                info["close"] = list(range(0, prev_depth - depth))
-            info = {"open": open, "close": [], "level": depth - start_depth}
-            result.append(
-                (
-                    node,
-                    info,
-                )
-            )
-            prev_depth = depth
-        if start_depth and start_depth > 0:
-            info["close"] = list(range(0, prev_depth - start_depth + 1))
-        return result
+        warnings.warn(
+            f"Using {cls.__name__}.get_annotated_list_qs() is deprecated. "
+            "Use {cls.__name__}.objects.get_annotated_list_qs() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.get_annotated_list_qs(qs)
 
     @classmethod
     def get_annotated_list(cls, parent=None, max_depth=None):
-        """
-        Gets an annotated list from a tree branch.
-
-        :param parent:
-
-            The node whose descendants will be annotated. The node itself
-            will be included in the list. If not given, the entire tree
-            will be annotated.
-
-        :param max_depth:
-
-            Optionally limit to specified depth
-        """
-        qs = cls.get_tree(parent)
-        if max_depth:
-            qs = qs.filter(depth__lte=max_depth)
-        return cls.get_annotated_list_qs(qs)
+        warnings.warn(
+            f"Using {cls.__name__}.get_annotated_list() is deprecated. "
+            "Use {cls.__name__}.objects.get_annotated_list() instead.",
+            RemovedInTreebeard6Warning,
+        )
+        return cls.objects.get_annotated_list(parent=parent, max_depth=max_depth)
 
     @classmethod
     @cache
@@ -647,3 +505,236 @@ class Node(models.Model):
         """Abstract model."""
 
         abstract = True
+
+
+class NodeManager(models.Manager):
+    def get_tree(self, parent=None):  # pragma: no cover
+        """
+        :returns:
+
+            A list of nodes ordered as DFS, including the parent. If
+            no parent is given, the entire tree is returned.
+        """
+        raise NotImplementedError
+
+    def fix_tree(self):  # pragma: no cover
+        """
+        Solves problems that can appear when transactions are not used and
+        a piece of code breaks, leaving the tree in an inconsistent state.
+        """
+        raise NotImplementedError
+
+    def add_root(self, **kwargs):  # pragma: no cover
+        """
+        Adds a root node to the tree. The new root node will be the new
+        rightmost root node. If you want to insert a root node at a specific
+        position, use :meth:`add_sibling` in an already existing root node
+        instead.
+
+        :param `**kwargs`: object creation data that will be passed to the
+            inherited Node model
+        :param instance: Instead of passing object creation data, you can
+            pass an already-constructed (but not yet saved) model instance to
+            be inserted into the tree.
+
+        :returns: the created node object. It will be save()d by this method.
+
+        :raise NodeAlreadySaved: when the passed ``instance`` already exists
+            in the database
+        """
+        raise NotImplementedError
+
+    def get_root_nodes(self):  # pragma: no cover
+        """:returns: A queryset containing the root nodes in the tree."""
+        raise NotImplementedError
+
+    def get_first_root_node(self):
+        """
+        :returns:
+
+            The first root node in the tree or ``None`` if it is empty.
+        """
+        return self.get_root_nodes().first()
+
+    def get_last_root_node(self):
+        """
+        :returns:
+
+            The last root node in the tree or ``None`` if it is empty.
+        """
+        return self.get_root_nodes().last()
+
+    def get_descendants_group_count(self, parent=None):
+        """
+        Helper for a very common case: get a group of siblings and the number
+        of *descendants* (not only children) in every sibling.
+
+        :param parent:
+
+            The parent of the siblings to return. If no parent is given, the
+            root nodes will be returned.
+
+        :returns:
+
+            A `list` (**NOT** a Queryset) of node objects with an extra
+            attribute: `descendants_count`.
+        """
+        if parent is None:
+            qset = self.get_root_nodes()
+        else:
+            qset = parent.get_children()
+        nodes = list(qset)
+        for node in nodes:
+            node.descendants_count = node.get_descendant_count()
+        return nodes
+
+    def find_problems(self):  # pragma: no cover
+        """Checks for problems in the tree structure."""
+        raise NotImplementedError
+
+    def get_annotated_list_qs(self, qs):
+        """
+        Efficiently generates an annotated list from a queryset.
+
+        The queryset MUST be ordered by path, otherwise it will yield
+        incorrect results. The queryset must also represent the entirety of
+        a branch of a tree: excluded objects will not be fetched and will
+        result in gaps in the tree.
+        """
+        result, info = [], {}
+        start_depth, prev_depth = (None, None)
+        for node in qs:
+            depth = node.get_depth()
+            if start_depth is None:
+                start_depth = depth
+            open = depth and (prev_depth is None or depth > prev_depth)
+            if prev_depth is not None and depth < prev_depth:
+                info["close"] = list(range(0, prev_depth - depth))
+            info = {"open": open, "close": [], "level": depth - start_depth}
+            result.append(
+                (
+                    node,
+                    info,
+                )
+            )
+            prev_depth = depth
+        if start_depth and start_depth > 0:
+            info["close"] = list(range(0, prev_depth - start_depth + 1))
+        return result
+
+    def get_annotated_list(self, parent=None, max_depth=None):
+        """
+        Gets an annotated list from a tree branch.
+
+        :param parent:
+
+            The node whose descendants will be annotated. The node itself
+            will be included in the list. If not given, the entire tree
+            will be annotated.
+
+        :param max_depth:
+
+            Optionally limit to specified depth
+        """
+        qs = self.get_tree(parent)
+        if max_depth:
+            qs = qs.filter(depth__lte=max_depth)
+        return self.get_annotated_list_qs(qs)
+
+    @transaction.atomic
+    def load_bulk(self, bulk_data, parent=None, keep_ids=False):
+        """
+        Loads a list/dictionary structure to the tree.
+
+
+        :param bulk_data:
+
+            The data that will be loaded, the structure is a list of
+            dictionaries with 2 keys:
+
+            - ``data``: will store arguments that will be passed for object
+              creation, and
+
+            - ``children``: a list of dictionaries, each one has it's own
+              ``data`` and ``children`` keys (a recursive structure)
+
+
+        :param parent:
+
+            The node that will receive the structure as children, if not
+            specified the first level of the structure will be loaded as root
+            nodes
+
+
+        :param keep_ids:
+
+            If enabled, loads the nodes with the same primary keys that are
+            given in the structure. Will error if there are nodes without
+            primary key info or if the primary keys are already used.
+
+
+        :returns: A list of the added node ids.
+        """
+
+        # tree, iterative preorder
+        added = []
+        # stack of nodes to analyze
+        stack = [(parent, node) for node in bulk_data[::-1]]
+        foreign_keys = self.get_foreign_keys()
+        pk_field = self.model._meta.pk.attname
+
+        while stack:
+            parent, node_struct = stack.pop()
+            # shallow copy of the data structure so it doesn't persist...
+            node_data = node_struct["data"].copy()
+            self._process_foreign_keys(foreign_keys, node_data)
+            if keep_ids:
+                node_data[pk_field] = node_struct[pk_field]
+            if parent:
+                node_obj = parent.add_child(**node_data)
+            else:
+                node_obj = self.add_root(**node_data)
+            added.append(node_obj.pk)
+            if "children" in node_struct:
+                # extending the stack with the current node as the parent of
+                # the new nodes
+                stack.extend([(node_obj, node) for node in node_struct["children"][::-1]])
+        return added
+
+    def get_foreign_keys(self):
+        """Get foreign keys and models they refer to, so we can pre-process
+        the data for load_bulk
+        """
+        foreign_keys = {}
+        for field in self.model._meta.fields:
+            if field.get_internal_type() == "ForeignKey" and field.name != "parent":
+                foreign_keys[field.name] = field.remote_field.model
+        return foreign_keys
+
+    def _process_foreign_keys(self, foreign_keys, node_data):
+        """For each foreign key try to load the actual object so load_bulk
+        doesn't fail trying to load an int where django expects a
+        model instance
+        """
+        for key in foreign_keys.keys():
+            if key in node_data:
+                node_data[key] = foreign_keys[key].objects.get(pk=node_data[key])
+
+    def dump_bulk(self, parent=None, keep_ids=True):  # pragma: no cover
+        """
+        Dumps a tree branch to a python data structure.
+
+        :param parent:
+
+            The node whose descendants will be dumped. The node itself will be
+            included in the dump. If not given, the entire tree will be dumped.
+
+        :param keep_ids:
+
+            Stores the pk value (primary key) of every node. Enabled by
+            default.
+
+        :returns: A python data structure, described with detail in
+                  :meth:`load_bulk`
+        """
+        raise NotImplementedError

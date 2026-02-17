@@ -11,7 +11,7 @@ from django.db.models.functions import Concat, Greatest, Length, Substr
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
-from treebeard.models import Node
+from treebeard.models import Node, NodeManager
 from treebeard.numconv import NumConv
 
 
@@ -77,12 +77,306 @@ class MP_NodeQuerySet(models.query.QuerySet):
     delete.queryset_only = True
 
 
-class MP_NodeManager(models.Manager):
+class MP_NodeManager(NodeManager):
     """Custom manager for nodes in a Materialized Path tree."""
 
     def get_queryset(self):
         """Sets the custom queryset as the default."""
         return MP_NodeQuerySet(self.model).order_by("path")
+
+    def get_tree(self, parent=None):
+        """
+        :returns:
+
+            A *queryset* of nodes ordered as DFS, including the parent.
+            If no parent is given, the entire tree is returned.
+        """
+        cls = self.model.tree_model()
+
+        if parent is None:
+            # return the entire tree
+            return cls.objects.all()
+        if parent.is_leaf():
+            return cls.objects.filter(pk=parent.pk)
+        return cls.objects.filter(path__startswith=parent.path, depth__gte=parent.depth).order_by("path")
+
+    def fix_tree(self, fix_paths=False, parent=None):
+        """
+        Solves some problems that can appear when transactions are not used and
+        a piece of code breaks, leaving the tree in an inconsistent state.
+
+        The problems this method solves are:
+
+           1. Nodes with an incorrect ``depth`` or ``numchild`` values due to
+              incorrect code and lack of database transactions.
+           2. "Holes" in the tree. This is normal if you move/delete nodes a
+              lot. Holes in a tree don't affect performance,
+           3. Incorrect ordering of nodes when ``node_order_by`` is enabled.
+              Ordering is enforced on *node insertion*, so if an attribute in
+              ``node_order_by`` is modified after the node is inserted, the
+              tree ordering will be inconsistent.
+
+        :param fix_paths:
+
+            A boolean value. If True, a slower, more complex fix_tree method
+            will be attempted. If False (the default), it will use a safe (and
+            fast!) fix approach, but it will only solve the ``depth`` and
+            ``numchild`` nodes, it won't fix the tree holes or broken path
+            ordering.
+
+        :param parent:
+
+            If provided, limits the operation to descendants of the given node.
+            If not provided, the entire tree will be fixed.
+
+            Fixing only part of a tree will only work if the parent itself is valid.
+        """
+        cls = self.model.tree_model()
+
+        qs = cls.objects.filter(path__startswith=parent.path) if parent else cls.objects.all()
+
+        # fix the depth field; we need the exclude query to speed up postgres
+        qs.exclude(depth=Length("path") / cls.steplen).update(depth=Length("path") / cls.steplen)
+
+        # fix the numchild field
+        self._fix_numchild(cls, qs)
+
+        if fix_paths:
+            with transaction.atomic():
+                # To fix holes and mis-orderings in paths, we consider each non-leaf node in turn
+                # and ensure that its children's path values are consecutive (and in the order
+                # given by node_order_by, if applicable). children_to_fix is a queue of child sets
+                # that we know about but have not yet fixed, expressed as a tuple of
+                # (parent_path, depth). Since we're updating paths as we go, we must take care to
+                # only add items to this list after the corresponding parent node has been fixed
+                # (and is thus not going to change).
+
+                # Initially children_to_fix is the set of root nodes, i.e. ones with a path
+                # starting with '' and depth 1.
+                children_to_fix = [(parent.path, parent.depth + 1)] if parent else [("", 1)]
+
+                while children_to_fix:
+                    parent_path, depth = children_to_fix.pop(0)
+
+                    children = cls.objects.filter(path__startswith=parent_path, depth=depth).values(
+                        "pk", "path", "depth", "numchild"
+                    )
+
+                    desired_sequence = children.order_by(*(cls.node_order_by or ["path"]))
+
+                    # mapping of current path position (converted to numeric) to item
+                    actual_sequence = {}
+
+                    # highest numeric path position currently in use
+                    max_position = None
+
+                    # loop over items to populate actual_sequence and max_position
+                    for item in desired_sequence:
+                        actual_position = cls._str2int(item["path"][-cls.steplen :])
+                        actual_sequence[actual_position] = item
+                        if max_position is None or actual_position > max_position:
+                            max_position = actual_position
+
+                    # loop over items to perform path adjustments
+                    for i, item in enumerate(desired_sequence):
+                        desired_position = i + 1  # positions are 1-indexed
+                        actual_position = cls._str2int(item["path"][-cls.steplen :])
+                        if actual_position == desired_position:
+                            pass
+                        else:
+                            # if a node is already in the desired position, move that node
+                            # to max_position + 1 to get it out of the way
+                            occupant = actual_sequence.get(desired_position)
+                            if occupant:
+                                old_path = occupant["path"]
+                                max_position += 1
+                                new_path = cls._get_path(parent_path, depth, max_position)
+                                if len(new_path) > len(old_path):
+                                    previous_max_path = cls._get_path(parent_path, depth, max_position - 1)
+                                    raise PathOverflow(_(f"Path Overflow from: '{previous_max_path}'"))
+
+                                cls._rewrite_node_path(old_path, new_path)
+                                # update actual_sequence to reflect the new position
+                                actual_sequence[max_position] = occupant
+                                del actual_sequence[desired_position]
+                                occupant["path"] = new_path
+
+                            # move item into the (now vacated) desired position
+                            old_path = item["path"]
+                            new_path = cls._get_path(parent_path, depth, desired_position)
+                            cls._rewrite_node_path(old_path, new_path)
+                            # update actual_sequence to reflect the new position
+                            actual_sequence[desired_position] = item
+                            del actual_sequence[actual_position]
+                            item["path"] = new_path
+
+                        if item["numchild"]:
+                            # this item has children to process, and we have now moved the parent
+                            # node into its final position, so it's safe to add to children_to_fix
+                            children_to_fix.append((item["path"], depth + 1))
+
+    def _fix_numchild(self, result_class, qs):
+        vendor = connections[router.db_for_write(result_class)].vendor
+        child_subquery = (
+            result_class.objects.alias(path_length=Length("path"))
+            .order_by()
+            .filter(path__startswith=OuterRef("path"), path_length=Length(OuterRef("path")) + self.model.steplen)
+            .annotate(count=Func(F("pk"), function="Count"))
+            .values("count")
+        )
+        qs = qs.annotate(real_numchild=Subquery(child_subquery, output_field=models.IntegerField())).exclude(
+            numchild=F("real_numchild")
+        )
+
+        if vendor != "mysql":
+            qs.update(numchild=F("real_numchild"))
+        else:
+            # Our friend MySQL doesn't support update queries that use a select from the same table
+            # So we have to update each object individually
+            to_update = []
+            for node in qs.iterator():
+                node.numchild = node.real_numchild
+                to_update.append(node)
+
+            result_class.objects.bulk_update(to_update, ["numchild"])
+
+    def find_problems(self):
+        """
+        Checks for problems in the tree structure, problems can occur when:
+
+           1. your code breaks and you get incomplete transactions (always
+              use transactions!)
+           2. changing the ``steplen`` value in a model (you must
+              :meth:`dump_bulk` first, change ``steplen`` and then
+              :meth:`load_bulk`
+
+        :returns: A tuple of five lists:
+
+                  1. a list of ids of nodes with characters not found in the
+                     ``alphabet``
+                  2. a list of ids of nodes when a wrong ``path`` length
+                     according to ``steplen``
+                  3. a list of ids of orphaned nodes
+                  4. a list of ids of nodes with the wrong depth value for
+                     their path
+                  5. a list of ids nodes that report a wrong number of children
+        """
+        cls = self.model.tree_model()
+
+        evil_chars, bad_steplen, orphans = [], [], []
+        wrong_depth, wrong_numchild = [], []
+        for node in cls.objects.all():
+            found_error = False
+            for char in node.path:
+                if char not in cls.alphabet:
+                    evil_chars.append(node.pk)
+                    found_error = True
+                    break
+            if found_error:
+                continue
+            if len(node.path) % cls.steplen:
+                bad_steplen.append(node.pk)
+                continue
+            try:
+                node.get_parent(True)
+            except cls.DoesNotExist:
+                orphans.append(node.pk)
+                continue
+
+            if node.depth != int(len(node.path) / cls.steplen):
+                wrong_depth.append(node.pk)
+                continue
+
+            real_numchild = (
+                cls.objects.alias(computed_depth=Length("path") / cls.steplen)
+                .filter(path__range=cls._get_children_path_interval(node.path), computed_depth=node.depth + 1)
+                .count()
+            )
+            if real_numchild != node.numchild:
+                wrong_numchild.append(node.pk)
+                continue
+
+        return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
+
+    @transaction.atomic
+    def add_root(self, **kwargs):
+        """
+        Adds a root node to the tree.
+
+        :raise PathOverflow: when no more root objects can be added
+        """
+        return MP_AddRootHandler(self.model, **kwargs).process()
+
+    def get_root_nodes(self):
+        """:returns: A queryset containing the root nodes in the tree."""
+        return self.model.tree_model().objects.filter(depth=1).order_by("path")
+
+    def get_descendants_group_count(self, parent=None):
+        """
+        Helper for a very common case: get a group of siblings and the number
+        of *descendants* (not only children) in every sibling.
+
+        :param parent:
+
+            The parent of the siblings to return. If no parent is given, the
+            root nodes will be returned.
+
+        :returns:
+
+            A Queryset of node objects with an extra attribute: `descendants_count`.
+        """
+        cls = self.model.tree_model()
+
+        qs = parent.get_children() if parent else cls.objects.get_root_nodes()
+        subquery = (
+            cls.objects.filter(path__startswith=OuterRef("path"))
+            .order_by()
+            .annotate(count=Func(F("pk"), function="Count"))
+            .values("count")
+        )
+        qs = qs.annotate(
+            descendants_count=Subquery(subquery, output_field=models.IntegerField()) - 1
+        )  # Subtract the parent node from the count
+        return qs
+
+    def dump_bulk(self, parent=None, keep_ids=True):
+        """Dumps a tree branch to a python data structure."""
+
+        cls = self.model.tree_model()
+
+        # Because of fix_tree, this method assumes that the depth
+        # and numchild properties in the nodes can be incorrect,
+        # so no helper methods are used
+        qset = cls.objects.all().order_by("depth", "path")
+        if parent:
+            qset = qset.filter(path__startswith=parent.path)
+        ret, lnk = [], {}
+        pk_field = cls._meta.pk.attname
+        for pyobj in serializers.serialize("python", qset.iterator()):
+            # django's serializer stores the attributes in 'fields'
+            fields = pyobj["fields"]
+            path = fields["path"]
+            depth = int(len(path) / cls.steplen)
+            # this will be useless in load_bulk
+            del fields["depth"]
+            del fields["path"]
+            del fields["numchild"]
+            fields.pop(pk_field, None)  # this happens immediately after a load_bulk
+
+            newobj = {"data": fields}
+            if keep_ids:
+                newobj[pk_field] = pyobj["pk"]
+
+            if (not parent and depth == 1) or (parent and len(path) == len(parent.path)):
+                ret.append(newobj)
+            else:
+                parentpath = cls._get_basepath(path, depth - 1)
+                parentobj = lnk[parentpath]
+                if "children" not in parentobj:
+                    parentobj["children"] = []
+                parentobj["children"].append(newobj)
+            lnk[path] = newobj
+        return ret
 
 
 class MP_ComplexAddMoveHandler:
@@ -204,10 +498,10 @@ class MP_AddRootHandler:
 
     def process(self):
         # Lock all root node rows to avoid integrity errors. We must force evaluation of the queryset
-        list(self.cls.get_root_nodes().select_for_update().only("pk"))
+        list(self.cls.objects.get_root_nodes().select_for_update().only("pk"))
 
         # do we have a root node already?
-        last_root = self.cls.get_last_root_node()
+        last_root = self.cls.objects.get_last_root_node()
 
         if last_root and last_root.node_order_by:
             # There are root nodes and node_order_by has been set.
@@ -470,320 +764,10 @@ class MP_Node(Node):
         return NumConv(cls.alphabet)
 
     @classmethod
-    @transaction.atomic
-    def add_root(cls, **kwargs):
-        """
-        Adds a root node to the tree.
-
-        This method saves the node in database. The object is populated as if via:
-
-        ```
-        obj = cls(**kwargs)
-        ```
-
-        :raise PathOverflow: when no more root objects can be added
-        """
-        return MP_AddRootHandler(cls, **kwargs).process()
-
-    @classmethod
-    def dump_bulk(cls, parent=None, keep_ids=True):
-        """Dumps a tree branch to a python data structure."""
-
-        cls = cls.tree_model()
-
-        # Because of fix_tree, this method assumes that the depth
-        # and numchild properties in the nodes can be incorrect,
-        # so no helper methods are used
-        qset = cls.objects.all().order_by("depth", "path")
-        if parent:
-            qset = qset.filter(path__startswith=parent.path)
-        ret, lnk = [], {}
-        pk_field = cls._meta.pk.attname
-        for pyobj in serializers.serialize("python", qset.iterator()):
-            # django's serializer stores the attributes in 'fields'
-            fields = pyobj["fields"]
-            path = fields["path"]
-            depth = int(len(path) / cls.steplen)
-            # this will be useless in load_bulk
-            del fields["depth"]
-            del fields["path"]
-            del fields["numchild"]
-            if pk_field in fields:
-                # this happens immediately after a load_bulk
-                del fields[pk_field]
-
-            newobj = {"data": fields}
-            if keep_ids:
-                newobj[pk_field] = pyobj["pk"]
-
-            if (not parent and depth == 1) or (parent and len(path) == len(parent.path)):
-                ret.append(newobj)
-            else:
-                parentpath = cls._get_basepath(path, depth - 1)
-                parentobj = lnk[parentpath]
-                if "children" not in parentobj:
-                    parentobj["children"] = []
-                parentobj["children"].append(newobj)
-            lnk[path] = newobj
-        return ret
-
-    @classmethod
-    def find_problems(cls):
-        """
-        Checks for problems in the tree structure, problems can occur when:
-
-           1. your code breaks and you get incomplete transactions (always
-              use transactions!)
-           2. changing the ``steplen`` value in a model (you must
-              :meth:`dump_bulk` first, change ``steplen`` and then
-              :meth:`load_bulk`
-
-        :returns: A tuple of five lists:
-
-                  1. a list of ids of nodes with characters not found in the
-                     ``alphabet``
-                  2. a list of ids of nodes when a wrong ``path`` length
-                     according to ``steplen``
-                  3. a list of ids of orphaned nodes
-                  4. a list of ids of nodes with the wrong depth value for
-                     their path
-                  5. a list of ids nodes that report a wrong number of children
-        """
-        cls = cls.tree_model()
-
-        evil_chars, bad_steplen, orphans = [], [], []
-        wrong_depth, wrong_numchild = [], []
-        for node in cls.objects.all():
-            found_error = False
-            for char in node.path:
-                if char not in cls.alphabet:
-                    evil_chars.append(node.pk)
-                    found_error = True
-                    break
-            if found_error:
-                continue
-            if len(node.path) % cls.steplen:
-                bad_steplen.append(node.pk)
-                continue
-            try:
-                node.get_parent(True)
-            except cls.DoesNotExist:
-                orphans.append(node.pk)
-                continue
-
-            if node.depth != int(len(node.path) / cls.steplen):
-                wrong_depth.append(node.pk)
-                continue
-
-            real_numchild = (
-                cls.objects.alias(computed_depth=Length("path") / cls.steplen)
-                .filter(path__range=cls._get_children_path_interval(node.path), computed_depth=node.depth + 1)
-                .count()
-            )
-            if real_numchild != node.numchild:
-                wrong_numchild.append(node.pk)
-                continue
-
-        return evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild
-
-    @classmethod
-    def _fix_numchild(cls, result_class, qs):
-        vendor = connections[router.db_for_write(result_class)].vendor
-        child_subquery = (
-            result_class.objects.alias(path_length=Length("path"))
-            .order_by()
-            .filter(path__startswith=OuterRef("path"), path_length=Length(OuterRef("path")) + cls.steplen)
-            .annotate(count=Func(F("pk"), function="Count"))
-            .values("count")
-        )
-        qs = qs.annotate(real_numchild=Subquery(child_subquery, output_field=models.IntegerField())).exclude(
-            numchild=F("real_numchild")
-        )
-
-        if vendor != "mysql":
-            qs.update(numchild=F("real_numchild"))
-        else:
-            # Our friend MySQL doesn't support update queries that use a select from the same table
-            # So we have to update each object individually
-            to_update = []
-            for node in qs.iterator():
-                node.numchild = node.real_numchild
-                to_update.append(node)
-
-            result_class.objects.bulk_update(to_update, ["numchild"])
-
-    @classmethod
-    def fix_tree(cls, fix_paths=False, parent=None):
-        """
-        Solves some problems that can appear when transactions are not used and
-        a piece of code breaks, leaving the tree in an inconsistent state.
-
-        The problems this method solves are:
-
-           1. Nodes with an incorrect ``depth`` or ``numchild`` values due to
-              incorrect code and lack of database transactions.
-           2. "Holes" in the tree. This is normal if you move/delete nodes a
-              lot. Holes in a tree don't affect performance,
-           3. Incorrect ordering of nodes when ``node_order_by`` is enabled.
-              Ordering is enforced on *node insertion*, so if an attribute in
-              ``node_order_by`` is modified after the node is inserted, the
-              tree ordering will be inconsistent.
-
-        :param fix_paths:
-
-            A boolean value. If True, a slower, more complex fix_tree method
-            will be attempted. If False (the default), it will use a safe (and
-            fast!) fix approach, but it will only solve the ``depth`` and
-            ``numchild`` nodes, it won't fix the tree holes or broken path
-            ordering.
-
-        :param parent:
-
-            If provided, limits the operation to descendants of the given node.
-            If not provided, the entire tree will be fixed.
-
-            Fixing only part of a tree will only work if the parent itself is valid.
-        """
-        cls = cls.tree_model()
-
-        qs = cls.objects.filter(path__startswith=parent.path) if parent else cls.objects.all()
-
-        # fix the depth field; we need the exclude query to speed up postgres
-        qs.exclude(depth=Length("path") / cls.steplen).update(depth=Length("path") / cls.steplen)
-
-        # fix the numchild field
-        cls._fix_numchild(cls, qs)
-
-        if fix_paths:
-            with transaction.atomic():
-                # To fix holes and mis-orderings in paths, we consider each non-leaf node in turn
-                # and ensure that its children's path values are consecutive (and in the order
-                # given by node_order_by, if applicable). children_to_fix is a queue of child sets
-                # that we know about but have not yet fixed, expressed as a tuple of
-                # (parent_path, depth). Since we're updating paths as we go, we must take care to
-                # only add items to this list after the corresponding parent node has been fixed
-                # (and is thus not going to change).
-
-                # Initially children_to_fix is the set of root nodes, i.e. ones with a path
-                # starting with '' and depth 1.
-                children_to_fix = [(parent.path, parent.depth + 1)] if parent else [("", 1)]
-
-                while children_to_fix:
-                    parent_path, depth = children_to_fix.pop(0)
-
-                    children = cls.objects.filter(path__startswith=parent_path, depth=depth).values(
-                        "pk", "path", "depth", "numchild"
-                    )
-
-                    desired_sequence = children.order_by(*(cls.node_order_by or ["path"]))
-
-                    # mapping of current path position (converted to numeric) to item
-                    actual_sequence = {}
-
-                    # highest numeric path position currently in use
-                    max_position = None
-
-                    # loop over items to populate actual_sequence and max_position
-                    for item in desired_sequence:
-                        actual_position = cls._str2int(item["path"][-cls.steplen :])
-                        actual_sequence[actual_position] = item
-                        if max_position is None or actual_position > max_position:
-                            max_position = actual_position
-
-                    # loop over items to perform path adjustments
-                    for i, item in enumerate(desired_sequence):
-                        desired_position = i + 1  # positions are 1-indexed
-                        actual_position = cls._str2int(item["path"][-cls.steplen :])
-                        if actual_position == desired_position:
-                            pass
-                        else:
-                            # if a node is already in the desired position, move that node
-                            # to max_position + 1 to get it out of the way
-                            occupant = actual_sequence.get(desired_position)
-                            if occupant:
-                                old_path = occupant["path"]
-                                max_position += 1
-                                new_path = cls._get_path(parent_path, depth, max_position)
-                                if len(new_path) > len(old_path):
-                                    previous_max_path = cls._get_path(parent_path, depth, max_position - 1)
-                                    raise PathOverflow(_(f"Path Overflow from: '{previous_max_path}'"))
-
-                                cls._rewrite_node_path(old_path, new_path)
-                                # update actual_sequence to reflect the new position
-                                actual_sequence[max_position] = occupant
-                                del actual_sequence[desired_position]
-                                occupant["path"] = new_path
-
-                            # move item into the (now vacated) desired position
-                            old_path = item["path"]
-                            new_path = cls._get_path(parent_path, depth, desired_position)
-                            cls._rewrite_node_path(old_path, new_path)
-                            # update actual_sequence to reflect the new position
-                            actual_sequence[desired_position] = item
-                            del actual_sequence[actual_position]
-                            item["path"] = new_path
-
-                        if item["numchild"]:
-                            # this item has children to process, and we have now moved the parent
-                            # node into its final position, so it's safe to add to children_to_fix
-                            children_to_fix.append((item["path"], depth + 1))
-
-    @classmethod
     def _rewrite_node_path(cls, old_path, new_path):
         cls.objects.filter(path__startswith=old_path).update(
             path=Concat(Value(new_path), Substr("path", len(old_path) + 1))
         )
-
-    @classmethod
-    def get_tree(cls, parent=None):
-        """
-        :returns:
-
-            A *queryset* of nodes ordered as DFS, including the parent.
-            If no parent is given, the entire tree is returned.
-        """
-        cls = cls.tree_model()
-
-        if parent is None:
-            # return the entire tree
-            return cls.objects.all()
-        if parent.is_leaf():
-            return cls.objects.filter(pk=parent.pk)
-        return cls.objects.filter(path__startswith=parent.path, depth__gte=parent.depth).order_by("path")
-
-    @classmethod
-    def get_root_nodes(cls):
-        """:returns: A queryset containing the root nodes in the tree."""
-        return cls.tree_model().objects.filter(depth=1).order_by("path")
-
-    @classmethod
-    def get_descendants_group_count(cls, parent=None):
-        """
-        Helper for a very common case: get a group of siblings and the number
-        of *descendants* (not only children) in every sibling.
-
-        :param parent:
-
-            The parent of the siblings to return. If no parent is given, the
-            root nodes will be returned.
-
-        :returns:
-
-            A Queryset of node objects with an extra attribute: `descendants_count`.
-        """
-        cls = cls.tree_model()
-
-        qs = parent.get_children() if parent else cls.get_root_nodes()
-        subquery = (
-            cls.objects.filter(path__startswith=OuterRef("path"))
-            .order_by()
-            .annotate(count=Func(F("pk"), function="Count"))
-            .values("count")
-        )
-        qs = qs.annotate(
-            descendants_count=Subquery(subquery, output_field=models.IntegerField()) - 1
-        )  # Subtract the parent node from the count
-        return qs
 
     def get_depth(self):
         """:returns: the depth (level) of the node"""
@@ -824,10 +808,10 @@ class MP_Node(Node):
             include the node itself if `include_self` is False
         """
         if include_self:
-            return self.__class__.get_tree(self)
+            return self.__class__.objects.get_tree(self)
         if self.is_leaf():
             return self.tree_model().objects.none()
-        return self.__class__.get_tree(self).exclude(pk=self.pk)
+        return self.__class__.objects.get_tree(self).exclude(pk=self.pk)
 
     def get_prev_sibling(self):
         """

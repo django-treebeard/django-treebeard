@@ -14,7 +14,7 @@ from django.db.models.functions import Concat
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
-from treebeard.models import Node
+from treebeard.models import Node, NodeManager
 
 from .fields import Ltree2Text, PathField, PathValue, Subpath, Text2LTree
 
@@ -122,12 +122,103 @@ class LT_NodeQuerySet(models.query.QuerySet):
     delete.queryset_only = True
 
 
-class LT_NodeManager(models.Manager):
+class LT_NodeManager(NodeManager):
     """Custom manager for nodes in a Materialized Path tree."""
 
     def get_queryset(self):
         """Sets the custom queryset as the default."""
         return LT_NodeQuerySet(self.model).order_by("path")
+
+    def get_tree(self, parent=None):
+        """
+        :returns:
+
+            A *queryset* of nodes ordered as DFS, including the parent.
+            If no parent is given, the entire tree is returned.
+        """
+        cls = self.model.tree_model()
+
+        if parent is None:
+            # return the entire tree
+            return cls.objects.all()
+
+        return cls.objects.filter(path__descendants=parent.path)
+
+    @transaction.atomic
+    def add_root(self, **kwargs):
+        """
+        Adds a root node to the tree.
+        """
+        return LT_AddRootHandler(self.model, **kwargs).process()
+
+    def get_root_nodes(self):
+        """:returns: A queryset containing the root nodes in the tree."""
+        return self.model.tree_model().objects.filter(path__depth=1).order_by("path")
+
+    def get_descendants_group_count(self, parent=None):
+        """
+        Helper for a very common case: get a group of siblings and the number
+        of *descendants* (not only children) in every sibling.
+
+        :param parent:
+
+            The parent of the siblings to return. If no parent is given, the
+            root nodes will be returned.
+
+        :returns:
+
+            A Queryset of node objects with an extra attribute: `descendants_count`.
+        """
+        cls = self.model.tree_model()
+        qs = parent.get_children() if parent else cls.objects.get_root_nodes()
+        subquery = (
+            cls.objects.filter(path__descendants=OuterRef("path"))
+            .order_by()
+            .annotate(count=Func(F("pk"), function="Count"))
+            .values("count")
+        )
+        return qs.annotate(
+            descendants_count=Subquery(subquery, output_field=models.IntegerField()) - 1
+        )  # Subtract the parent node from the count
+
+    def dump_bulk(self, parent=None, keep_ids=True):
+        """Dumps a tree branch to a python data structure."""
+
+        cls = self.model.tree_model()
+
+        # Because of fix_tree, this method assumes that the depth
+        # and numchild properties in the nodes can be incorrect,
+        # so no helper methods are used
+        qset = cls.objects.all()
+        if parent:
+            qset = qset.filter(path__descendants=parent.path)
+        ret, lnk = [], {}
+        pk_field = cls._meta.pk.attname
+        for pyobj in serializers.serialize("python", qset.iterator()):
+            # django's serializer stores the attributes in 'fields'
+            fields = pyobj["fields"]
+            path = PathValue(fields["path"])
+            depth = len(path)
+            # this will be useless in load_bulk
+            del fields["path"]
+            if pk_field in fields:
+                # this happens immediately after a load_bulk
+                del fields[pk_field]
+
+            newobj = {"data": fields}
+            if keep_ids:
+                newobj[pk_field] = pyobj["pk"]
+
+            if (not parent and depth == 1) or (parent and len(path) == len(parent.path)):
+                ret.append(newobj)
+            else:
+                parentpath = path[0 : depth - 1]
+                parentobj = lnk[str(parentpath)]
+                if "children" not in parentobj:
+                    parentobj["children"] = []
+                parentobj["children"].append(newobj)
+            lnk[str(path)] = newobj
+        return ret
 
 
 class LT_ComplexAddMoveHandler:
@@ -200,10 +291,10 @@ class LT_AddRootHandler:
 
     def process(self):
         # Lock all root node rows to avoid integrity errors. We must force evaluation of the queryset
-        list(self.cls.get_root_nodes().select_for_update().only("pk"))
+        list(self.cls.objects.get_root_nodes().select_for_update().only("pk"))
 
         # do we have a root node already?
-        last_root = self.cls.get_last_root_node()
+        last_root = self.cls.objects.get_last_root_node()
 
         if last_root and last_root.node_order_by:
             # There are root nodes and node_order_by has been set.
@@ -225,7 +316,7 @@ class LT_AddRootHandler:
 
         if last_root:
             # adding the new root node as the last one
-            newobj.path = generate_path(skip=self.cls.get_root_nodes().values_list("path", flat=True))
+            newobj.path = generate_path(skip=self.cls.objects.get_root_nodes().values_list("path", flat=True))
         else:
             # adding the first root node
             newobj.path = generate_path()
@@ -397,108 +488,6 @@ class LT_Node(Node):
 
     _cached_attributes = (*Node._cached_attributes,)
 
-    @classmethod
-    @transaction.atomic
-    def add_root(cls, **kwargs):
-        """
-        Adds a root node to the tree.
-
-        This method saves the node in database. The object is populated as if via:
-
-        ```
-        obj = cls(**kwargs)
-        ```
-        """
-        return LT_AddRootHandler(cls, **kwargs).process()
-
-    @classmethod
-    def dump_bulk(cls, parent=None, keep_ids=True):
-        """Dumps a tree branch to a python data structure."""
-
-        cls = cls.tree_model()
-
-        # Because of fix_tree, this method assumes that the depth
-        # and numchild properties in the nodes can be incorrect,
-        # so no helper methods are used
-        qset = cls.objects.all()
-        if parent:
-            qset = qset.filter(path__descendants=parent.path)
-        ret, lnk = [], {}
-        pk_field = cls._meta.pk.attname
-        for pyobj in serializers.serialize("python", qset.iterator()):
-            # django's serializer stores the attributes in 'fields'
-            fields = pyobj["fields"]
-            path = PathValue(fields["path"])
-            depth = len(path)
-            # this will be useless in load_bulk
-            del fields["path"]
-            if pk_field in fields:
-                # this happens immediately after a load_bulk
-                del fields[pk_field]
-
-            newobj = {"data": fields}
-            if keep_ids:
-                newobj[pk_field] = pyobj["pk"]
-
-            if (not parent and depth == 1) or (parent and len(path) == len(parent.path)):
-                ret.append(newobj)
-            else:
-                parentpath = path[0 : depth - 1]
-                parentobj = lnk[str(parentpath)]
-                if "children" not in parentobj:
-                    parentobj["children"] = []
-                parentobj["children"].append(newobj)
-            lnk[str(path)] = newobj
-        return ret
-
-    @classmethod
-    def get_tree(cls, parent=None):
-        """
-        :returns:
-
-            A *queryset* of nodes ordered as DFS, including the parent.
-            If no parent is given, the entire tree is returned.
-        """
-        cls = cls.tree_model()
-
-        if parent is None:
-            # return the entire tree
-            return cls.objects.all()
-
-        return cls.objects.filter(path__descendants=parent.path)
-
-    @classmethod
-    def get_root_nodes(cls):
-        """:returns: A queryset containing the root nodes in the tree."""
-        return cls.tree_model().objects.filter(path__depth=1).order_by("path")
-
-    @classmethod
-    def get_descendants_group_count(cls, parent=None):
-        """
-        Helper for a very common case: get a group of siblings and the number
-        of *descendants* (not only children) in every sibling.
-
-        :param parent:
-
-            The parent of the siblings to return. If no parent is given, the
-            root nodes will be returned.
-
-        :returns:
-
-            A Queryset of node objects with an extra attribute: `descendants_count`.
-        """
-        cls = cls.tree_model()
-        qs = parent.get_children() if parent else cls.get_root_nodes()
-        subquery = (
-            cls.objects.filter(path__descendants=OuterRef("path"))
-            .order_by()
-            .annotate(count=Func(F("pk"), function="Count"))
-            .values("count")
-        )
-        return qs.annotate(
-            descendants_count=Subquery(subquery, output_field=models.IntegerField()) - 1
-        )  # Subtract the parent node from the count
-
     def get_depth(self):
         """:returns: the depth (level) of the node"""
         return len(self.path)
@@ -527,9 +516,9 @@ class LT_Node(Node):
             include the node itself if `include_self` is False
         """
         if include_self:
-            return self.__class__.get_tree(self)
+            return self.__class__.objects.get_tree(self)
 
-        return self.__class__.get_tree(self).exclude(pk=self.pk)
+        return self.__class__.objects.get_tree(self).exclude(pk=self.pk)
 
     def get_prev_sibling(self):
         """

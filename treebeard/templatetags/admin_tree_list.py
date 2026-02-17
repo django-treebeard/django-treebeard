@@ -38,6 +38,6 @@ def _subtree(context, node, request):
 @register.simple_tag(takes_context=True)
 def result_tree(context, cl, request):
     tree = ""
-    for root_node in cl.model.get_root_nodes():
+    for root_node in cl.model.objects.get_root_nodes():
         tree += format_html("<li>{}</li>", mark_safe(_subtree(context, root_node, request)))
     return format_html("<ul>{}</ul>", mark_safe(tree))

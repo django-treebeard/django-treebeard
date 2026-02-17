@@ -68,7 +68,7 @@ You can see the tree structure with code:
 
 .. code-block:: python
 
-    >>> Category.dump_bulk()
+    >>> Category.objects.dump_bulk()
     [{'id': 1, 'data': {'name': u'Computer Hardware'},
       'children': [
          {'id': 3, 'data': {'name': u'Hard Drives'}},
@@ -78,7 +78,7 @@ You can see the tree structure with code:
              {'id': 6, 'data': {'name': u'Laptop Memory'}},
              {'id': 7, 'data': {'name': u'Server Memory'}}]},
          {'id': 4, 'data': {'name': u'SSD'}}]}]
-    >>> Category.get_annotated_list()
+    >>> Category.objects.get_annotated_list()
     [(<Category: Category: Computer Hardware>,
       {'close': [], 'level': 0, 'open': True}),
      (<Category: Category: Hard Drives>,

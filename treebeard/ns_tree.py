@@ -9,7 +9,7 @@ from django.db.models import Case, F, Q, When
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
-from treebeard.models import Node
+from treebeard.models import Node, NodeManager
 
 
 def merge_deleted_counters(c1, c2):
@@ -86,12 +86,137 @@ class NS_NodeQuerySet(models.query.QuerySet):
     delete.queryset_only = True
 
 
-class NS_NodeManager(models.Manager):
+class NS_NodeManager(NodeManager):
     """Custom manager for nodes in a Nested Sets tree."""
 
     def get_queryset(self):
         """Sets the custom queryset as the default."""
         return NS_NodeQuerySet(self.model).order_by("tree_id", "lft")
+
+    def get_tree(self, parent=None):
+        """
+        :returns:
+
+            A *queryset* of nodes ordered as DFS, including the parent.
+            If no parent is given, all trees are returned.
+        """
+        cls = self.model.tree_model()
+
+        if parent is None:
+            # return the entire tree
+            return cls.objects.all()
+        if parent.is_leaf():
+            return cls.objects.filter(pk=parent.pk)
+        return cls.objects.filter(tree_id=parent.tree_id, lft__range=(parent.lft, parent.rgt - 1))
+
+    @transaction.atomic
+    def add_root(self, **kwargs):
+        """Adds a root node to the tree."""
+
+        # do we have a root node already?
+        last_root = self.model.objects.get_last_root_node()
+
+        if last_root and last_root.node_order_by:
+            # there are root nodes and node_order_by has been set
+            # delegate sorted insertion to add_sibling
+            return last_root.add_sibling("sorted-sibling", **kwargs)
+
+        if last_root:
+            # adding the new root node as the last one
+            newtree_id = last_root.tree_id + 1
+        else:
+            # adding the first root node
+            newtree_id = 1
+
+        if len(kwargs) == 1 and "instance" in kwargs:
+            # adding the passed (unsaved) instance to the tree
+            newobj = kwargs["instance"]
+            if not newobj._state.adding:
+                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
+        else:
+            # creating the new object
+            newobj = self.model.tree_model()(**kwargs)
+
+        newobj.depth = 1
+        newobj.tree_id = newtree_id
+        newobj.lft = 1
+        newobj.rgt = 2
+        # saving the instance before returning it
+        newobj.save()
+        return newobj
+
+    def get_root_nodes(self):
+        """:returns: A queryset containing the root nodes in the tree."""
+        return self.model.tree_model().objects.filter(lft=1)
+
+    @transaction.atomic
+    def load_bulk(self, bulk_data, parent=None, keep_ids=False):
+        """Loads a list/dictionary structure to the tree."""
+
+        cls = self.model.tree_model()
+
+        # tree, iterative preorder
+        added = []
+        if parent:
+            parent_id = parent.pk
+        else:
+            parent_id = None
+        # stack of nodes to analyze
+        stack = [(parent_id, node) for node in bulk_data[::-1]]
+        foreign_keys = self.get_foreign_keys()
+        pk_field = cls._meta.pk.attname
+        while stack:
+            parent_id, node_struct = stack.pop()
+            # shallow copy of the data structure so it doesn't persist...
+            node_data = node_struct["data"].copy()
+            self._process_foreign_keys(foreign_keys, node_data)
+            if keep_ids:
+                node_data[pk_field] = node_struct[pk_field]
+            if parent_id:
+                parent = cls.objects.get(pk=parent_id)
+                node_obj = parent.add_child(**node_data)
+            else:
+                node_obj = cls.objects.add_root(**node_data)
+            added.append(node_obj.pk)
+            if "children" in node_struct:
+                # extending the stack with the current node as the parent of
+                # the new nodes
+                stack.extend([(node_obj.pk, node) for node in node_struct["children"][::-1]])
+        return added
+
+    def dump_bulk(self, parent=None, keep_ids=True):
+        """Dumps a tree branch to a python data structure."""
+        qset = self.get_tree(parent)
+        ret, lnk = [], {}
+        pk_field = self.model._meta.pk.attname
+        for pyobj in qset.iterator():
+            serobj = serializers.serialize("python", [pyobj])[0]
+            # django's serializer stores the attributes in 'fields'
+            fields = serobj["fields"]
+            depth = fields["depth"]
+            # this will be useless in load_bulk
+            del fields["lft"]
+            del fields["rgt"]
+            del fields["depth"]
+            del fields["tree_id"]
+            if pk_field in fields:
+                # this happens immediately after a load_bulk
+                del fields[pk_field]
+
+            newobj = {"data": fields}
+            if keep_ids:
+                newobj[pk_field] = serobj["pk"]
+
+            if (not parent and depth == 1) or (parent and depth == parent.depth):
+                ret.append(newobj)
+            else:
+                parentobj = pyobj.get_parent()
+                parentser = lnk[parentobj.pk]
+                if "children" not in parentser:
+                    parentser["children"] = []
+                parentser["children"].append(newobj)
+            lnk[pyobj.pk] = newobj
+        return ret
 
 
 class NS_Node(Node):
@@ -113,43 +238,6 @@ class NS_Node(Node):
         *Node._cached_attributes,
         "_cached_parent_obj",
     )
-
-    @classmethod
-    @transaction.atomic
-    def add_root(cls, **kwargs):
-        """Adds a root node to the tree."""
-
-        # do we have a root node already?
-        last_root = cls.get_last_root_node()
-
-        if last_root and last_root.node_order_by:
-            # there are root nodes and node_order_by has been set
-            # delegate sorted insertion to add_sibling
-            return last_root.add_sibling("sorted-sibling", **kwargs)
-
-        if last_root:
-            # adding the new root node as the last one
-            newtree_id = last_root.tree_id + 1
-        else:
-            # adding the first root node
-            newtree_id = 1
-
-        if len(kwargs) == 1 and "instance" in kwargs:
-            # adding the passed (unsaved) instance to the tree
-            newobj = kwargs["instance"]
-            if not newobj._state.adding:
-                raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
-        else:
-            # creating the new object
-            newobj = cls.tree_model()(**kwargs)
-
-        newobj.depth = 1
-        newobj.tree_id = newtree_id
-        newobj.lft = 1
-        newobj.rgt = 2
-        # saving the instance before returning it
-        newobj.save()
-        return newobj
 
     @classmethod
     def _move_right(cls, tree_id, rgt, lftmove=False, incdec=2):
@@ -238,7 +326,7 @@ class NS_Node(Node):
                 else:
                     pos = "last-sibling"
 
-            last_root = target.__class__.get_last_root_node()
+            last_root = target.__class__.objects.get_last_root_node()
             if (pos == "last-sibling") or (pos == "right" and target == last_root):
                 newobj.tree_id = last_root.tree_id + 1
             else:
@@ -422,42 +510,6 @@ class NS_Node(Node):
             rgt=Case(When(rgt__gt=drop_lft, then=F("rgt") - gapsize), default=F("rgt"), output_field=output_field),
         )
 
-    @classmethod
-    @transaction.atomic
-    def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
-        """Loads a list/dictionary structure to the tree."""
-
-        cls = cls.tree_model()
-
-        # tree, iterative preorder
-        added = []
-        if parent:
-            parent_id = parent.pk
-        else:
-            parent_id = None
-        # stack of nodes to analyze
-        stack = [(parent_id, node) for node in bulk_data[::-1]]
-        foreign_keys = cls.get_foreign_keys()
-        pk_field = cls._meta.pk.attname
-        while stack:
-            parent_id, node_struct = stack.pop()
-            # shallow copy of the data structure so it doesn't persist...
-            node_data = node_struct["data"].copy()
-            cls._process_foreign_keys(foreign_keys, node_data)
-            if keep_ids:
-                node_data[pk_field] = node_struct[pk_field]
-            if parent_id:
-                parent = cls.objects.get(pk=parent_id)
-                node_obj = parent.add_child(**node_data)
-            else:
-                node_obj = cls.add_root(**node_data)
-            added.append(node_obj.pk)
-            if "children" in node_struct:
-                # extending the stack with the current node as the parent of
-                # the new nodes
-                stack.extend([(node_obj.pk, node) for node in node_struct["children"][::-1]])
-        return added
-
     def get_children(self):
         """:returns: A queryset of all the node's children"""
         return self.get_descendants().filter(depth=self.depth + 1)
@@ -486,60 +538,8 @@ class NS_Node(Node):
             itself.
         """
         if self.lft == 1:
-            return self.get_root_nodes()
+            return self.__class__.objects.get_root_nodes()
         return self.get_parent(True).get_children()
-
-    @classmethod
-    def dump_bulk(cls, parent=None, keep_ids=True):
-        """Dumps a tree branch to a python data structure."""
-        qset = cls.get_tree(parent)
-        ret, lnk = [], {}
-        pk_field = cls._meta.pk.attname
-        for pyobj in qset.iterator():
-            serobj = serializers.serialize("python", [pyobj])[0]
-            # django's serializer stores the attributes in 'fields'
-            fields = serobj["fields"]
-            depth = fields["depth"]
-            # this will be useless in load_bulk
-            del fields["lft"]
-            del fields["rgt"]
-            del fields["depth"]
-            del fields["tree_id"]
-            if pk_field in fields:
-                # this happens immediately after a load_bulk
-                del fields[pk_field]
-
-            newobj = {"data": fields}
-            if keep_ids:
-                newobj[pk_field] = serobj["pk"]
-
-            if (not parent and depth == 1) or (parent and depth == parent.depth):
-                ret.append(newobj)
-            else:
-                parentobj = pyobj.get_parent()
-                parentser = lnk[parentobj.pk]
-                if "children" not in parentser:
-                    parentser["children"] = []
-                parentser["children"].append(newobj)
-            lnk[pyobj.pk] = newobj
-        return ret
-
-    @classmethod
-    def get_tree(cls, parent=None):
-        """
-        :returns:
-
-            A *queryset* of nodes ordered as DFS, including the parent.
-            If no parent is given, all trees are returned.
-        """
-        cls = cls.tree_model()
-
-        if parent is None:
-            # return the entire tree
-            return cls.objects.all()
-        if parent.is_leaf():
-            return cls.objects.filter(pk=parent.pk)
-        return cls.objects.filter(tree_id=parent.tree_id, lft__range=(parent.lft, parent.rgt - 1))
 
     def get_descendants(self, include_self=False):
         """
@@ -547,10 +547,10 @@ class NS_Node(Node):
             include the node itself if `include_self` is `False`
         """
         if include_self:
-            return self.__class__.get_tree(self)
+            return self.__class__.objects.get_tree(self)
         if self.is_leaf():
             return self.tree_model().objects.none()
-        return self.__class__.get_tree(self).exclude(pk=self.pk)
+        return self.__class__.objects.get_tree(self).exclude(pk=self.pk)
 
     def get_descendant_count(self):
         """:returns: the number of descendants of a node."""
@@ -589,11 +589,6 @@ class NS_Node(Node):
         # parent = our most direct ancestor
         self._cached_parent_obj = self.get_ancestors().reverse()[0]
         return self._cached_parent_obj
-
-    @classmethod
-    def get_root_nodes(cls):
-        """:returns: A queryset containing the root nodes in the tree."""
-        return cls.tree_model().objects.filter(lft=1)
 
     class Meta:
         """Abstract model."""
