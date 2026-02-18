@@ -383,7 +383,7 @@ class Node(models.Model):
 
     def is_root(self):
         """:returns: True if the node is a root node (else, returns False)"""
-        return self.get_root().pk == self.pk
+        raise NotImplementedError
 
     def is_leaf(self):
         """:returns: True if the node is a leaf node (else, returns False)"""
