@@ -1,3 +1,9 @@
+Release X.X.X (in development)
+------------------------------
+
+* Improved query efficiency for AL Trees, for several query operations.
+
+
 Release 5.0.3 (Feb 18, 2026)
 ------------------------------
 
