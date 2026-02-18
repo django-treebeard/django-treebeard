@@ -1,3 +1,12 @@
+Release 5.0.3 (Feb 18, 2026)
+------------------------------
+
+Treebeard 5.0.3 is a bugfix release.
+
+* Added row locks to prevent potential race conditions when concurrently calling `add_child()` on the same node,
+  or when concurrently adding root nodes.
+
+
 Release 5.0.2 (Feb 13, 2026)
 ------------------------------
 
