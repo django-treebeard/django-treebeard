@@ -43,32 +43,10 @@ class Node(models.Model):
         raise NotImplementedError
 
     @classmethod
-    def get_foreign_keys(cls):
-        """Get foreign keys and models they refer to, so we can pre-process
-        the data for load_bulk
-        """
-        foreign_keys = {}
-        for field in cls._meta.fields:
-            if field.get_internal_type() == "ForeignKey" and field.name != "parent":
-                foreign_keys[field.name] = field.remote_field.model
-        return foreign_keys
-
-    @classmethod
-    def _process_foreign_keys(cls, foreign_keys, node_data):
-        """For each foreign key try to load the actual object so load_bulk
-        doesn't fail trying to load an int where django expects a
-        model instance
-        """
-        for key in foreign_keys.keys():
-            if key in node_data:
-                node_data[key] = foreign_keys[key].objects.get(pk=node_data[key])
-
-    @classmethod
     @transaction.atomic
     def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
         """
         Loads a list/dictionary structure to the tree.
-
 
         :param bulk_data:
 
@@ -88,35 +66,33 @@ class Node(models.Model):
             specified the first level of the structure will be loaded as root
             nodes
 
-
         :param keep_ids:
 
             If enabled, loads the nodes with the same primary keys that are
             given in the structure. Will error if there are nodes without
             primary key info or if the primary keys are already used.
 
-
-        :returns: A list of the added node ids.
+        :returns: A list of the added node PKs.
         """
 
         # tree, iterative preorder
         added = []
         # stack of nodes to analyze
         stack = [(parent, node) for node in bulk_data[::-1]]
-        foreign_keys = cls.get_foreign_keys()
+        foreign_key_fields = {field.name for field in cls._meta.fields if (field.one_to_one or field.many_to_one)}
         pk_field = cls._meta.pk.attname
 
         while stack:
             parent, node_struct = stack.pop()
             # shallow copy of the data structure so it doesn't persist...
             node_data = node_struct["data"].copy()
-            cls._process_foreign_keys(foreign_keys, node_data)
+            for field in foreign_key_fields:
+                # Append _id to field name, so that we don't need to load the foreign objects into memory
+                node_data[f"{field}_id"] = node_data.pop(field, None)
             if keep_ids:
-                node_data[pk_field] = node_struct[pk_field]
-            if parent:
-                node_obj = parent.add_child(**node_data)
-            else:
-                node_obj = cls.add_root(**node_data)
+                node_data["pk"] = node_struct[pk_field]
+
+            node_obj = parent.add_child(**node_data) if parent else cls.add_root(**node_data)
             added.append(node_obj.pk)
             if "children" in node_struct:
                 # extending the stack with the current node as the parent of

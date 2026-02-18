@@ -419,7 +419,7 @@ class TestClassMethods(TestNonEmptyTree):
 
     @pytest.mark.django_db(transaction=True)
     @pytest.mark.skipif(
-        os.getenv("DATABASE_ENGINE", "") == "sqlite",
+        os.getenv("DATABASE_ENGINE", "sqlite") == "sqlite",
         reason="SQLite doesn't support row-level locking",
     )
     def test_add_root_concurrent(self, model_without_data):
@@ -864,7 +864,7 @@ class TestAddChild(TestNonEmptyTree):
 
     @pytest.mark.django_db(transaction=True)
     @pytest.mark.skipif(
-        os.getenv("DATABASE_ENGINE", "") == "sqlite",
+        os.getenv("DATABASE_ENGINE", "sqlite") == "sqlite",
         reason="SQLite doesn't support row-level locking",
     )
     def test_add_child_concurrent(self, model_without_data):
