@@ -167,22 +167,24 @@ class NS_Node(Node):
     @transaction.atomic
     def add_child(self, **kwargs):
         """Adds a child to the node."""
-        # Lock parent row
-        self.tree_model().objects.filter(pk=self.pk).select_for_update().only("pk").get()
-        if not self.is_leaf():
+        # Fetch the parent afresh from the database and lock the row
+        # This guards against race conditions and state drift when adding multiple children
+        node = self.__class__.objects.filter(pk=self.pk).select_for_update().get()
+        if not node.is_leaf():
             # there are child nodes, delegate insertion to add_sibling
             if self.node_order_by:
                 pos = "sorted-sibling"
             else:
                 pos = "last-sibling"
-            last_child = self.get_last_child()
-            last_child._cached_parent_obj = self
+            last_child = node.get_last_child()
+            last_child._cached_parent_obj = node
             new_sibling = last_child.add_sibling(pos, **kwargs)
-            self.rgt += 2  # Update the rgt of the parent object, which may be used again in a loop
+            node.rgt += 2
+            self.rgt = node.rgt + 2  # Update the rgt of the parent object, which may be used again in a loop
             return new_sibling
 
         # we're adding the first child of this node
-        self.__class__._move_right(self.tree_id, self.rgt, False, 2)
+        node.__class__._move_right(node.tree_id, node.rgt, False, 2)
 
         if len(kwargs) == 1 and "instance" in kwargs:
             # adding the passed (unsaved) instance to the tree
@@ -191,15 +193,15 @@ class NS_Node(Node):
                 raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
         else:
             # creating a new object
-            newobj = self.tree_model()(**kwargs)
+            newobj = node.tree_model()(**kwargs)
 
-        newobj.tree_id = self.tree_id
-        newobj.depth = self.depth + 1
-        newobj.lft = self.lft + 1
-        newobj.rgt = self.lft + 2
+        newobj.tree_id = node.tree_id
+        newobj.depth = node.depth + 1
+        newobj.lft = node.lft + 1
+        newobj.rgt = node.lft + 2
 
         # this is just to update the cache
-        self.rgt += 2
+        self.rgt = node.rgt + 2
 
         newobj._cached_parent_obj = self
 
@@ -421,42 +423,6 @@ class NS_Node(Node):
             lft=Case(When(lft__gt=drop_lft, then=F("lft") - gapsize), default=F("lft"), output_field=output_field),
             rgt=Case(When(rgt__gt=drop_lft, then=F("rgt") - gapsize), default=F("rgt"), output_field=output_field),
         )
-
-    @classmethod
-    @transaction.atomic
-    def load_bulk(cls, bulk_data, parent=None, keep_ids=False):
-        """Loads a list/dictionary structure to the tree."""
-
-        cls = cls.tree_model()
-
-        # tree, iterative preorder
-        added = []
-        if parent:
-            parent_id = parent.pk
-        else:
-            parent_id = None
-        # stack of nodes to analyze
-        stack = [(parent_id, node) for node in bulk_data[::-1]]
-        foreign_keys = cls.get_foreign_keys()
-        pk_field = cls._meta.pk.attname
-        while stack:
-            parent_id, node_struct = stack.pop()
-            # shallow copy of the data structure so it doesn't persist...
-            node_data = node_struct["data"].copy()
-            cls._process_foreign_keys(foreign_keys, node_data)
-            if keep_ids:
-                node_data[pk_field] = node_struct[pk_field]
-            if parent_id:
-                parent = cls.objects.get(pk=parent_id)
-                node_obj = parent.add_child(**node_data)
-            else:
-                node_obj = cls.add_root(**node_data)
-            added.append(node_obj.pk)
-            if "children" in node_struct:
-                # extending the stack with the current node as the parent of
-                # the new nodes
-                stack.extend([(node_obj.pk, node) for node in node_struct["children"][::-1]])
-        return added
 
     def get_children(self):
         """:returns: A queryset of all the node's children"""
