@@ -2,7 +2,7 @@
 
 from django.core import serializers
 from django.db import models, transaction
-from django.db.models import Max, Min
+from django.db.models import Exists, Max, Min, OuterRef
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
@@ -135,6 +135,15 @@ class AL_Node(Node):
             return ancestors[0]
         return self
 
+    def is_root(self):
+        return self.parent_id is None
+
+    def is_sibling_of(self, node):
+        return self.parent_id == node.parent_id
+
+    def is_child_of(self, node):
+        return self.parent_id == node.pk
+
     def is_descendant_of(self, node):
         """
         :returns: ``True`` if the node if a descendant of another node given
@@ -205,10 +214,14 @@ class AL_Node(Node):
     @classmethod
     def _get_tree_recursively(cls, results, parent, depth):
         if parent:
-            nodes = parent.get_children()
+            qs = parent.get_children() if parent.node_has_children else cls.objects.none()
         else:
-            nodes = cls.get_root_nodes()
-        for node in nodes:
+            qs = cls.get_root_nodes()
+
+        # Annotate nodes with `node_has_children`, so that we can avoid unnecessary
+        # queries to fetch children on leaf nodes
+        qs = qs.annotate(node_has_children=Exists(cls.tree_model().objects.filter(parent=OuterRef("pk"))))
+        for node in qs:
             node._cached_depth = depth
             results.append(node)
             cls._get_tree_recursively(results, node, depth + 1)
@@ -221,6 +234,7 @@ class AL_Node(Node):
         """
         if parent:
             depth = parent.get_depth() + 1
+            parent.node_has_children = parent.get_children().exists()
             results = [parent]
         else:
             depth = 1
@@ -233,9 +247,8 @@ class AL_Node(Node):
         :returns: A *list* of all the node's descendants, doesn't
             include the node itself if `include_self` is False
         """
-        if include_self:
-            return self.__class__.get_tree(self)
-        return self.__class__.get_tree(parent=self)[1:]
+        tree = self.tree_model().get_tree(self)
+        return tree if include_self else tree[1:]
 
     def get_descendant_count(self):
         """:returns: the number of descendants of a nodee"""

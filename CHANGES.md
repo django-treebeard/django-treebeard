@@ -1,3 +1,9 @@
+Next release (in development)
+------------------------------
+
+* Improved query efficiency for AL Trees, for several query operations.
+
+
 Release 5.0.5 (Feb 19, 2026)
 ------------------------------
 
