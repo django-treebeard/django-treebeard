@@ -99,8 +99,3 @@ You can see the tree structure with code:
 
 
 Read the :class:`treebeard.models.Node` API reference for detailed info.
-
-.. _`treebeard mercurial repository`:
-   http://code.tabo.pe/django-treebeard
-.. _`latest treebeard version from PyPI`:
-   https://pypi.org/project/django-treebeard/
