@@ -1826,6 +1826,15 @@ class TestTreeSorted(TestTreeBase):
         ]
         assert self.got(sorted_model) == expected
 
+    def test_add_root_sorted_with_instances(self, sorted_model):
+        sorted_model.add_root(instance=sorted_model(val1=3, val2=3, desc="zxy"))
+        sorted_model.add_root(instance=sorted_model(val1=1, val2=4, desc="bcd"))
+        expected = [
+            (1, 4, "bcd", 1, 0),
+            (3, 3, "zxy", 1, 0),
+        ]
+        assert self.got(sorted_model) == expected
+
     def test_add_child_root_sorted(self, sorted_model):
         root = sorted_model.add_root(val1=0, val2=0, desc="aaa")
         root.add_child(val1=3, val2=3, desc="zxy")

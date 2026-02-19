@@ -1,3 +1,11 @@
+Release 5.0.4 (Feb 19, 2026)
+------------------------------
+
+Treebeard 5.0.4 is a bugfix release.
+
+* Fixed `TypeError` when adding root nodes for MP and LT trees with `node_order_by` set.
+
+
 Release 5.0.3 (Feb 18, 2026)
 ------------------------------
 

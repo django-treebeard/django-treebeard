@@ -215,7 +215,7 @@ class MP_AddRootHandler:
             # We must pass an instance here to ensure that the right object is created for
             # models with multi-table inheritance.
             return last_root.add_sibling(
-                "sorted-sibling", instance=self.kwargs.get("instance", self.cls(**self.kwargs))
+                "sorted-sibling", instance=self.kwargs.get("instance") or self.cls(**self.kwargs)
             )
 
         if last_root:
