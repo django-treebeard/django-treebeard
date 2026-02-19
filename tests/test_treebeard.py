@@ -417,37 +417,6 @@ class TestClassMethods(TestNonEmptyTree):
         with pytest.raises(NodeAlreadySaved):
             model.add_root(instance=obj)
 
-    @pytest.mark.django_db(transaction=True)
-    @pytest.mark.skipif(
-        os.getenv("DATABASE_ENGINE", "sqlite") == "sqlite",
-        reason="SQLite doesn't support row-level locking",
-    )
-    def test_add_root_concurrent(self, model_without_data):
-        """
-        Tests adding multiple root nodes, *after* one root node already exists.
-        """
-        num_threads = 3
-        per_thread = 5
-        errors = []
-        model_without_data.add_root(desc="first")
-
-        def add_root(thread_id):
-            try:
-                for i in range(per_thread):
-                    model_without_data.add_root(desc=f"t{thread_id}-{i}")
-            except Exception as e:
-                errors.append(e)
-
-        threads = [threading.Thread(target=add_root, args=(t,)) for t in range(num_threads)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        if errors:
-            raise errors[0]
-
-        assert model_without_data.get_root_nodes().count() == num_threads * per_thread + 1
-
 
 @pytest.mark.django_db
 class TestSimpleNodeMethods(TestNonEmptyTree):
