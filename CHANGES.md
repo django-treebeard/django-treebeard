@@ -1,3 +1,11 @@
+Release 5.0.5 (Feb 19, 2026)
+------------------------------
+
+Treebeard 5.0.5 is a bugfix release.
+
+* Reverted change to lock root nodes when adding a new root, which had unwanted performance implications.
+
+
 Release 5.0.4 (Feb 19, 2026)
 ------------------------------
 
