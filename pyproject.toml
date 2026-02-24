@@ -45,6 +45,11 @@ test = [
     "pytest-pythonpath>=0.7,<1.0",
 ]
 
+[project.urls]
+source = "https://github.com/django-treebeard/django-treebeard"
+documentation = "http://django-treebeard.readthedocs.io/"
+changelog = "https://github.com/django-treebeard/django-treebeard/blob/master/CHANGES.md"
+
 [tool.ruff]
 line-length = 120
 lint.select = [
