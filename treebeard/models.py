@@ -144,8 +144,14 @@ class Node(models.Model):
         return cls.get_root_nodes().last()
 
     @classmethod
-    def find_problems(cls):  # pragma: no cover
-        """Checks for problems in the tree structure."""
+    def find_problems(cls, parent=None):  # pragma: no cover
+        """Checks for problems in the tree structure.
+
+        :param parent:
+
+            If provided, limits the check to the descendants of this node.
+            If not provided, the entire tree will be checked.
+        """
         raise NotImplementedError
 
     @classmethod

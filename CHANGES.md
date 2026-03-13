@@ -2,6 +2,7 @@ Next release (in development)
 ------------------------------
 
 * Improved query efficiency for AL Trees, for several query operations.
+* Added a `parent` param to `MP_tree.find_problems` to allow inspecting only a portion of a tree.
 
 
 Release 5.0.5 (Feb 19, 2026)

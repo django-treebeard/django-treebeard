@@ -2307,6 +2307,63 @@ class TestMP_TreeFindProblems(TestTreeBase):
         assert ["03", "0301", "030102"] == got(wrong_numchild)
         assert ["04", "0401"] == got(wrong_depth)
 
+    def test_find_problems_with_root_clean(self, mpalphabet_model):
+        mpalphabet_model.alphabet = "01234"
+        mpalphabet_model(path="01", depth=1, numchild=1, numval=0).save()
+        mpalphabet_model(path="0101", depth=2, numchild=0, numval=0).save()
+        root = mpalphabet_model.objects.get(path="01")
+        result = mpalphabet_model.find_problems(parent=root)
+        assert all(not group for group in result)
+
+    def test_find_problems_with_root_scoped_to_single_tree(self, mpalphabet_model):
+        """Problems in one tree should not appear when checking another tree."""
+        mpalphabet_model.alphabet = "01234"
+        # Tree 1: clean
+        mpalphabet_model(path="01", depth=1, numchild=1, numval=0).save()
+        mpalphabet_model(path="0101", depth=2, numchild=0, numval=0).save()
+        # Tree 2: root is valid but children have problems (wrong depth, wrong numchild)
+        mpalphabet_model(path="02", depth=1, numchild=5, numval=0).save()
+        mpalphabet_model(path="0201", depth=20, numchild=0, numval=0).save()
+
+        root1 = mpalphabet_model.objects.get(path="01")
+        root2 = mpalphabet_model.objects.get(path="02")
+
+        # Tree 1 should be clean
+        result1 = mpalphabet_model.find_problems(parent=root1)
+        assert all(not group for group in result1)
+
+        # Tree 2 should have problems
+        result2 = mpalphabet_model.find_problems(parent=root2)
+        evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild = result2
+        assert not evil_chars
+        assert not bad_steplen
+        assert not orphans
+        # child "0201" has wrong depth (20 instead of 2)
+        assert len(wrong_depth) == 1
+        # root "02" reports numchild=5 but only has 1 child
+        assert len(wrong_numchild) == 1
+
+    def test_find_problems_with_root_detects_all_problem_types(self, mpalphabet_model):
+        """Verify all five problem categories are detected within a single tree."""
+        mpalphabet_model.alphabet = "01234"
+        # Another clean tree to ensure isolation
+        mpalphabet_model(path="01", depth=1, numchild=0, numval=0).save()
+
+        # Tree with various problems rooted at "03"
+        mpalphabet_model(path="03", depth=1, numchild=2, numval=0).save()
+        mpalphabet_model(path="0301", depth=2, numchild=0, numval=0).save()
+        mpalphabet_model(path="030102", depth=3, numchild=10, numval=0).save()
+
+        def got(ids):
+            return [o.path for o in mpalphabet_model.objects.filter(pk__in=ids)]
+
+        root = mpalphabet_model.objects.get(path="03")
+        evil_chars, bad_steplen, orphans, wrong_depth, wrong_numchild = mpalphabet_model.find_problems(parent=root)
+        # "03" reports numchild=2 but only has 1 direct child -> wrong_numchild
+        assert "03" in got(wrong_numchild)
+        # "030102" reports numchild=10 which is wrong
+        assert "030102" in got(wrong_numchild)
+
 
 @pytest.mark.django_db
 class TestMP_TreeFix(TestTreeBase):
