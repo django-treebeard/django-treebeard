@@ -525,7 +525,7 @@ class MP_Node(Node):
         return ret
 
     @classmethod
-    def find_problems(cls):
+    def find_problems(cls, parent=None):
         """
         Checks for problems in the tree structure, problems can occur when:
 
@@ -534,6 +534,11 @@ class MP_Node(Node):
            2. changing the ``steplen`` value in a model (you must
               :meth:`dump_bulk` first, change ``steplen`` and then
               :meth:`load_bulk`
+
+        :param parent:
+
+            If provided, limits the check to the descendants of this node.
+            If not provided, the entire tree will be checked.
 
         :returns: A tuple of five lists:
 
@@ -548,9 +553,14 @@ class MP_Node(Node):
         """
         cls = cls.tree_model()
 
+        if parent is not None:
+            qs = cls.objects.filter(path__startswith=parent.path)
+        else:
+            qs = cls.objects.all()
+
         evil_chars, bad_steplen, orphans = [], [], []
         wrong_depth, wrong_numchild = [], []
-        for node in cls.objects.all():
+        for node in qs.iterator():
             found_error = False
             for char in node.path:
                 if char not in cls.alphabet:
