@@ -15,6 +15,7 @@
     // Add jQuery util for disabling selection
     // Originally taken from jquery-ui (where it is deprecated)
     // https://api.jqueryui.com/disableSelection/
+    // See LICENSE-THIRD-PARTY
     $.fn.extend( {
         disableSelection: ( function() {
             var eventType = "onselectstart" in document.createElement( "div" ) ? "selectstart" : "mousedown";
@@ -279,6 +280,7 @@
 })(django.jQuery);
 
 // http://stackoverflow.com/questions/190560/jquery-animate-backgroundcolor/2302005#2302005
+// See LICENSE-THIRD-PARTY
 (function (d) {
     d.each(["backgroundColor", "borderBottomColor", "borderLeftColor", "borderRightColor", "borderTopColor", "color", "outlineColor"], function (f, e) {
         d.fx.step[e] = function (g) {

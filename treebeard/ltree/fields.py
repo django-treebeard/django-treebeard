@@ -10,6 +10,7 @@ from django.db.models.lookups import PostgresOperatorLookup, Transform
 from django.forms.widgets import TextInput
 
 # PathField implementation borrows significantly from https://github.com/mariocesar/django-ltree/blob/master/django_ltree/fields.py
+# See LICENSE-THIRD-PARTY
 
 path_label_validator = RegexValidator(
     r"^(?P<root>[a-zA-Z0-9_-]+)(?:\.[a-zA-Z0-9_-]+)*$",
