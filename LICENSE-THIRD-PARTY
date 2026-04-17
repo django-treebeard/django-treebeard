@@ -1,0 +1,46 @@
+Third-Party License Notices
+===========================
+
+Where explicitly noted in comments alongside the relevant code, Django Treebeard
+uses code adapted from the following libraries, which is subject to their respective licenses:
+
+1. django-ltree, commit 9d907b6 (https://github.com/mariocesar/django-ltree)
+   Used in: treebeard/ltree/fields.py
+   Copyright 2014 Mario César Señoranis Ayala
+   License: MIT
+
+2. django-mptt v0.3.0 (https://github.com/django-mptt/django-mptt)
+   Used in: treebeard/models.py (get_sorted_pos_queryset)
+   Copyright 2007 Jonathan Buchanan
+   License: MIT
+
+3. jquery-ui v1.10.0 (https://github.com/jquery/jquery-ui)
+   Used in: treebeard/static/treebeard/treebeard-admin.js (disableSelection)
+   Copyright jQuery Foundation and other contributors
+   License: MIT
+
+4. jquery-color v2.1.0 (https://github.com/jquery/jquery-color)
+   Used in: treebeard/static/treebeard/treebeard-admin.js (animate background)
+   Copyright JS Foundation and other contributors
+   License: MIT
+
+---
+The following license applies to the libraries listed above:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

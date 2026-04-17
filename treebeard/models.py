@@ -513,6 +513,8 @@ class Node(models.Model):
         This function is based on _insertion_target_filters from django-mptt
         (MIT licensed) by Jonathan Buchanan:
         https://github.com/django-mptt/django-mptt/blob/0.3.0/mptt/signals.py
+
+        See LICENSE-THIRD-PARTY
         """
 
         fields, filters = [], []
