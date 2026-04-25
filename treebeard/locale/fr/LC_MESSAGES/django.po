@@ -20,12 +20,12 @@ msgstr ""
 #: treebeard/admin.py:106
 #, python-format
 msgid "Exception raised while moving node: %s"
-msgstr "Une expetion est survenue pendant le placement de l'élément: %s"
+msgstr "Une exeption est survenue pendant le placement de l'élément: %s"
 
 #: treebeard/admin.py:110
 #, python-format
 msgid "Moved node \"%(node)s\" as child of \"%(other)s\""
-msgstr "Élément \"%(node)s\" déplacé en temps qu'enfant de \"%(other)s\""
+msgstr "Élément \"%(node)s\" déplacé en tant qu'enfant de \"%(other)s\""
 
 #: treebeard/admin.py:112
 #, python-format
@@ -34,7 +34,7 @@ msgstr "Élément \"%(node)s\" déplacé au même niveau que \"%(other)s\""
 
 #: treebeard/al_tree.py:373 treebeard/mp_tree.py:474 treebeard/ns_tree.py:363
 msgid "Can't move node to a descendant."
-msgstr "L'élément ne peux être déplacé vers un de ces décendant."
+msgstr "L'élément ne peut être déplacé vers un de ces décendant."
 
 #: treebeard/forms.py:46
 msgid "Child of"
@@ -74,7 +74,7 @@ msgid ""
 "property and UPDATE your database"
 msgstr ""
 "L'élément est trop profond dans l'arbre, essayez d'augmenter la propriété path.max_length "
-"et de mêtre à jour vore base de donnée"
+"et de mettre à jour votre base de donnée"
 
 #: treebeard/mp_tree.py:1114
 #, python-format
