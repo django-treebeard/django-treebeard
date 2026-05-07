@@ -8,6 +8,7 @@ from django.core import serializers
 from django.db import connections, models, router, transaction
 from django.db.models import F, Func, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Concat, Greatest, Length, Substr
+from django.dispatch import Signal
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
@@ -83,6 +84,9 @@ class MP_NodeManager(models.Manager):
     def get_queryset(self):
         """Sets the custom queryset as the default."""
         return MP_NodeQuerySet(self.model).order_by("path")
+
+
+path_updated = Signal()
 
 
 class MP_ComplexAddMoveHandler:
@@ -193,7 +197,11 @@ class MP_ComplexAddMoveHandler:
             update_kwargs["depth"] = Length(new_path_value) / self.node_cls.steplen
         update_kwargs["path"] = new_path_value
 
-        self.node_cls.tree_model().objects.filter(path__startswith=oldpath).update(**update_kwargs)
+        model = self.node_cls.tree_model()
+        queryset = model.objects.filter(path__startswith=oldpath)
+        update_count = queryset.update(**update_kwargs)
+        if update_count > 0:
+            path_updated.send(sender=model, old_path=oldpath, new_path=newpath, using=queryset.db)
 
 
 class MP_AddRootHandler:
@@ -746,9 +754,10 @@ class MP_Node(Node):
 
     @classmethod
     def _rewrite_node_path(cls, old_path, new_path):
-        cls.objects.filter(path__startswith=old_path).update(
-            path=Concat(Value(new_path), Substr("path", len(old_path) + 1))
-        )
+        queryset = cls.objects.filter(path__startswith=old_path)
+        update_count = queryset.update(path=Concat(Value(new_path), Substr("path", len(old_path) + 1)))
+        if update_count > 0:
+            path_updated.send(sender=cls, old_path=old_path, new_path=new_path, using=queryset.db)
 
     @classmethod
     def get_tree(cls, parent=None):
