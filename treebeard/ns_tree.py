@@ -169,8 +169,10 @@ class NS_Node(Node):
     def add_child(self, **kwargs):
         """Adds a child to the node."""
         # Fetch the parent afresh from the database and lock the row
-        # This guards against race conditions and state drift when adding multiple children
-        node = self.__class__.objects.filter(pk=self.pk).select_for_update().get()
+        # This guards against race conditions and state drift when adding multiple children,
+        # and also ensures that we're working with the base tree model in the case of inherited models
+        cls = self.tree_model()
+        node = cls.objects.filter(pk=self.pk).select_for_update().get()
         if not node.is_leaf():
             # there are child nodes, delegate insertion to add_sibling
             if self.node_order_by:
@@ -185,7 +187,7 @@ class NS_Node(Node):
             return new_sibling
 
         # we're adding the first child of this node
-        node.__class__._move_right(node.tree_id, node.rgt, False, 2)
+        cls._move_right(node.tree_id, node.rgt, False, 2)
 
         if len(kwargs) == 1 and "instance" in kwargs:
             # adding the passed (unsaved) instance to the tree
@@ -194,7 +196,7 @@ class NS_Node(Node):
                 raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
         else:
             # creating a new object
-            newobj = node.tree_model()(**kwargs)
+            newobj = cls(**kwargs)
 
         newobj.tree_id = node.tree_id
         newobj.depth = node.depth + 1
@@ -216,6 +218,7 @@ class NS_Node(Node):
         """Adds a new node as a sibling to the current node object."""
 
         pos = self._prepare_pos_var_for_add_sibling(pos)
+        cls = self.tree_model()
 
         if len(kwargs) == 1 and "instance" in kwargs:
             # adding the passed (unsaved) instance to the tree
@@ -224,7 +227,7 @@ class NS_Node(Node):
                 raise NodeAlreadySaved("Attempted to add a tree node that is already in the database")
         else:
             # creating a new object
-            newobj = self.tree_model()(**kwargs)
+            newobj = cls(**kwargs)
 
         newobj.depth = self.depth
 
@@ -241,12 +244,12 @@ class NS_Node(Node):
                 else:
                     pos = "last-sibling"
 
-            last_root = target.__class__.get_last_root_node()
+            last_root = cls.get_last_root_node()
             if (pos == "last-sibling") or (pos == "right" and target == last_root):
                 newobj.tree_id = last_root.tree_id + 1
             else:
                 newpos = {"first-sibling": 1, "left": target.tree_id, "right": target.tree_id + 1}[pos]
-                target.__class__._move_tree_right(newpos)
+                cls._move_tree_right(newpos)
 
                 newobj.tree_id = newpos
         else:
@@ -281,7 +284,7 @@ class NS_Node(Node):
                 if pos == "first-sibling":
                     target = siblings[0]
 
-            move_right = self.__class__._move_right
+            move_right = cls._move_right
 
             if pos == "last-sibling":
                 newpos = target.get_parent().rgt
