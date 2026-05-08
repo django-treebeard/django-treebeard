@@ -2103,6 +2103,9 @@ class TestInheritedModels(TestTreeBase):
         assert [node.desc for node in node1.get_children()] == ["21"]
         assert [node.desc for node in node21.get_children()] == ["211", "212"]
 
+        if issubclass(inherited_model, (MP_Node, NS_Node)):
+            assert not any(base_model.find_problems())
+
     def test_get_descendants_group_count(self, inherited_model):
         base_model = inherited_model.__bases__[0]
         for node in base_model.get_descendants_group_count():
@@ -2122,6 +2125,51 @@ class TestInheritedModels(TestTreeBase):
         inherited_model.add_root(val1=2, val2=3, desc="A")
         inherited_model.add_root(val1=2, val2=3, desc="B")
         assert list(inherited_model.objects.values_list("desc", flat=True)) == ["B", "A"]
+
+        if issubclass(inherited_model, (MP_Node, NS_Node)):
+            base_model = inherited_model.__bases__[0]
+            assert not any(base_model.find_problems())
+
+    def test_add_child(self, inherited_model):
+        """
+        Calling add_child on an inherited model should update tree-related fields across all
+        nodes of the tree, not just ones that match the inherited model.
+        """
+        base_model = inherited_model.__bases__[0]
+
+        # We need a leaf node of inherited_model to test against, as non-leaves will delegate to add_sibling instead
+        node21 = inherited_model.objects.get(desc="21")
+        node213 = inherited_model(desc="213")
+        node21.add_child(instance=node213)
+
+        node213.add_child(desc="2131")
+
+        assert [node.desc for node in node213.get_children()] == ["2131"]
+
+        if issubclass(inherited_model, (MP_Node, NS_Node)):
+            assert not any(base_model.find_problems())
+
+    def test_add_sibling_to_root(self, inherited_model):
+        base_model = inherited_model.__bases__[0]
+
+        node3 = inherited_model.objects.get(desc="3")
+        node3.add_sibling("first-sibling", desc="0")
+
+        assert [node.desc for node in base_model.get_root_nodes()] == ["0", "1", "2", "3"]
+
+        if issubclass(inherited_model, (MP_Node, NS_Node)):
+            assert not any(base_model.find_problems())
+
+    def test_add_sibling_to_nonroot(self, inherited_model):
+        base_model = inherited_model.__bases__[0]
+
+        node21 = inherited_model.objects.get(desc="21")
+        node21.add_sibling("first-sibling", desc="20")
+
+        assert [node.desc for node in base_model.objects.get(desc="2").get_children()] == ["20", "21", "22"]
+
+        if issubclass(inherited_model, (MP_Node, NS_Node)):
+            assert not any(base_model.find_problems())
 
 
 @pytest.mark.django_db
