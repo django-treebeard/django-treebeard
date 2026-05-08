@@ -129,6 +129,11 @@ def mpsmallstep_model(request):
     return request.param
 
 
+@pytest.fixture(scope="function", params=[models.NS_TestNode])
+def ns_model(request):
+    return request.param
+
+
 class TestTreeBase:
     def got(self, model):
         if model in [models.NS_TestNode, models.NS_TestNode_Proxy]:
@@ -2363,6 +2368,71 @@ class TestMP_TreeFindProblems(TestTreeBase):
         assert "03" in got(wrong_numchild)
         # "030102" reports numchild=10 which is wrong
         assert "030102" in got(wrong_numchild)
+
+
+@pytest.mark.django_db
+class TestNS_TreeFindProblems(TestTreeBase):
+    def test_find_problems_all_ok(self, ns_model):
+        ns_model(tree_id=1, lft=1, rgt=8, depth=1).save()
+        ns_model(tree_id=1, lft=2, rgt=5, depth=2).save()
+        ns_model(tree_id=1, lft=3, rgt=4, depth=3).save()
+        ns_model(tree_id=1, lft=6, rgt=7, depth=2).save()
+        ns_model(tree_id=2, lft=1, rgt=2, depth=1).save()
+
+        result = ns_model.find_problems()
+        assert result == ([], [], [], [])
+
+    def test_find_problems_reversed_lft_rgt(self, ns_model):
+        bad_node = ns_model(tree_id=1, lft=2, rgt=1, depth=1)
+        bad_node.save()
+
+        result = ns_model.find_problems()
+        assert result == ([bad_node.pk], [], [], [])
+
+    def test_find_problems_overlapping_nodes(self, ns_model):
+        ns_model(tree_id=1, lft=1, rgt=6, depth=1).save()
+        ns_model(tree_id=1, lft=2, rgt=4, depth=2).save()
+        bad_node = ns_model(tree_id=1, lft=3, rgt=5, depth=3)
+        bad_node.save()
+
+        result = ns_model.find_problems()
+        assert result == ([], [bad_node.pk], [], [])
+
+    def test_find_problems_duplicate_root(self, ns_model):
+        ns_model(tree_id=1, lft=1, rgt=8, depth=1).save()
+        ns_model(tree_id=1, lft=2, rgt=5, depth=2).save()
+        ns_model(tree_id=1, lft=3, rgt=4, depth=3).save()
+        ns_model(tree_id=1, lft=6, rgt=7, depth=2).save()
+        bad_node = ns_model(tree_id=1, lft=9, rgt=12, depth=1)
+        bad_node.save()
+        ns_model(tree_id=1, lft=10, rgt=11, depth=2).save()
+
+        result = ns_model.find_problems()
+        assert result == ([], [], [bad_node.pk], [])
+
+    def test_find_problems_wrong_depth(self, ns_model):
+        ns_model(tree_id=1, lft=1, rgt=8, depth=1).save()
+        bad_node_1 = ns_model(tree_id=1, lft=2, rgt=5, depth=1)
+        bad_node_1.save()
+        ns_model(tree_id=1, lft=3, rgt=4, depth=3).save()
+        ns_model(tree_id=1, lft=6, rgt=7, depth=2).save()
+        bad_node_2 = ns_model(tree_id=2, lft=1, rgt=2, depth=2)
+        bad_node_2.save()
+
+        result = ns_model.find_problems()
+        assert result == ([], [], [], [bad_node_1.pk, bad_node_2.pk])
+
+    def test_find_problems_within_parent(self, ns_model):
+        ns_model(tree_id=1, lft=1, rgt=8, depth=99).save()  # ignored
+        parent_node = ns_model(tree_id=1, lft=2, rgt=5, depth=2)
+        parent_node.save()
+        bad_node = ns_model(tree_id=1, lft=3, rgt=4, depth=99)
+        bad_node.save()
+        ns_model(tree_id=1, lft=6, rgt=7, depth=2).save()
+        ns_model(tree_id=2, lft=1, rgt=2, depth=99).save()  # ignored
+
+        result = ns_model.find_problems(parent=parent_node)
+        assert result == ([], [], [], [bad_node.pk])
 
 
 @pytest.mark.django_db

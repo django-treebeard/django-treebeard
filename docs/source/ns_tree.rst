@@ -75,6 +75,24 @@ write/delete operations.
 
             This method returns a queryset.
 
+  .. automethod:: find_problems
+
+     .. note::
+
+        A node won't appear in more than one list, even when it exhibits
+        more than one problem. This method stops checking a node when it
+        finds a problem and continues to the next node.
+
+     .. note::
+
+        These problems can't be solved automatically.
+
+     Example:
+
+     .. code-block:: python
+
+        MyNodeModel.find_problems()
+
 
 .. autoclass:: NS_NodeManager
   :show-inheritance:

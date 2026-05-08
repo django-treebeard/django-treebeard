@@ -2,6 +2,7 @@
 
 import operator
 from functools import reduce
+from itertools import groupby
 
 from django.core import serializers
 from django.db import models, transaction
@@ -560,6 +561,82 @@ class NS_Node(Node):
     def get_root_nodes(cls):
         """:returns: A queryset containing the root nodes in the tree."""
         return cls.tree_model().objects.filter(lft=1)
+
+    @classmethod
+    def find_problems(cls, parent=None):
+        """
+        Checks for inconsistencies in the tree structure.
+
+        :param parent:
+
+            If provided, limits the check to the descendants of this node.
+            If not provided, the entire tree will be checked.
+
+        :returns: A tuple of four lists:
+
+                  1. a list of ids of nodes where ``rgt`` is not strictly
+                     greater than ``lft``
+                  2. a list of ids of nodes where the ``lft`` and ``rgt``
+                     values partially overlap with another node (i.e. they are
+                     not properly nested)
+                  3. a list of ids of root-level nodes that have the same
+                     ``tree_id`` as another root-level node
+                  4. a list of ids of nodes with the wrong depth value for
+                     their nesting level as defined by ``lft`` and ``rgt``
+        """
+        cls = cls.tree_model()
+
+        if parent is not None:
+            qs = cls.objects.filter(tree_id=parent.tree_id, lft__gte=parent.lft, rgt__lte=parent.rgt)
+            initial_depth = parent.get_ancestors().count()
+        else:
+            qs = cls.objects.all()
+            initial_depth = 0
+
+        reversed_lft_rgt, overlapping_nodes, duplicate_tree_ids, wrong_depth = [], [], [], []
+
+        # Iterate over the nodes in order of tree_id and lft
+        qs = qs.order_by("tree_id", "lft").values("pk", "tree_id", "lft", "rgt", "depth")
+
+        # Consider each tree individually
+        for tree_id, nodes in groupby(qs, lambda x: x["tree_id"]):
+            stack = []
+            has_seen_root_node = False
+
+            for node in nodes:
+                if node["rgt"] <= node["lft"]:
+                    reversed_lft_rgt.append(node["pk"])
+                    continue
+
+                # pop any nodes from the stack that are strictly to the left of the current node
+                while stack and stack[-1]["rgt"] < node["lft"]:
+                    stack.pop()
+
+                if not stack:
+                    # this is a root node
+                    if has_seen_root_node:
+                        # we've already seen a root node with this tree_id, so this is a duplicate
+                        duplicate_tree_ids.append(node["pk"])
+                        # add this to stack so that we can check subsequent nodes,
+                        # but skip further checks for this node
+                        stack.append(node)
+                        continue
+                    else:
+                        has_seen_root_node = True
+                        stack.append(node)
+                else:
+                    # this is a child node; check that it is properly nested within its parent
+                    if node["lft"] <= stack[-1]["lft"] or stack[-1]["rgt"] <= node["rgt"]:
+                        overlapping_nodes.append(node["pk"])
+                        continue
+
+                    stack.append(node)
+
+                expected_depth = initial_depth + len(stack)
+                if node["depth"] != expected_depth:
+                    wrong_depth.append(node["pk"])
+
+        return reversed_lft_rgt, overlapping_nodes, duplicate_tree_ids, wrong_depth
 
     class Meta:
         """Abstract model."""
