@@ -134,12 +134,15 @@ class NS_Node(Node):
         return newobj
 
     @classmethod
-    def _move_right(cls, tree_id, rgt, lftmove=False, incdec=2):
-        lftop = "lft__gte" if lftmove else "lft__gt"
+    def _alter_gap(cls, tree_id, start_index, offset):
+        """
+        Open or close a gap in the lft/rgt sequence by changing all lft/rgt values greater than or equal to
+        start_index within the given tree by the given offset.
+        """
         output_field = models.PositiveIntegerField()
-        cls.objects.filter(rgt__gte=rgt, tree_id=tree_id).update(
-            lft=Case(When(**{lftop: rgt}, then=F("lft") + incdec), default=F("lft"), output_field=output_field),
-            rgt=Case(When(rgt__gte=rgt, then=F("rgt") + incdec), default=F("rgt"), output_field=output_field),
+        cls.objects.filter(rgt__gte=start_index, tree_id=tree_id).update(
+            lft=Case(When(lft__gte=start_index, then=F("lft") + offset), default=F("lft"), output_field=output_field),
+            rgt=F("rgt") + offset,
         )
 
     @classmethod
@@ -168,7 +171,7 @@ class NS_Node(Node):
             return new_sibling
 
         # we're adding the first child of this node
-        cls._move_right(node.tree_id, node.rgt, False, 2)
+        cls._alter_gap(node.tree_id, node.rgt, 2)
 
         if len(kwargs) == 1 and "instance" in kwargs:
             # adding the passed (unsaved) instance to the tree
@@ -265,17 +268,12 @@ class NS_Node(Node):
                 if pos == "first-sibling":
                     target = siblings[0]
 
-            move_right = cls._move_right
-
             if pos == "last-sibling":
                 newpos = target.get_parent().rgt
-                move_right(target.tree_id, newpos, False, 2)
-            elif pos == "first-sibling":
+                cls._alter_gap(target.tree_id, newpos, 2)
+            elif pos == "first-sibling" or pos == "left":
                 newpos = target.lft
-                move_right(target.tree_id, newpos - 1, False, 2)
-            elif pos == "left":
-                newpos = target.lft
-                move_right(target.tree_id, newpos, True, 2)
+                cls._alter_gap(target.tree_id, newpos, 2)
 
             newobj.lft = newpos
             newobj.rgt = newpos + 1
@@ -358,7 +356,7 @@ class NS_Node(Node):
         # first make a hole
         if pos == "last-child":
             newpos = parent.rgt
-            cls._move_right(target.tree_id, newpos, False, gap)
+            cls._alter_gap(target.tree_id, newpos, gap)
         elif target.is_root():
             newpos = 1
             if pos == "last-sibling":
@@ -371,13 +369,10 @@ class NS_Node(Node):
         else:
             if pos == "last-sibling":
                 newpos = target.get_parent().rgt
-                cls._move_right(target.tree_id, newpos, False, gap)
-            elif pos == "first-sibling":
+                cls._alter_gap(target.tree_id, newpos, gap)
+            elif pos == "first-sibling" or pos == "left":
                 newpos = target.lft
-                cls._move_right(target.tree_id, newpos - 1, False, gap)
-            elif pos == "left":
-                newpos = target.lft
-                cls._move_right(target.tree_id, newpos, True, gap)
+                cls._alter_gap(target.tree_id, newpos, gap)
 
         # we refresh 'self' because lft/rgt may have changed
         self.refresh_from_db()
@@ -403,11 +398,7 @@ class NS_Node(Node):
     @classmethod
     def _close_gap(cls, drop_lft, drop_rgt, tree_id):
         gapsize = drop_rgt - drop_lft + 1
-        output_field = models.PositiveIntegerField()
-        cls.objects.filter(Q(tree_id=tree_id) & (Q(lft__gt=drop_lft) | Q(rgt__gt=drop_lft))).update(
-            lft=Case(When(lft__gt=drop_lft, then=F("lft") - gapsize), default=F("lft"), output_field=output_field),
-            rgt=Case(When(rgt__gt=drop_lft, then=F("rgt") - gapsize), default=F("rgt"), output_field=output_field),
-        )
+        cls._alter_gap(tree_id, drop_lft, -gapsize)
 
     def get_children(self):
         """:returns: A queryset of all the node's children"""
