@@ -599,10 +599,10 @@ class NS_Node(Node):
         reversed_lft_rgt, overlapping_nodes, duplicate_tree_ids, wrong_depth = [], [], [], []
 
         # Iterate over the nodes in order of tree_id and lft
-        qs = qs.order_by("tree_id", "lft").values("pk", "tree_id", "lft", "rgt", "depth")
+        qs = qs.order_by("tree_id", "lft").values("pk", "tree_id", "lft", "rgt", "depth").iterator()
 
         # Consider each tree individually
-        for tree_id, nodes in groupby(qs, lambda x: x["tree_id"]):
+        for tree_id, nodes in groupby(qs, operator.itemgetter("tree_id")):
             stack = []
             has_seen_root_node = False
 
