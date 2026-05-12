@@ -7,6 +7,7 @@ from itertools import groupby
 from django.core import serializers
 from django.db import models, transaction
 from django.db.models import Case, F, Q, When
+from django.dispatch import Signal
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
@@ -76,6 +77,11 @@ class NS_NodeManager(models.Manager):
         return NS_NodeQuerySet(self.model).order_by("tree_id", "lft")
 
 
+gap_altered = Signal()
+tree_ids_incremented = Signal()
+subtree_moved = Signal()
+
+
 class NS_Node(Node):
     """Abstract model to create your own Nested Sets Trees."""
 
@@ -140,14 +146,20 @@ class NS_Node(Node):
         start_index within the given tree by the given offset.
         """
         output_field = models.PositiveIntegerField()
-        cls.objects.filter(rgt__gte=start_index, tree_id=tree_id).update(
+        queryset = cls.objects.filter(rgt__gte=start_index, tree_id=tree_id)
+        update_count = queryset.update(
             lft=Case(When(lft__gte=start_index, then=F("lft") + offset), default=F("lft"), output_field=output_field),
             rgt=F("rgt") + offset,
         )
+        if update_count > 0:
+            gap_altered.send(sender=cls, tree_id=tree_id, start_index=start_index, offset=offset, using=queryset.db)
 
     @classmethod
     def _move_tree_right(cls, tree_id):
-        cls.objects.filter(tree_id__gte=tree_id).update(tree_id=F("tree_id") + 1)
+        queryset = cls.objects.filter(tree_id__gte=tree_id)
+        update_count = queryset.update(tree_id=F("tree_id") + 1)
+        if update_count > 0:
+            tree_ids_incremented.send(sender=cls, min_tree_id=tree_id, using=queryset.db)
 
     @transaction.atomic
     def add_child(self, **kwargs):
@@ -383,12 +395,24 @@ class NS_Node(Node):
 
         # move the tree to the hole
         jump = newpos - self.lft
-        cls.objects.filter(tree_id=self.tree_id, lft__range=(self.lft, self.rgt)).update(
+        queryset = cls.objects.filter(tree_id=self.tree_id, lft__range=(self.lft, self.rgt))
+        update_count = queryset.update(
             tree_id=target_tree,
             lft=F("lft") + jump,
             rgt=F("rgt") + jump,
             depth=F("depth") + depthdiff,
         )
+        if update_count > 0:
+            subtree_moved.send(
+                sender=cls,
+                tree_id=self.tree_id,
+                lft=self.lft,
+                rgt=self.rgt,
+                target_tree_id=target_tree,
+                index_offset=jump,
+                depth_offset=depthdiff,
+                using=queryset.db,
+            )
 
         # close the gap
         cls._close_gap(self.lft, self.rgt, self.tree_id)
