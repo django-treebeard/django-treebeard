@@ -1,8 +1,13 @@
-Next release (in development)
-------------------------------
+Release 5.1.0 (May 12, 2026)
+----------------------------
 
+Treebeard 5.1.0 is a bugfix release.
+
+* Fixed `add_child` and `add_sibling` behaviour for inherited models using `NS_Node`.
 * Improved query efficiency for AL Trees, for several query operations.
-* Added a `parent` param to `MP_tree.find_problems` to allow inspecting only a portion of a tree.
+* Added a `parent` param to `MP_Node.find_problems` to allow inspecting only a portion of a tree.
+* Added a `find_problems` method to `NS_Node` to identify issues with nested sets.
+* Made license notices for code adapted from third party libraries explicit.
 
 
 Release 5.0.5 (Feb 19, 2026)
