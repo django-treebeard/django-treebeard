@@ -351,8 +351,6 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
     def process(self):
         self.pos = self.node._prepare_pos_var_for_move(self.pos)
 
-        oldpath = self.node.path
-
         # initialize variables and if moving to a child, updates "move to
         # child" to become a "move to sibling" if possible (if it can't
         # be done, it means that we are  adding the first child)
@@ -361,24 +359,35 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
         if self.target.is_descendant_of(self.node):
             raise InvalidMoveToDescendant(_("Can't move node to a descendant."))
 
-        if oldpath == self.target.path and (
-            (self.pos == "left")
-            or (self.pos in ("right", "last-sibling") and self.target.path == self.target.get_last_sibling().path)
-            or (self.pos == "first-sibling" and self.target.path == self.target.get_first_sibling().path)
-        ):
-            # special cases, not actually moving the node so no need to UPDATE
-            return
-
         if self.pos == "sorted-sibling":
             siblings = self.node.get_sorted_pos_queryset(self.target.get_siblings(), self.node)
-            first = siblings.first()
-            newpos = first._get_lastpos_in_path() if first else None
-            if newpos is None:
+            if first := siblings.first():
+                newpos = first._get_lastpos_in_path()
+                if self.node._get_lastpos_in_path() == newpos - 1:
+                    # The node is already in the right place, nothing to do
+                    return
+            else:
+                newpos = None
                 self.pos = "last-sibling"
 
-        # generate the sql that will do the actual moving of nodes
+        # Handle special cases where nothing needs to be done
+        if newdepth == self.node.get_depth():
+            if self.pos == "first-sibling" and self.node == self.target.get_first_sibling():
+                return
+
+            if self.pos == "last-sibling" and self.node == self.target.get_last_sibling():
+                return
+
+        if self.node == self.target and (
+            # Moving a node to left/right of itself is a noop
+            self.pos == "left"
+            or (self.pos in ("right", "last-sibling") and self.target == self.target.get_last_sibling())
+        ):
+            return
+
+        # Move nodes
         oldpath, newpath = self.reorder_nodes_before_add_or_move(
-            self.pos, newpos, newdepth, self.target, siblings, oldpath, True
+            self.pos, newpos, newdepth, self.target, siblings, self.node.path, True
         )
 
         self.update_parent_counts_after_move(oldpath, newpath)
