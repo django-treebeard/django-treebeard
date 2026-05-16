@@ -129,6 +129,11 @@ def mpsmallstep_model(request):
     return request.param
 
 
+@pytest.fixture(scope="function", params=[models.MP_TestSortedNodeShortPath])
+def mpsorted_model(request):
+    return request.param
+
+
 @pytest.fixture(scope="function", params=[models.NS_TestNode])
 def ns_model(request):
     return request.param
@@ -2240,6 +2245,44 @@ class TestHelpers(TestTreeBase):
 
 
 @pytest.mark.django_db
+class TestMP_Tree(TestTreeBase):
+    """
+    Tests specific to MP_Tree behaviour.
+    """
+
+    def test_sorted_sibling_move_noop_path_not_changed(self, mpsorted_model):
+        # Regression test for https://github.com/django-treebeard/django-treebeard/issues/389
+        # A noop on a sorted-sibling should not increment the path of siblings
+        node = mpsorted_model.add_root(desc="A")
+        old_path = node.path
+        node.move(node, "sorted-sibling")
+        assert node.path == old_path
+
+        node2 = mpsorted_model.add_root(desc="B")
+        node.move(node2, "sorted-sibling")
+        assert node.path == old_path
+
+    def test_sorted_sibling_path(self, mpsorted_model):
+        # Regression test for https://github.com/django-treebeard/django-treebeard/issues/389
+        node1 = mpsorted_model.add_root(desc="B")
+        node2 = mpsorted_model.add_root(desc="C")
+
+        # Update node2 sorted field and then move it
+        node2.desc = "A"
+        node2.save()
+        node2.move(node1, "sorted-sibling")
+        assert node2.path == "1"
+        assert node1.path == "2"
+
+    def test_short_path(self, mpshortnotsorted_model):
+        """Test a tree with a very small path field (max_length=4) and a steplen of 1"""
+        obj = mpshortnotsorted_model.add_root()
+        obj = obj.add_child().add_child().add_child()
+        with pytest.raises(PathOverflow):
+            obj.add_child()
+
+
+@pytest.mark.django_db
 class TestMP_TreeSortedAutoNow(TestTreeBase):
     """
     Auto-populated fields cannot be used with node_order_by, because we need
@@ -2305,19 +2348,6 @@ class TestMP_TreeStepOverflow(TestTreeBase):
             for pos in positions:
                 with pytest.raises(PathOverflow):
                     newroot.move(target, pos)
-
-
-@pytest.mark.django_db
-class TestMP_TreeShortPath(TestTreeBase):
-    """Test a tree with a very small path field (max_length=4) and a
-    steplen of 1
-    """
-
-    def test_short_path(self, mpshortnotsorted_model):
-        obj = mpshortnotsorted_model.add_root()
-        obj = obj.add_child().add_child().add_child()
-        with pytest.raises(PathOverflow):
-            obj.add_child()
 
 
 @pytest.mark.django_db
