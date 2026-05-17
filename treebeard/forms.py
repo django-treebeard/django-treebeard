@@ -160,6 +160,15 @@ class MoveNodeForm(forms.ModelForm):
         reference_node = self.cleaned_data.pop("treebeard_ref_node", None)
         position_type = self.cleaned_data.pop("treebeard_position")
 
+        # If no treebeard fields have been modified, skip treebeard-specific logic and delegate to parent class
+        treebeard_fields = {
+            "treebeard_ref_node",
+            "treebeard_position",
+            *(self.instance.tree_model().node_order_by or []),
+        }
+        if not set(self.changed_data) & treebeard_fields:
+            return super().save(commit=commit)
+
         if self.instance._state.adding:
             if reference_node:
                 self.instance = reference_node.add_child(instance=self.instance)
