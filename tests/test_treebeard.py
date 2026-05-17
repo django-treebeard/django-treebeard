@@ -2669,7 +2669,7 @@ class TestMP_TreeFix(TestTreeBase):
 
 
 @pytest.mark.django_db
-class TestMoveNodeForm(TestNonEmptyTree):
+class TestMoveNodeForm:
     def _get_nodes_list(self, nodes):
         return [(str(pk), f"{'&nbsp;' * 4 * (depth - 1)}{_str}") for pk, _str, depth in nodes]
 
@@ -2716,6 +2716,62 @@ class TestMoveNodeForm(TestNonEmptyTree):
             form = ma.get_form(request)()
             nodes = self._get_nodes_list(safe_parent_nodes)
             self._assert_nodes_in_choices(form, nodes)
+
+    def test_skips_move_if_no_change(self, model_without_data):
+        parent = model_without_data.add_root(desc="A")
+        child = parent.add_child(desc="B")
+        form_class = movenodeform_factory(model_without_data)
+        form = form_class(
+            instance=child, data={"desc": "B", "treebeard_position": "first-child", "treebeard_ref_node": parent.pk}
+        )
+        assert form.is_valid()
+        with mock.patch.object(model_without_data, "move") as mock_move:
+            form.save()
+            mock_move.assert_not_called()
+
+        # Now change the reference node - should trigger a move
+        form = form_class(
+            instance=child, data={"desc": "B", "treebeard_position": "first-child", "treebeard_ref_node": None}
+        )
+        assert form.is_valid()
+        with mock.patch.object(model_without_data, "move") as mock_move:
+            form.save()
+            mock_move.assert_called_once()
+
+    def test_skips_move_if_no_change_node_order_by(self, sorted_model):
+        parent = sorted_model.add_root(desc="A", val1=1, val2=1)
+        child = parent.add_child(desc="B", val1=3, val2=4)
+        form_class = movenodeform_factory(sorted_model)
+        form = form_class(
+            instance=child,
+            data={
+                "desc": "B",
+                "val1": 3,
+                "val2": 4,
+                "treebeard_position": "sorted-child",
+                "treebeard_ref_node": parent.pk,
+            },
+        )
+        assert form.is_valid()
+        with mock.patch.object(sorted_model, "move") as mock_move:
+            form.save()
+            mock_move.assert_not_called()
+
+        # Now change the reference node - should trigger a move
+        form = form_class(
+            instance=child,
+            data={
+                "desc": "B",
+                "val1": 10,
+                "val2": 4,
+                "treebeard_position": "sorted-child",
+                "treebeard_ref_node": parent.pk,
+            },
+        )
+        assert form.is_valid()
+        with mock.patch.object(sorted_model, "move") as mock_move:
+            form.save()
+            mock_move.assert_called_once()
 
 
 @pytest.mark.django_db

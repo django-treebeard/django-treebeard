@@ -1,3 +1,10 @@
+Next release (in development)
+-----------------------------
+
+* Fixed `MP_Node` paths being incremented unnecessarily when saving nodes with `node_order_by` in the admin.
+* Optimised `MoveNodeForm` to skip move logic if no treebeard-specific fields were modified.
+
+
 Release 5.1.0 (May 12, 2026)
 ----------------------------
 
