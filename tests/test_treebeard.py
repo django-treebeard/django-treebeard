@@ -32,7 +32,7 @@ from treebeard.exceptions import (
     PathOverflow,
 )
 from treebeard.forms import movenodeform_factory
-from treebeard.mp_tree import MP_Node
+from treebeard.mp_tree import MP_Node, path_updated
 from treebeard.ns_tree import NS_Node
 from treebeard.templatetags.admin_tree import tree_context
 
@@ -3372,3 +3372,128 @@ class TestMP_TreeDescendantsPerformance(TestTreeBase):
             with django_assert_num_queries(expected):
                 # converting to list to force queryset evaluation
                 list(node.get_descendants())
+
+
+class _PathUpdatedReceiver:
+    """Records every (old_path, new_path) emitted by path_updated for a given sender."""
+
+    def __init__(self, sender):
+        self.sender = sender
+        self.events = []
+
+    def __enter__(self):
+        path_updated.connect(self._receive, sender=self.sender)
+        return self
+
+    def __exit__(self, *exc):
+        path_updated.disconnect(self._receive, sender=self.sender)
+
+    def _receive(self, sender, old_path, new_path, **kwargs):
+        self.events.append((sender, old_path, new_path))
+
+
+@pytest.mark.django_db
+class TestMP_PathUpdatedSignal(TestTreeBase):
+    def test_move_last_sibling_emits_single_event_with_old_and_new_path(self, mpshortnotsorted_model):
+        mpshortnotsorted_model.load_bulk(BASE_DATA)
+        node = mpshortnotsorted_model.objects.get(desc="231")
+        target = mpshortnotsorted_model.objects.get(desc="2")
+        with _PathUpdatedReceiver(mpshortnotsorted_model) as rec:
+            node.move(target, "last-sibling")
+        assert rec.events == [(mpshortnotsorted_model, "231", "5")]
+        assert mpshortnotsorted_model.objects.get(pk=node.pk).path == "5"
+
+    def test_add_sibling_left_emits_shifts_for_each_displaced_subtree(self, mpshortnotsorted_model):
+        mpshortnotsorted_model.load_bulk(BASE_DATA)
+        node = mpshortnotsorted_model.objects.get(desc="23")
+        with _PathUpdatedReceiver(mpshortnotsorted_model) as rec:
+            node.add_sibling("left", desc="new")
+        assert rec.events == [
+            (mpshortnotsorted_model, "24", "25"),
+            (mpshortnotsorted_model, "23", "24"),
+        ]
+
+    def test_add_sibling_first_emits_shifts_for_every_existing_sibling(self, mpshortnotsorted_model):
+        mpshortnotsorted_model.load_bulk(BASE_DATA)
+        node = mpshortnotsorted_model.objects.get(desc="23")
+        with _PathUpdatedReceiver(mpshortnotsorted_model) as rec:
+            node.add_sibling("first-sibling", desc="new")
+        assert rec.events == [
+            (mpshortnotsorted_model, "24", "25"),
+            (mpshortnotsorted_model, "23", "24"),
+            (mpshortnotsorted_model, "22", "23"),
+            (mpshortnotsorted_model, "21", "22"),
+        ]
+
+    def test_add_sibling_last_does_not_emit(self, mpshortnotsorted_model):
+        mpshortnotsorted_model.load_bulk(BASE_DATA)
+        node = mpshortnotsorted_model.objects.get(desc="231")
+        with _PathUpdatedReceiver(mpshortnotsorted_model) as rec:
+            node.add_sibling("last-sibling", desc="232")
+        assert rec.events == []
+
+    def test_add_sibling_sorted_with_node_order_by_emits_shifts(self, mpsorted_model):
+        # node_order_by = ["desc"], so inserting "10" before "2" shifts every
+        # later root one path step to the right.
+        mpsorted_model.load_bulk(BASE_DATA)
+        existing = mpsorted_model.objects.get(desc="1")
+        with _PathUpdatedReceiver(mpsorted_model) as rec:
+            existing.add_sibling("sorted-sibling", desc="10")
+        assert rec.events == [
+            (mpsorted_model, "4", "5"),
+            (mpsorted_model, "3", "4"),
+            (mpsorted_model, "2", "3"),
+        ]
+
+    def test_move_sorted_child_with_node_order_by_emits_each_shift(self, mpsorted_model):
+        # Move "231" under "4" via sorted-child. "41" is displaced to "42" first,
+        # then "231" is rewritten to "41".
+        mpsorted_model.load_bulk(BASE_DATA)
+        src = mpsorted_model.objects.get(desc="231")
+        tgt = mpsorted_model.objects.get(desc="4")
+        with _PathUpdatedReceiver(mpsorted_model) as rec:
+            src.move(tgt, "sorted-child")
+        assert rec.events == [
+            (mpsorted_model, "41", "42"),
+            (mpsorted_model, "231", "41"),
+        ]
+
+    def test_fix_tree_emits_for_each_rewritten_path(self, mpshortnotsorted_model):
+        # Create rows with gaps so fix_tree must renumber them.
+        mpshortnotsorted_model.objects.create(desc="r1", path="1", depth=1, numchild=0)
+        mpshortnotsorted_model.objects.create(desc="r3", path="3", depth=1, numchild=0)
+        mpshortnotsorted_model.objects.create(desc="r5", path="5", depth=1, numchild=0)
+        with _PathUpdatedReceiver(mpshortnotsorted_model) as rec:
+            mpshortnotsorted_model.fix_tree(fix_paths=True)
+        assert rec.events == [
+            (mpshortnotsorted_model, "3", "2"),
+            (mpshortnotsorted_model, "5", "3"),
+        ]
+
+    def test_no_signal_for_noop_move(self, mpshortnotsorted_model):
+        # Moving a node into the exact slot it already occupies must not
+        # trigger any bulk path rewrite.
+        mpshortnotsorted_model.load_bulk(BASE_DATA)
+        node = mpshortnotsorted_model.objects.get(desc="231")
+        target = mpshortnotsorted_model.objects.get(desc="23")
+        with _PathUpdatedReceiver(mpshortnotsorted_model) as rec:
+            node.move(target, "first-child")
+        assert rec.events == []
+
+    def test_old_and_new_paths_describe_the_actual_subtree_shift(self, mpshortnotsorted_model):
+        # Every row whose path started with old_path must, after the signal
+        # fires, have a path that starts with new_path. Verify on the subtree
+        # under "23" (which is rewritten when it is moved under "4").
+        mpshortnotsorted_model.load_bulk(BASE_DATA)
+        node = mpshortnotsorted_model.objects.get(desc="23")
+        with _PathUpdatedReceiver(mpshortnotsorted_model) as rec:
+            node.move(mpshortnotsorted_model.objects.get(desc="4"), "first-child")
+        # Two shifts happen: "41" out of the way (to "42"), then "23" into "41".
+        assert len(rec.events) == 2
+        assert rec.events[-1] == (mpshortnotsorted_model, "23", "41")
+        _sender, old_path, new_path = rec.events[-1]
+        rewritten = sorted(mpshortnotsorted_model.objects.filter(path__startswith=new_path).values_list("desc", "path"))
+        # The promised invariant: every row that started with old_path now
+        # starts with new_path, with the suffix preserved.
+        assert rewritten == [("23", "41"), ("231", "411")]
+        assert not mpshortnotsorted_model.objects.filter(path__startswith=old_path).exists()

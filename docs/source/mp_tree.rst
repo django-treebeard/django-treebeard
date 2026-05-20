@@ -267,6 +267,35 @@ extra steps, materialized path is more efficient than other approaches.
   :show-inheritance:
 
 
+Signals
+-------
+
+.. data:: path_updated
+
+   Sent whenever an :class:`MP_Node` operation rewrites a path prefix on a
+   subtree via a bulk ``UPDATE`` (the queries used inside ``move``,
+   sorted ``add_sibling`` and ``fix_tree``). These updates bypass
+   ``post_save``, so applications that mirror tree data into an external
+   store (search index, cache, etc.) can listen for ``path_updated`` to
+   keep that store in sync.
+
+   Provides ``sender`` (the tree model class), ``old_path`` (the path
+   prefix that was replaced) and ``new_path`` (the prefix it was
+   replaced with). Every row whose ``path`` started with ``old_path`` now
+   starts with ``new_path``.
+
+   Example:
+
+   .. code-block:: python
+
+      from django.dispatch import receiver
+      from treebeard.mp_tree import path_updated
+
+      @receiver(path_updated, sender=MyNode)
+      def reindex_subtree(sender, old_path, new_path, **kwargs):
+          ...
+
+
 
 .. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/
 .. _`SQL Design Patterns`: http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm

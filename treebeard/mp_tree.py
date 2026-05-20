@@ -4,6 +4,7 @@ import collections
 from functools import cache
 from typing import Any
 
+import django.dispatch
 from django.core import serializers
 from django.db import connections, models, router, transaction
 from django.db.models import F, Func, OuterRef, Q, Subquery, Value
@@ -13,6 +14,10 @@ from django.utils.translation import gettext_noop as _
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node
 from treebeard.numconv import NumConv
+
+# Fired after an MP_Node bulk update rewrites a path prefix on a subtree, with
+# kwargs sender (the tree model class), old_path and new_path (the replaced prefix).
+path_updated = django.dispatch.Signal()
 
 
 class MP_NodeQuerySet(models.query.QuerySet):
@@ -193,7 +198,9 @@ class MP_ComplexAddMoveHandler:
             update_kwargs["depth"] = Length(new_path_value) / self.node_cls.steplen
         update_kwargs["path"] = new_path_value
 
-        self.node_cls.tree_model().objects.filter(path__startswith=oldpath).update(**update_kwargs)
+        tree_model = self.node_cls.tree_model()
+        tree_model.objects.filter(path__startswith=oldpath).update(**update_kwargs)
+        path_updated.send(sender=tree_model, old_path=oldpath, new_path=newpath)
 
 
 class MP_AddRootHandler:
@@ -749,6 +756,7 @@ class MP_Node(Node):
         cls.objects.filter(path__startswith=old_path).update(
             path=Concat(Value(new_path), Substr("path", len(old_path) + 1))
         )
+        path_updated.send(sender=cls, old_path=old_path, new_path=new_path)
 
     @classmethod
     def get_tree(cls, parent=None):
