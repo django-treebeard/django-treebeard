@@ -163,19 +163,23 @@ class LT_ComplexAddMoveHandler:
 
     def _move_subtree_right(self, start_node):
         """
-        Move the node and everything after it in the tree to the right. This is achieved simply by
+        Move the node and all siblings after it in the tree to the right. This is achieved simply by
         appending an extra character (A) to the topmost label in the path.
         """
         result_class = self.node_cls.tree_model()
         node_depth = len(start_node.path)
         if node_depth > 1:
-            result_class.objects.filter(path__gte=start_node.path, path__depth=node_depth).update(
+            result_class.objects.filter(
+                path__descendants=start_node.path[:-1], path__gte=start_node.path, path__depth=node_depth
+            ).update(
                 path=Concat(
                     Subpath(F("path"), 0, node_depth - 1),
                     Text2LTree(Concat(Ltree2Text(Subpath(F("path"), node_depth - 1, 1)), Value("A"))),
                 )
             )
-            result_class.objects.filter(path__gte=start_node.path, path__depth__gt=node_depth).update(
+            result_class.objects.filter(
+                path__descendants=start_node.path[:-1], path__gte=start_node.path, path__depth__gt=node_depth
+            ).update(
                 path=Concat(
                     Subpath(F("path"), 0, node_depth - 1),
                     Text2LTree(Concat(Ltree2Text(Subpath(F("path"), node_depth - 1, 1)), Value("A"))),

@@ -139,6 +139,11 @@ def ns_model(request):
     return request.param
 
 
+@pytest.fixture(scope="function", params=models.LT_BASE_MODELS)
+def lt_model(request):
+    return request.param
+
+
 class TestTreeBase:
     def got(self, model):
         if model in [models.NS_TestNode, models.NS_TestNode_Proxy]:
@@ -3372,3 +3377,35 @@ class TestMP_TreeDescendantsPerformance(TestTreeBase):
             with django_assert_num_queries(expected):
                 # converting to list to force queryset evaluation
                 list(node.get_descendants())
+
+
+@pytest.mark.django_db
+class TestLT_Insertion(TestTreeBase):
+    def test_move_right(self, lt_model):
+        node_a = lt_model.add_root(desc="A")
+        node_b = lt_model.add_root(desc="B")
+        node_a_a = node_a.add_child(desc="A.A")
+        node_a_a.add_child(desc="A.A.A")
+        node_b.add_child(desc="B.A")
+
+        expected_paths = ["A", "A.A", "A.A.A", "B", "B.A"]
+        actual_paths = [str(node.path) for node in lt_model.objects.all()]
+        assert actual_paths == expected_paths
+
+        # A sibling inserted before A.A gets path A.0; other paths are unchanged
+        node_a_0 = node_a_a.add_sibling("first-sibling", desc="A.0")
+        expected_paths = ["A", "A.0", "A.A", "A.A.A", "B", "B.A"]
+        actual_paths = [str(node.path) for node in lt_model.objects.all()]
+        assert actual_paths == expected_paths
+
+        # A sibling inserted before A.0 causes existing siblings to be moved right (i.e. 'A' appended to their labels)
+        new_node_a_0 = node_a_0.add_sibling("first-sibling", desc="new A.0")
+        assert str(new_node_a_0.path) == "A.0"
+        node_a_0.refresh_from_db()
+        assert str(node_a_0.path) == "A.0A"
+        node_a_a.refresh_from_db()
+        assert str(node_a_a.path) == "A.AA"
+
+        expected_paths = ["A", "A.0", "A.0A", "A.AA", "A.AA.A", "B", "B.A"]
+        actual_paths = [str(node.path) for node in lt_model.objects.all()]
+        assert actual_paths == expected_paths

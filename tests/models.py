@@ -205,6 +205,8 @@ INHERITED_MODELS_WITH_SORT = [
     (MP_TestNodeSorted, MP_TestNodeInheritedSorted),
 ]
 
+LT_BASE_MODELS = []
+
 if os.environ.get("DATABASE_ENGINE", "") == "psql":
 
     class LT_TestNode(LT_Node, DescMixin): ...
@@ -232,3 +234,4 @@ if os.environ.get("DATABASE_ENGINE", "") == "psql":
     INHERITED_MODELS.append((LT_TestNode, LT_TestNodeInherited))
     SORTED_MODELS.append(LT_TestNodeSorted)
     INHERITED_MODELS_WITH_SORT.append((LT_TestNodeSorted, LT_TestNodeInheritedSorted))
+    LT_BASE_MODELS.append(LT_TestNode)
