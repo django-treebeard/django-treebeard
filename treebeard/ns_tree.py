@@ -13,6 +13,11 @@ from django.utils.translation import gettext_noop as _
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
 from treebeard.models import Node
 
+gap_altered = Signal()
+tree_ids_incremented = Signal()
+subtree_moved = Signal()
+nodes_deleted = Signal()
+
 
 class NS_NodeQuerySet(models.query.QuerySet):
     """
@@ -54,6 +59,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
         # call the default django delete method with the full set of nodes and descendants to delete,
         # and let it handle the removal of the user's foreign keys
         result = super(NS_NodeQuerySet, model.objects.filter(reduce(operator.or_, toremove))).delete(*args, **kwargs)
+        nodes_deleted.send(sender=model, removed_ranges=ranges, using=self.db)
 
         # Now closing the gap (Celko's trees book, page 62)
         # We do this for every gap that was left in the tree when the nodes
@@ -75,11 +81,6 @@ class NS_NodeManager(models.Manager):
     def get_queryset(self):
         """Sets the custom queryset as the default."""
         return NS_NodeQuerySet(self.model).order_by("tree_id", "lft")
-
-
-gap_altered = Signal()
-tree_ids_incremented = Signal()
-subtree_moved = Signal()
 
 
 class NS_Node(Node):
