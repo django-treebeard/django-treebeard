@@ -11,12 +11,16 @@ from django.core import serializers
 from django.db import models, transaction
 from django.db.models import F, Func, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Concat
+from django.dispatch import Signal
 from django.utils.translation import gettext_noop as _
 
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node
 
 from .fields import Ltree2Text, PathField, PathValue, Subpath, Text2LTree
+
+subtree_moved_right = Signal()
+subtree_moved = Signal()
 
 
 class InvalidLabelConstraints(Exception): ...
@@ -177,9 +181,10 @@ class LT_ComplexAddMoveHandler:
                     Text2LTree(Concat(Ltree2Text(Subpath(F("path"), node_depth - 1, 1)), Value("A"))),
                 )
             )
-            result_class.objects.filter(
+            queryset = result_class.objects.filter(
                 path__descendants=start_node.path[:-1], path__gte=start_node.path, path__depth__gt=node_depth
-            ).update(
+            )
+            queryset.update(
                 path=Concat(
                     Subpath(F("path"), 0, node_depth - 1),
                     Text2LTree(Concat(Ltree2Text(Subpath(F("path"), node_depth - 1, 1)), Value("A"))),
@@ -191,9 +196,16 @@ class LT_ComplexAddMoveHandler:
             result_class.objects.filter(path__gte=start_node.path, path__depth=1).update(
                 path=Text2LTree(Concat(Ltree2Text(Subpath(F("path"), 0, 1)), Value("A")))
             )
-            result_class.objects.filter(path__gte=start_node.path, path__depth__gt=1).update(
+            queryset = result_class.objects.filter(path__gte=start_node.path, path__depth__gt=1)
+            queryset.update(
                 path=Concat(Text2LTree(Concat(Ltree2Text(Subpath(F("path"), 0, 1)), Value("A"))), Subpath(F("path"), 1))
             )
+
+        subtree_moved_right.send(
+            sender=result_class,
+            path=start_node.path,
+            using=queryset.db,
+        )
 
 
 class LT_AddRootHandler:
@@ -374,15 +386,24 @@ class LT_MoveHandler(LT_ComplexAddMoveHandler):
 
         # Update the path for all the descendants of the node
         result_class = self.node_cls.tree_model()
-        result_class.objects.filter(path__descendants=self.node.path, path__depth__gt=len(self.node.path)).update(
+        old_path = self.node.path
+        queryset = result_class.objects.filter(path__descendants=old_path, path__depth__gt=len(old_path))
+        queryset.update(
             path=Concat(
                 Value(new_path, output_field=PathField()),
-                Subpath(F("path"), len(self.node.path)),
+                Subpath(F("path"), len(old_path)),
             )
         )
         # And update the path for the node itself
         self.node.path = new_path
         self.node.save()
+
+        subtree_moved.send(
+            sender=result_class,
+            old_path=old_path,
+            new_path=new_path,
+            using=queryset.db,
+        )
 
 
 class LT_Node(Node):
