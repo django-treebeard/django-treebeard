@@ -33,8 +33,12 @@ from treebeard.exceptions import (
     PathOverflow,
 )
 from treebeard.forms import movenodeform_factory
+from treebeard.ltree import LT_Node
+from treebeard.ltree import subtree_moved as lt_subtree_moved
+from treebeard.ltree import subtree_moved_right as lt_subtree_moved_right
 from treebeard.mp_tree import MP_Node, path_updated
-from treebeard.ns_tree import NS_Node, gap_altered, subtree_moved, tree_ids_incremented
+from treebeard.ns_tree import NS_Node, gap_altered, tree_ids_incremented
+from treebeard.ns_tree import subtree_moved as ns_subtree_moved
 from treebeard.templatetags.admin_tree import tree_context
 
 admin_register_all()
@@ -160,7 +164,7 @@ def capture_signals():
     def tree_ids_incremented_handler(sender, **kwargs):
         calls.append(("tree_ids_incremented", sender, kwargs["min_tree_id"], kwargs["using"]))
 
-    def subtree_moved_handler(sender, **kwargs):
+    def ns_subtree_moved_handler(sender, **kwargs):
         calls.append(
             (
                 "subtree_moved",
@@ -175,18 +179,42 @@ def capture_signals():
             )
         )
 
+    def lt_subtree_moved_right_handler(sender, **kwargs):
+        calls.append(
+            (
+                "subtree_moved_right",
+                sender,
+                str(kwargs["path"]),
+                kwargs["using"],
+            )
+        )
+
+    def lt_subtree_moved_handler(sender, **kwargs):
+        calls.append(
+            (
+                "subtree_moved",
+                sender,
+                str(kwargs["old_path"]),
+                str(kwargs["new_path"]),
+                kwargs["using"],
+            )
+        )
+
     path_updated.connect(path_updated_handler)
     gap_altered.connect(gap_altered_handler)
     tree_ids_incremented.connect(tree_ids_incremented_handler)
-    subtree_moved.connect(subtree_moved_handler)
-
+    ns_subtree_moved.connect(ns_subtree_moved_handler)
+    lt_subtree_moved_right.connect(lt_subtree_moved_right_handler)
+    lt_subtree_moved.connect(lt_subtree_moved_handler)
     try:
         yield calls
     finally:
         path_updated.disconnect(path_updated_handler)
         gap_altered.disconnect(gap_altered_handler)
         tree_ids_incremented.disconnect(tree_ids_incremented_handler)
-        subtree_moved.disconnect(subtree_moved_handler)
+        ns_subtree_moved.disconnect(ns_subtree_moved_handler)
+        lt_subtree_moved_right.disconnect(lt_subtree_moved_right_handler)
+        lt_subtree_moved.disconnect(lt_subtree_moved_handler)
 
 
 class TestTreeBase:
@@ -854,6 +882,8 @@ class TestAddChild(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 8, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_child_to_node(self, model):
         with capture_signals() as signals:
@@ -878,6 +908,8 @@ class TestAddChild(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 12, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_child_with_passed_instance(self, model):
         child = model(desc="2311")
@@ -904,6 +936,8 @@ class TestAddChild(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 8, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_child_called_consecutively(self, model_without_data):
         # Regression test for https://github.com/django-treebeard/django-treebeard/issues/307
@@ -998,6 +1032,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == []
         elif issubclass(model, NS_Node):
             assert signals == []
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_last(self, model):
         node = model.objects.get(desc="231")
@@ -1011,6 +1047,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 9, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_first_root(self, model):
         node_wchildren = model.objects.get(desc="2")
@@ -1053,6 +1091,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("tree_ids_incremented", model, 1, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_first(self, model):
         node_wchildren = model.objects.get(desc="23")
@@ -1095,6 +1135,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 2, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_left_root(self, model):
         node_wchildren = model.objects.get(desc="2")
@@ -1135,6 +1177,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("tree_ids_incremented", model, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_left(self, model):
         node_wchildren = model.objects.get(desc="23")
@@ -1173,6 +1217,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 6, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_left_noleft_root(self, model):
         node = model.objects.get(desc="1")
@@ -1215,6 +1261,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("tree_ids_incremented", model, 1, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_left_noleft(self, model):
         node = model.objects.get(desc="231")
@@ -1251,6 +1299,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 7, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_right_root(self, model):
         node_wchildren = model.objects.get(desc="2")
@@ -1289,6 +1339,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("tree_ids_incremented", model, 3, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_right(self, model):
         node_wchildren = model.objects.get(desc="23")
@@ -1326,6 +1378,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 10, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_right_noright_root(self, model):
         node = model.objects.get(desc="4")
@@ -1349,6 +1403,8 @@ class TestAddSibling(TestNonEmptyTree):
         if issubclass(model, MP_Node):
             assert signals == []
         elif issubclass(model, NS_Node):
+            assert signals == []
+        elif issubclass(model, LT_Node):
             assert signals == []
 
     def test_add_sibling_right_noright(self, model):
@@ -1376,6 +1432,8 @@ class TestAddSibling(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 9, 2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == []
 
     def test_add_sibling_with_passed_instance(self, model):
         node_wchildren = model.objects.get(desc="2")
@@ -1439,6 +1497,8 @@ class TestDelete(TestTreeBase):
             assert signals == [
                 ("gap_altered", delete_model, 2, 7, -2, "default"),
             ]
+        elif issubclass(delete_model, LT_Node):
+            assert signals == []
 
     def test_delete_node(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1462,6 +1522,8 @@ class TestDelete(TestTreeBase):
             assert signals == [
                 ("gap_altered", delete_model, 2, 6, -4, "default"),
             ]
+        elif issubclass(delete_model, LT_Node):
+            assert signals == []
 
     def test_delete_root(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1474,6 +1536,8 @@ class TestDelete(TestTreeBase):
             assert signals == []
         elif issubclass(delete_model, NS_Node):
             assert signals == []
+        elif issubclass(delete_model, LT_Node):
+            assert signals == []
 
     def test_delete_filter_root_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1485,6 +1549,8 @@ class TestDelete(TestTreeBase):
         if issubclass(delete_model, MP_Node):
             assert signals == []
         elif issubclass(delete_model, NS_Node):
+            assert signals == []
+        elif issubclass(delete_model, LT_Node):
             assert signals == []
 
     def test_delete_filter_children(self, delete_dep_model_pair):
@@ -1521,6 +1587,8 @@ class TestDelete(TestTreeBase):
             assert signals == []
         elif issubclass(delete_model, NS_Node):
             assert signals == []
+        elif issubclass(delete_model, LT_Node):
+            assert signals == []
 
     def test_delete_all_root_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1532,6 +1600,8 @@ class TestDelete(TestTreeBase):
             assert signals == []
         elif issubclass(delete_model, NS_Node):
             assert signals == []
+        elif issubclass(delete_model, LT_Node):
+            assert signals == []
 
     def test_delete_all_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1542,6 +1612,8 @@ class TestDelete(TestTreeBase):
         if issubclass(delete_model, MP_Node):
             assert signals == []
         elif issubclass(delete_model, NS_Node):
+            assert signals == []
+        elif issubclass(delete_model, LT_Node):
             assert signals == []
 
 
@@ -1622,6 +1694,10 @@ class TestMoveLeafRoot(TestNonEmptyTree):
                 ("subtree_moved", model, 2, 7, 8, 5, -6, -2, "default"),
                 ("gap_altered", model, 2, 7, -2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "E", "default"),
+            ]
 
     def test_move_leaf_first_sibling_root(self, model):
         target = model.objects.get(desc="2")
@@ -1666,6 +1742,10 @@ class TestMoveLeafRoot(TestNonEmptyTree):
                 ("subtree_moved", model, 3, 7, 8, 1, -6, -2, "default"),
                 ("gap_altered", model, 3, 7, -2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "0", "default"),
+            ]
 
     def test_move_leaf_left_sibling_root(self, model):
         target = model.objects.get(desc="2")
@@ -1708,6 +1788,10 @@ class TestMoveLeafRoot(TestNonEmptyTree):
                 ("subtree_moved", model, 3, 7, 8, 2, -6, -2, "default"),
                 ("gap_altered", model, 3, 7, -2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "A0", "default"),
+            ]
 
     def test_move_leaf_right_sibling_root(self, model):
         target = model.objects.get(desc="2")
@@ -1748,6 +1832,10 @@ class TestMoveLeafRoot(TestNonEmptyTree):
                 ("subtree_moved", model, 2, 7, 8, 3, -6, -2, "default"),
                 ("gap_altered", model, 2, 7, -2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B0", "default"),
+            ]
 
     def test_move_leaf_last_child_root(self, model):
         target = model.objects.get(desc="2")
@@ -1783,6 +1871,10 @@ class TestMoveLeafRoot(TestNonEmptyTree):
                 ("gap_altered", model, 2, 12, 2, "default"),
                 ("subtree_moved", model, 2, 7, 8, 2, 5, -1, "default"),
                 ("gap_altered", model, 2, 7, -2, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B.E", "default"),
             ]
 
     def test_move_leaf_first_child_root(self, model):
@@ -1828,6 +1920,10 @@ class TestMoveLeafRoot(TestNonEmptyTree):
                 ("subtree_moved", model, 2, 9, 10, 2, -7, -1, "default"),
                 ("gap_altered", model, 2, 9, -2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B.0", "default"),
+            ]
 
 
 @pytest.mark.django_db
@@ -1866,6 +1962,10 @@ class TestMoveLeaf(TestNonEmptyTree):
                 ("gap_altered", model, 2, 12, 2, "default"),
                 ("subtree_moved", model, 2, 7, 8, 2, 5, -1, "default"),
                 ("gap_altered", model, 2, 7, -2, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B.E", "default"),
             ]
 
     def test_move_leaf_first_sibling(self, model):
@@ -1911,6 +2011,10 @@ class TestMoveLeaf(TestNonEmptyTree):
                 ("subtree_moved", model, 2, 9, 10, 2, -7, -1, "default"),
                 ("gap_altered", model, 2, 9, -2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B.0", "default"),
+            ]
 
     def test_move_leaf_left_sibling(self, model):
         target = model.objects.get(desc="22")
@@ -1953,6 +2057,10 @@ class TestMoveLeaf(TestNonEmptyTree):
                 ("subtree_moved", model, 2, 9, 10, 2, -5, -1, "default"),
                 ("gap_altered", model, 2, 9, -2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B.A0", "default"),
+            ]
 
     def test_move_leaf_right_sibling(self, model):
         target = model.objects.get(desc="22")
@@ -1993,6 +2101,10 @@ class TestMoveLeaf(TestNonEmptyTree):
                 ("subtree_moved", model, 2, 9, 10, 2, -3, -1, "default"),
                 ("gap_altered", model, 2, 9, -2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B.B0", "default"),
+            ]
 
     def test_move_leaf_left_sibling_itself(self, model):
         target = model.objects.get(desc="231")
@@ -2003,6 +2115,10 @@ class TestMoveLeaf(TestNonEmptyTree):
             assert signals == []
         elif issubclass(model, NS_Node):
             assert signals == []
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B.C.0", "default"),
+            ]
 
     def test_move_leaf_last_child(self, model):
         target = model.objects.get(desc="22")
@@ -2039,6 +2155,10 @@ class TestMoveLeaf(TestNonEmptyTree):
                 ("subtree_moved", model, 2, 9, 10, 2, -4, 0, "default"),
                 ("gap_altered", model, 2, 9, -2, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B.B.A", "default"),
+            ]
 
     def test_move_leaf_first_child(self, model):
         target = model.objects.get(desc="22")
@@ -2074,6 +2194,10 @@ class TestMoveLeaf(TestNonEmptyTree):
                 ("gap_altered", model, 2, 5, 2, "default"),
                 ("subtree_moved", model, 2, 9, 10, 2, -4, 0, "default"),
                 ("gap_altered", model, 2, 9, -2, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "B.C.A", "B.B.A", "default"),
             ]
 
 
@@ -2121,6 +2245,10 @@ class TestMoveBranchRoot(TestNonEmptyTree):
                 ("tree_ids_incremented", model, 1, "default"),
                 ("subtree_moved", model, 5, 1, 4, 1, 0, 0, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "0", "default"),
+            ]
 
     def test_move_branch_last_sibling_root(self, model):
         target = model.objects.get(desc="2")
@@ -2144,6 +2272,10 @@ class TestMoveBranchRoot(TestNonEmptyTree):
         elif issubclass(model, NS_Node):
             assert signals == [
                 ("subtree_moved", model, 4, 1, 4, 5, 0, 0, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "E", "default"),
             ]
 
     def test_move_branch_left_sibling_root(self, model):
@@ -2187,6 +2319,10 @@ class TestMoveBranchRoot(TestNonEmptyTree):
                 ("tree_ids_incremented", model, 2, "default"),
                 ("subtree_moved", model, 5, 1, 4, 2, 0, 0, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "A0", "default"),
+            ]
 
     def test_move_branch_right_sibling_root(self, model):
         target = model.objects.get(desc="2")
@@ -2225,6 +2361,10 @@ class TestMoveBranchRoot(TestNonEmptyTree):
             assert signals == [
                 ("tree_ids_incremented", model, 3, "default"),
                 ("subtree_moved", model, 5, 1, 4, 3, 0, 0, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B0", "default"),
             ]
 
     def test_move_branch_left_noleft_sibling_root(self, model):
@@ -2269,6 +2409,10 @@ class TestMoveBranchRoot(TestNonEmptyTree):
                 ("tree_ids_incremented", model, 1, "default"),
                 ("subtree_moved", model, 5, 1, 4, 1, 0, 0, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "0", "default"),
+            ]
 
     def test_move_branch_right_noright_sibling_root(self, model):
         target = model.objects.get(desc="2").get_last_sibling()
@@ -2291,6 +2435,10 @@ class TestMoveBranchRoot(TestNonEmptyTree):
             assert signals == []
         elif issubclass(model, NS_Node):
             assert signals == []
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "E", "default"),
+            ]
 
     def test_move_branch_first_child_root(self, model):
         target = model.objects.get(desc="2")
@@ -2334,6 +2482,10 @@ class TestMoveBranchRoot(TestNonEmptyTree):
                 ("gap_altered", model, 2, 2, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 1, 1, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.0", "default"),
+            ]
 
     def test_move_branch_last_child_root(self, model):
         target = model.objects.get(desc="2")
@@ -2368,6 +2520,10 @@ class TestMoveBranchRoot(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 12, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 11, 1, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.E", "default"),
             ]
 
 
@@ -2415,6 +2571,10 @@ class TestMoveBranch(TestNonEmptyTree):
                 ("gap_altered", model, 2, 2, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 1, 1, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.0", "default"),
+            ]
 
     def test_move_branch_last_sibling(self, model):
         target = model.objects.get(desc="23")
@@ -2449,6 +2609,10 @@ class TestMoveBranch(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 12, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 11, 1, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.E", "default"),
             ]
 
     def test_move_branch_left_sibling(self, model):
@@ -2489,6 +2653,10 @@ class TestMoveBranch(TestNonEmptyTree):
                 ("gap_altered", model, 2, 6, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 5, 1, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.B0", "default"),
+            ]
 
     def test_move_branch_right_sibling(self, model):
         target = model.objects.get(desc="23")
@@ -2525,6 +2693,10 @@ class TestMoveBranch(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 10, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 9, 1, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.C0", "default"),
             ]
 
     def test_move_branch_left_noleft_sibling(self, model):
@@ -2569,6 +2741,10 @@ class TestMoveBranch(TestNonEmptyTree):
                 ("gap_altered", model, 2, 2, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 1, 1, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.0", "default"),
+            ]
 
     def test_move_branch_right_noright_sibling(self, model):
         target = model.objects.get(desc="23").get_last_sibling()
@@ -2604,6 +2780,10 @@ class TestMoveBranch(TestNonEmptyTree):
                 ("gap_altered", model, 2, 12, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 11, 1, "default"),
             ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.E", "default"),
+            ]
 
     def test_move_branch_left_itself_sibling(self, model):
         target = model.objects.get(desc="4")
@@ -2614,6 +2794,10 @@ class TestMoveBranch(TestNonEmptyTree):
             assert signals == []
         elif issubclass(model, NS_Node):
             assert signals == []
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "C0", "default"),
+            ]
 
     def test_move_branch_first_child(self, model):
         target = model.objects.get(desc="23")
@@ -2651,6 +2835,10 @@ class TestMoveBranch(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 7, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 6, 2, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.C.0", "default"),
             ]
 
         # Check that for MP, NS and LT nodes, the depth was updated on the in-memory instances
@@ -2691,6 +2879,10 @@ class TestMoveBranch(TestNonEmptyTree):
             assert signals == [
                 ("gap_altered", model, 2, 9, 4, "default"),
                 ("subtree_moved", model, 4, 1, 4, 2, 8, 2, "default"),
+            ]
+        elif issubclass(model, LT_Node):
+            assert signals == [
+                ("subtree_moved", model, "D", "B.C.B", "default"),
             ]
 
 
@@ -4299,24 +4491,29 @@ class TestMP_TreeDescendantsPerformance(TestTreeBase):
 @pytest.mark.django_db
 class TestLT_Insertion(TestTreeBase):
     def test_move_right(self, lt_model):
-        node_a = lt_model.add_root(desc="A")
-        node_b = lt_model.add_root(desc="B")
-        node_a_a = node_a.add_child(desc="A.A")
-        node_a_a.add_child(desc="A.A.A")
-        node_b.add_child(desc="B.A")
+        with capture_signals() as signals:
+            node_a = lt_model.add_root(desc="A")
+            node_b = lt_model.add_root(desc="B")
+            node_a_a = node_a.add_child(desc="A.A")
+            node_a_a.add_child(desc="A.A.A")
+            node_b.add_child(desc="B.A")
 
-        expected_paths = ["A", "A.A", "A.A.A", "B", "B.A"]
-        actual_paths = [str(node.path) for node in lt_model.objects.all()]
-        assert actual_paths == expected_paths
+            expected_paths = ["A", "A.A", "A.A.A", "B", "B.A"]
+            actual_paths = [str(node.path) for node in lt_model.objects.all()]
+            assert actual_paths == expected_paths
 
-        # A sibling inserted before A.A gets path A.0; other paths are unchanged
-        node_a_0 = node_a_a.add_sibling("first-sibling", desc="A.0")
-        expected_paths = ["A", "A.0", "A.A", "A.A.A", "B", "B.A"]
-        actual_paths = [str(node.path) for node in lt_model.objects.all()]
-        assert actual_paths == expected_paths
+            # A sibling inserted before A.A gets path A.0; other paths are unchanged
+            node_a_0 = node_a_a.add_sibling("first-sibling", desc="A.0")
+            expected_paths = ["A", "A.0", "A.A", "A.A.A", "B", "B.A"]
+            actual_paths = [str(node.path) for node in lt_model.objects.all()]
+            assert actual_paths == expected_paths
+
+        assert signals == []
 
         # A sibling inserted before A.0 causes existing siblings to be moved right (i.e. 'A' appended to their labels)
-        new_node_a_0 = node_a_0.add_sibling("first-sibling", desc="new A.0")
+        with capture_signals() as signals:
+            new_node_a_0 = node_a_0.add_sibling("first-sibling", desc="new A.0")
+
         assert str(new_node_a_0.path) == "A.0"
         node_a_0.refresh_from_db()
         assert str(node_a_0.path) == "A.0A"
@@ -4326,3 +4523,7 @@ class TestLT_Insertion(TestTreeBase):
         expected_paths = ["A", "A.0", "A.0A", "A.AA", "A.AA.A", "B", "B.A"]
         actual_paths = [str(node.path) for node in lt_model.objects.all()]
         assert actual_paths == expected_paths
+
+        assert signals == [
+            ("subtree_moved_right", lt_model, "A.0", "default"),
+        ]
