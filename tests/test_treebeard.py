@@ -37,6 +37,7 @@ from treebeard.ltree import LT_Node
 from treebeard.ltree import subtree_moved as lt_subtree_moved
 from treebeard.ltree import subtree_moved_right as lt_subtree_moved_right
 from treebeard.mp_tree import MP_Node, path_updated
+from treebeard.mp_tree import nodes_deleted as mp_nodes_deleted
 from treebeard.ns_tree import NS_Node, gap_altered, tree_ids_incremented
 from treebeard.ns_tree import subtree_moved as ns_subtree_moved
 from treebeard.templatetags.admin_tree import tree_context
@@ -156,6 +157,9 @@ def capture_signals():
     def path_updated_handler(sender, **kwargs):
         calls.append(("path_updated", sender, kwargs["old_path"], kwargs["new_path"], kwargs["using"]))
 
+    def mp_nodes_deleted_handler(sender, **kwargs):
+        calls.append(("nodes_deleted", sender, kwargs["pks_to_remove"], kwargs["paths_to_remove"], kwargs["using"]))
+
     def gap_altered_handler(sender, **kwargs):
         calls.append(
             ("gap_altered", sender, kwargs["tree_id"], kwargs["start_index"], kwargs["offset"], kwargs["using"])
@@ -201,6 +205,7 @@ def capture_signals():
         )
 
     path_updated.connect(path_updated_handler)
+    mp_nodes_deleted.connect(mp_nodes_deleted_handler)
     gap_altered.connect(gap_altered_handler)
     tree_ids_incremented.connect(tree_ids_incremented_handler)
     ns_subtree_moved.connect(ns_subtree_moved_handler)
@@ -210,6 +215,7 @@ def capture_signals():
         yield calls
     finally:
         path_updated.disconnect(path_updated_handler)
+        mp_nodes_deleted.disconnect(mp_nodes_deleted_handler)
         gap_altered.disconnect(gap_altered_handler)
         tree_ids_incremented.disconnect(tree_ids_incremented_handler)
         ns_subtree_moved.disconnect(ns_subtree_moved_handler)
@@ -1476,8 +1482,9 @@ class TestDelete(TestTreeBase):
 
     def test_delete_leaf(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
+        node = delete_model.objects.get(desc="231")
         with capture_signals() as signals:
-            result = delete_model.objects.get(desc="231").delete()
+            result = node.delete()
         expected = [
             ("1", 1, 0),
             ("2", 1, 4),
@@ -1492,7 +1499,9 @@ class TestDelete(TestTreeBase):
         assert self.got(delete_model) == expected
         assert result == (2, {delete_model._meta.label: 1, dep_model._meta.label: 1})
         if issubclass(delete_model, MP_Node):
-            assert signals == []
+            assert signals == [
+                ("nodes_deleted", delete_model, [node.pk], [], "default"),
+            ]
         elif issubclass(delete_model, NS_Node):
             assert signals == [
                 ("gap_altered", delete_model, 2, 7, -2, "default"),
@@ -1517,7 +1526,17 @@ class TestDelete(TestTreeBase):
         assert self.got(delete_model) == expected
         assert result == (4, {delete_model._meta.label: 2, dep_model._meta.label: 2})
         if issubclass(delete_model, MP_Node):
-            assert signals == []
+            if delete_model.steplen == 1:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [], ["23"], "default"),
+                ]
+            elif delete_model.steplen == 3:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [], ["002003"], "default"),
+                ]
+            else:
+                assert False, f"Unexpected steplen: {delete_model.steplen}"
+            assert signals == expected_signals
         elif issubclass(delete_model, NS_Node):
             assert signals == [
                 ("gap_altered", delete_model, 2, 6, -4, "default"),
@@ -1533,7 +1552,17 @@ class TestDelete(TestTreeBase):
         assert self.got(delete_model) == expected
         assert result == (12, {delete_model._meta.label: 6, dep_model._meta.label: 6})
         if issubclass(delete_model, MP_Node):
-            assert signals == []
+            if delete_model.steplen == 1:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [], ["2"], "default"),
+                ]
+            elif delete_model.steplen == 3:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [], ["002"], "default"),
+                ]
+            else:
+                assert False, f"Unexpected steplen: {delete_model.steplen}"
+            assert signals == expected_signals
         elif issubclass(delete_model, NS_Node):
             assert signals == []
         elif issubclass(delete_model, LT_Node):
@@ -1541,13 +1570,24 @@ class TestDelete(TestTreeBase):
 
     def test_delete_filter_root_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
+        node3 = delete_model.objects.get(desc="3")
         with capture_signals() as signals:
             result = delete_model.objects.filter(desc__in=("2", "3")).delete()
         expected = [("1", 1, 0), ("4", 1, 1), ("41", 2, 0)]
         assert self.got(delete_model) == expected
         assert result == (14, {delete_model._meta.label: 7, dep_model._meta.label: 7})
         if issubclass(delete_model, MP_Node):
-            assert signals == []
+            if delete_model.steplen == 1:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [node3.pk], ["2"], "default"),
+                ]
+            elif delete_model.steplen == 3:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [node3.pk], ["002"], "default"),
+                ]
+            else:
+                assert False, f"Unexpected steplen: {delete_model.steplen}"
+            assert signals == expected_signals
         elif issubclass(delete_model, NS_Node):
             assert signals == []
         elif issubclass(delete_model, LT_Node):
@@ -1561,7 +1601,17 @@ class TestDelete(TestTreeBase):
         assert self.got(delete_model) == expected
         assert result == (12, {delete_model._meta.label: 6, dep_model._meta.label: 6})
         if issubclass(delete_model, MP_Node):
-            assert signals == []
+            if delete_model.steplen == 1:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [], ["2"], "default"),
+                ]
+            elif delete_model.steplen == 3:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [], ["002"], "default"),
+                ]
+            else:
+                assert False, f"Unexpected steplen: {delete_model.steplen}"
+            assert signals == expected_signals
         elif issubclass(delete_model, NS_Node):
             assert signals == []
 
@@ -1584,7 +1634,17 @@ class TestDelete(TestTreeBase):
         assert self.got(delete_model) == expected
         assert result == (12, {delete_model._meta.label: 6, dep_model._meta.label: 6})
         if issubclass(delete_model, MP_Node):
-            assert signals == []
+            if delete_model.steplen == 1:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [], ["2"], "default"),
+                ]
+            elif delete_model.steplen == 3:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [], ["002"], "default"),
+                ]
+            else:
+                assert False, f"Unexpected steplen: {delete_model.steplen}"
+            assert signals == expected_signals
         elif issubclass(delete_model, NS_Node):
             assert signals == []
         elif issubclass(delete_model, LT_Node):
@@ -1592,12 +1652,24 @@ class TestDelete(TestTreeBase):
 
     def test_delete_all_root_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
+        node1 = delete_model.objects.get(desc="1")
+        node3 = delete_model.objects.get(desc="3")
         with capture_signals() as signals:
             result = delete_model.get_root_nodes().delete()
         assert result == (20, {delete_model._meta.label: 10, dep_model._meta.label: 10})
         assert delete_model.objects.count() == 0
         if issubclass(delete_model, MP_Node):
-            assert signals == []
+            if delete_model.steplen == 1:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [node1.pk, node3.pk], ["2", "4"], "default"),
+                ]
+            elif delete_model.steplen == 3:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [node1.pk, node3.pk], ["002", "004"], "default"),
+                ]
+            else:
+                assert False, f"Unexpected steplen: {delete_model.steplen}"
+            assert signals == expected_signals
         elif issubclass(delete_model, NS_Node):
             assert signals == []
         elif issubclass(delete_model, LT_Node):
@@ -1605,12 +1677,24 @@ class TestDelete(TestTreeBase):
 
     def test_delete_all_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
+        node1 = delete_model.objects.get(desc="1")
+        node3 = delete_model.objects.get(desc="3")
         with capture_signals() as signals:
             result = delete_model.objects.all().delete()
         assert result == (20, {delete_model._meta.label: 10, dep_model._meta.label: 10})
         assert delete_model.objects.count() == 0
         if issubclass(delete_model, MP_Node):
-            assert signals == []
+            if delete_model.steplen == 1:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [node1.pk, node3.pk], ["2", "4"], "default"),
+                ]
+            elif delete_model.steplen == 3:
+                expected_signals = [
+                    ("nodes_deleted", delete_model, [node1.pk, node3.pk], ["002", "004"], "default"),
+                ]
+            else:
+                assert False, f"Unexpected steplen: {delete_model.steplen}"
+            assert signals == expected_signals
         elif issubclass(delete_model, NS_Node):
             assert signals == []
         elif issubclass(delete_model, LT_Node):
