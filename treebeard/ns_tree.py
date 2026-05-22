@@ -13,14 +13,6 @@ from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved
 from treebeard.models import Node
 
 
-def merge_deleted_counters(c1, c2):
-    """
-    Merge return values from Django's Queryset.delete() method.
-    """
-    object_counts = {key: c1[1].get(key, 0) + c2[1].get(key, 0) for key in set(c1[1]) | set(c2[1])}
-    return (c1[0] + c2[0], object_counts)
-
-
 class NS_NodeQuerySet(models.query.QuerySet):
     """
     Custom queryset for the tree node manager.
@@ -28,7 +20,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
     Needed only for the customized delete method.
     """
 
-    def delete(self, *args, removed_ranges=None, deleted_counter=None, **kwargs):
+    def delete(self, *args, **kwargs):
         """
         Custom delete method, will remove all descendant nodes to ensure a
         consistent tree (no orphans)
@@ -38,50 +30,39 @@ class NS_NodeQuerySet(models.query.QuerySet):
         """
         model = self.model.tree_model()
 
-        if deleted_counter is None:
-            deleted_counter = (0, {})
+        last_node = None
+        toremove = []
+        ranges = []
+        for node in self.order_by("tree_id", "lft").values("tree_id", "lft", "rgt").iterator():
+            if (
+                last_node
+                and last_node["tree_id"] == node["tree_id"]
+                and last_node["lft"] <= node["lft"]
+                and last_node["rgt"] >= node["rgt"]
+            ):
+                # This node is a descendant of the last node, which is already getting removed, so we can skip it
+                continue
+            last_node = node
+            # Remove this node and its descendants
+            toremove.append(Q(lft__range=(node["lft"], node["rgt"])) & Q(tree_id=node["tree_id"]))
+            ranges.append((node["tree_id"], node["lft"], node["rgt"]))
 
-        if removed_ranges is not None:
-            # we already know the children, let's call the default django
-            # delete method and let it handle the removal of the user's
-            # foreign keys...
-            result = super().delete(*args, **kwargs)
-            deleted_counter = merge_deleted_counters(deleted_counter, result)
+        if not toremove:
+            return (0, {})
 
-            # Now closing the gap (Celko's trees book, page 62)
-            # We do this for every gap that was left in the tree when the nodes
-            # were removed.  If many nodes were removed, we're going to update
-            # the same nodes over and over again. This would be probably
-            # cheaper precalculating the gapsize per intervals, or just do a
-            # complete reordering of the tree (uses COUNT)...
-            for tree_id, drop_lft, drop_rgt in sorted(removed_ranges, reverse=True):
-                model._close_gap(drop_lft, drop_rgt, tree_id)
-        else:
-            # we'll have to manually run through all the nodes that are going
-            # to be deleted and remove nodes from the list if an ancestor is
-            # already getting removed, since that would be redundant
-            removed = {}
-            for node in self.order_by("tree_id", "lft"):
-                found = False
-                for rid, rnode in removed.items():
-                    if node.is_descendant_of(rnode):
-                        found = True
-                        break
-                if not found:
-                    removed[node.pk] = node
+        # call the default django delete method with the full set of nodes and descendants to delete,
+        # and let it handle the removal of the user's foreign keys
+        result = super(NS_NodeQuerySet, model.objects.filter(reduce(operator.or_, toremove))).delete(*args, **kwargs)
 
-            # ok, got the minimal list of nodes to remove...
-            # we must also remove their descendants
-            toremove = []
-            ranges = []
-            for id, node in removed.items():
-                toremove.append(Q(lft__range=(node.lft, node.rgt)) & Q(tree_id=node.tree_id))
-                ranges.append((node.tree_id, node.lft, node.rgt))
-            if toremove:
-                deleted_counter = model.objects.filter(reduce(operator.or_, toremove)).delete(
-                    removed_ranges=ranges, deleted_counter=deleted_counter
-                )
-        return deleted_counter
+        # Now closing the gap (Celko's trees book, page 62)
+        # We do this for every gap that was left in the tree when the nodes
+        # were removed.  If many nodes were removed, we're going to update
+        # the same nodes over and over again. This would be probably
+        # cheaper precalculating the gapsize per intervals, or just do a
+        # complete reordering of the tree (uses COUNT)...
+        for tree_id, drop_lft, drop_rgt in sorted(ranges, reverse=True):
+            model._close_gap(drop_lft, drop_rgt, tree_id)
+        return result
 
     delete.alters_data = True
     delete.queryset_only = True
