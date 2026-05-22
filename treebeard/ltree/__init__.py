@@ -21,6 +21,7 @@ from .fields import Ltree2Text, PathField, PathValue, Subpath, Text2LTree
 
 subtree_moved_right = Signal()
 subtree_moved = Signal()
+nodes_deleted = Signal()
 
 
 class InvalidLabelConstraints(Exception): ...
@@ -120,7 +121,9 @@ class LT_NodeQuerySet(models.query.QuerySet):
             return super(LT_NodeQuerySet, model.objects.none()).delete(*args, **kwargs)
 
         query = functools.reduce(operator.or_, [Q(path__descendants=path) for path in paths_to_remove])
-        return super(LT_NodeQuerySet, model.objects.filter(query)).delete(*args, **kwargs)
+        result = super(LT_NodeQuerySet, model.objects.filter(query)).delete(*args, **kwargs)
+        nodes_deleted.send(sender=model, paths_to_remove=paths_to_remove, using=self.db)
+        return result
 
     delete.alters_data = True
     delete.queryset_only = True
