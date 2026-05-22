@@ -34,6 +34,7 @@ from treebeard.exceptions import (
 )
 from treebeard.forms import movenodeform_factory
 from treebeard.ltree import LT_Node
+from treebeard.ltree import nodes_deleted as lt_nodes_deleted
 from treebeard.ltree import subtree_moved as lt_subtree_moved
 from treebeard.ltree import subtree_moved_right as lt_subtree_moved_right
 from treebeard.mp_tree import MP_Node, path_updated
@@ -208,6 +209,11 @@ def capture_signals():
             )
         )
 
+    def lt_nodes_deleted_handler(sender, **kwargs):
+        calls.append(
+            ("nodes_deleted", sender, sorted([str(path) for path in kwargs["paths_to_remove"]]), kwargs["using"])
+        )
+
     path_updated.connect(path_updated_handler)
     mp_nodes_deleted.connect(mp_nodes_deleted_handler)
     gap_altered.connect(gap_altered_handler)
@@ -216,6 +222,7 @@ def capture_signals():
     ns_nodes_deleted.connect(ns_nodes_deleted_handler)
     lt_subtree_moved_right.connect(lt_subtree_moved_right_handler)
     lt_subtree_moved.connect(lt_subtree_moved_handler)
+    lt_nodes_deleted.connect(lt_nodes_deleted_handler)
     try:
         yield calls
     finally:
@@ -227,6 +234,7 @@ def capture_signals():
         ns_nodes_deleted.disconnect(ns_nodes_deleted_handler)
         lt_subtree_moved_right.disconnect(lt_subtree_moved_right_handler)
         lt_subtree_moved.disconnect(lt_subtree_moved_handler)
+        lt_nodes_deleted.disconnect(lt_nodes_deleted_handler)
 
 
 class TestTreeBase:
@@ -1514,7 +1522,9 @@ class TestDelete(TestTreeBase):
                 ("gap_altered", delete_model, 2, 7, -2, "default"),
             ]
         elif issubclass(delete_model, LT_Node):
-            assert signals == []
+            assert signals == [
+                ("nodes_deleted", delete_model, ["B.C.A"], "default"),
+            ]
 
     def test_delete_node(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1550,7 +1560,9 @@ class TestDelete(TestTreeBase):
                 ("gap_altered", delete_model, 2, 6, -4, "default"),
             ]
         elif issubclass(delete_model, LT_Node):
-            assert signals == []
+            assert signals == [
+                ("nodes_deleted", delete_model, ["B.C"], "default"),
+            ]
 
     def test_delete_root(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1576,7 +1588,9 @@ class TestDelete(TestTreeBase):
                 ("nodes_deleted", delete_model, [(2, 1, 12)], "default"),
             ]
         elif issubclass(delete_model, LT_Node):
-            assert signals == []
+            assert signals == [
+                ("nodes_deleted", delete_model, ["B"], "default"),
+            ]
 
     def test_delete_filter_root_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1603,7 +1617,9 @@ class TestDelete(TestTreeBase):
                 ("nodes_deleted", delete_model, [(2, 1, 12), (3, 1, 2)], "default"),
             ]
         elif issubclass(delete_model, LT_Node):
-            assert signals == []
+            assert signals == [
+                ("nodes_deleted", delete_model, ["B", "C"], "default"),
+            ]
 
     def test_delete_filter_children(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1627,6 +1643,10 @@ class TestDelete(TestTreeBase):
         elif issubclass(delete_model, NS_Node):
             assert signals == [
                 ("nodes_deleted", delete_model, [(2, 1, 12)], "default"),
+            ]
+        elif issubclass(delete_model, LT_Node):
+            assert signals == [
+                ("nodes_deleted", delete_model, ["B"], "default"),
             ]
 
     def test_delete_nonexistant_nodes(self, delete_dep_model_pair):
@@ -1664,7 +1684,9 @@ class TestDelete(TestTreeBase):
                 ("nodes_deleted", delete_model, [(2, 1, 12)], "default"),
             ]
         elif issubclass(delete_model, LT_Node):
-            assert signals == []
+            assert signals == [
+                ("nodes_deleted", delete_model, ["B"], "default"),
+            ]
 
     def test_delete_all_root_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1691,7 +1713,9 @@ class TestDelete(TestTreeBase):
                 ("nodes_deleted", delete_model, [(1, 1, 2), (2, 1, 12), (3, 1, 2), (4, 1, 4)], "default"),
             ]
         elif issubclass(delete_model, LT_Node):
-            assert signals == []
+            assert signals == [
+                ("nodes_deleted", delete_model, ["A", "B", "C", "D"], "default"),
+            ]
 
     def test_delete_all_nodes(self, delete_dep_model_pair):
         delete_model, dep_model = delete_dep_model_pair
@@ -1718,7 +1742,9 @@ class TestDelete(TestTreeBase):
                 ("nodes_deleted", delete_model, [(1, 1, 2), (2, 1, 12), (3, 1, 2), (4, 1, 4)], "default"),
             ]
         elif issubclass(delete_model, LT_Node):
-            assert signals == []
+            assert signals == [
+                ("nodes_deleted", delete_model, ["A", "B", "C", "D"], "default"),
+            ]
 
 
 @pytest.mark.django_db
