@@ -15,6 +15,9 @@ from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, Path
 from treebeard.models import Node
 from treebeard.numconv import NumConv
 
+path_updated = Signal()
+nodes_deleted = Signal()
+
 
 class MP_NodeQuerySet(models.query.QuerySet):
     """
@@ -72,7 +75,12 @@ class MP_NodeQuerySet(models.query.QuerySet):
         query = Q(pk__in=pks_to_remove)
         for path in paths_to_remove:
             query |= Q(path__startswith=path)
-        return super(MP_NodeQuerySet, model.objects.filter(query)).delete(*args, **kwargs)
+        count, deletion_map = super(MP_NodeQuerySet, model.objects.filter(query)).delete(*args, **kwargs)
+        if count > 0:
+            nodes_deleted.send(
+                sender=model, pks_to_remove=pks_to_remove, paths_to_remove=paths_to_remove, using=self.db
+            )
+        return count, deletion_map
 
     delete.alters_data = True
     delete.queryset_only = True
@@ -84,9 +92,6 @@ class MP_NodeManager(models.Manager):
     def get_queryset(self):
         """Sets the custom queryset as the default."""
         return MP_NodeQuerySet(self.model).order_by("path")
-
-
-path_updated = Signal()
 
 
 class MP_ComplexAddMoveHandler:
