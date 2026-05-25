@@ -266,7 +266,55 @@ extra steps, materialized path is more efficient than other approaches.
 .. autoclass:: MP_NodeQuerySet
   :show-inheritance:
 
+Signals
+-------
 
+The :mod:`treebeard.mp_tree` module defines several signals that are sent when
+bulk updates are made to the tree. Along with the standard Django ``post_save``
+and ``post_delete`` signals that track changes to individual node instances,
+these can be used to keep external data stores such as search indexes in sync
+with the tree.
+
+.. attribute:: path_updated
+
+   Sent after a bulk update has been performed to update the paths of a node
+   and its descendants, with the following arguments:
+
+   ``sender``
+      The model class where the update occurred.
+
+   ``old_path``
+      The old path of the topmost node before the update. The update operation
+      applies to all nodes whose path starts with this value.
+
+   ``new_path``
+      The new path of the topmost node after the update. All nodes in the
+      update operation have had the prefix ``old_path`` replaced with
+      ``new_path``. Note that if these paths are of different lengths, the
+      depth of the nodes has also been updated accordingly.
+
+   ``using``
+      The database alias being used.
+
+.. attribute:: nodes_deleted
+
+   Sent after one or more nodes are deleted, with the following arguments:
+
+   ``sender``
+      The model class where the deletion occurred.
+
+   ``pks_to_remove``
+      A list of primary keys of leaf nodes that were deleted. These are passed
+      as a separate list to the non-leaf nodes as it is more efficient to
+      delete these by primary key rather than by path.
+
+   ``paths_to_remove``
+      A list of paths of non-leaf nodes that were deleted (along with their
+      descendants). All nodes with a path that starts with any of these values
+      were deleted.
+
+   ``using``
+      The database alias being used.
 
 .. _`Vadim Tropashko`: http://vadimtropashko.wordpress.com/
 .. _`SQL Design Patterns`: http://www.rampant-books.com/book_2006_1_sql_coding_styles.htm
