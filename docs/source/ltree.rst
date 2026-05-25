@@ -112,5 +112,71 @@ To use the ``ltree`` module, you need to create the extension in your database:
 .. autoclass:: LT_NodeQuerySet
   :show-inheritance:
 
+Signals
+-------
+
+The :mod:`treebeard.ltree` module defines several signals that are sent when
+bulk updates are made to the tree. Along with the standard Django ``post_save``
+and ``post_delete`` signals that track changes to individual node instances,
+these can be used to keep external data stores such as search indexes in sync
+with the tree.
+
+.. attribute:: subtree_moved_right
+
+   Sent after a bulk update has been performed to increment existing path
+   values to allow inserting a sibling node, with the following arguments:
+
+   ``sender``
+      The model class where the update occurred.
+
+   ``path``
+      A :class:`treebeard.ltree.PathValue` indicating the first path updated.
+      The update operation applies to the node with this path, siblings after
+      it (i.e. nodes where all path elements are equal except the last, which
+      is greater), and all their descendants. For the targeted node and its
+      siblings, the update operation appends an 'A' to the last element of the
+      path; for example, the path ``A.C.B`` becomes ``A.C.BA``. For their
+      descendants, the path elements following the incremented one are
+      unchanged; for example, the path ``A.C.B.D`` becomes ``A.C.BA.D``.
+
+   ``using``
+      The database alias being used.
+
+.. attribute:: subtree_moved
+
+   Sent after a bulk update has been performed to update the paths of a node
+   and its descendants, with the following arguments:
+
+   ``sender``
+      The model class where the update occurred.
+
+   ``old_path``
+      A :class:`treebeard.ltree.PathValue` indicating the old path of the
+      topmost node before the update. The update operation applies to all nodes
+      with this path as a prefix.
+
+   ``new_path``
+      A :class:`treebeard.ltree.PathValue` indicating the new path of the
+      topmost node after the update. For all nodes in the update, the
+      prefix ``old_path`` is replaced with ``new_path``.
+
+   ``using``
+      The database alias being used.
+
+.. attribute:: nodes_deleted
+
+   Sent after one or more nodes are deleted, with the following arguments:
+
+   ``sender``
+      The model class where the deletion occurred.
+
+   ``paths_to_remove``
+      A list of :class:`treebeard.ltree.PathValue` instances indicating the
+      paths of the nodes that were deleted (along with their descendants). All
+      nodes that have any of these paths as a prefix were deleted.
+
+   ``using``
+      The database alias being used.
+
 
 .. _`ltree`: https://www.postgresql.org/docs/18/ltree.html
