@@ -112,6 +112,12 @@ def related_model(request):
     return request.param
 
 
+@pytest.fixture(scope="function", params=models.MP_MODELS)
+def mp_model(request):
+    request.param.load_bulk(BASE_DATA)
+    return request.param
+
+
 @pytest.fixture(scope="function", params=models.MP_SHORTPATH_MODELS)
 def mpshort_model(request):
     return request.param
@@ -3514,6 +3520,52 @@ class TestMP_Tree(TestTreeBase):
         obj = obj.add_child().add_child().add_child()
         with pytest.raises(PathOverflow):
             obj.add_child()
+
+
+@pytest.mark.skipif(os.getenv("DATABASE_ENGINE") in ["mysql", "mssql"], reason="Unsupported database backend")
+@pytest.mark.django_db
+class TestMP_TreeLoadBulk(TestTreeBase):
+    def test_load_bulk_existing_with_bulk_create(self, mp_model, django_assert_max_num_queries):
+        # inserting on an existing node
+        node = mp_model.objects.get(desc="231")
+        with django_assert_max_num_queries(26):
+            ids = mp_model.load_bulk(BASE_DATA, node, bulk_create=True)
+        expected = [
+            ("1", 1, 0),
+            ("2", 1, 4),
+            ("21", 2, 0),
+            ("22", 2, 0),
+            ("23", 2, 1),
+            ("231", 3, 4),
+            ("1", 4, 0),
+            ("2", 4, 4),
+            ("21", 5, 0),
+            ("22", 5, 0),
+            ("23", 5, 1),
+            ("231", 6, 0),
+            ("24", 5, 0),
+            ("3", 4, 0),
+            ("4", 4, 1),
+            ("41", 5, 0),
+            ("24", 2, 0),
+            ("3", 1, 0),
+            ("4", 1, 1),
+            ("41", 2, 0),
+        ]
+        expected_descs = ["1", "2", "21", "22", "23", "231", "24", "3", "4", "41"]
+        got_descs = [obj.desc for obj in mp_model.objects.filter(pk__in=ids)]
+        assert sorted(got_descs) == sorted(expected_descs)
+        assert self.got(mp_model) == expected
+
+    def test_load_bulk_keeping_ids_with_bulk_create(self, mp_model):
+        exp = mp_model.dump_bulk(keep_ids=True)
+        mp_model.objects.all().delete()
+        mp_model.load_bulk(exp, parent=None, keep_ids=True, bulk_create=True)
+        got = mp_model.dump_bulk(keep_ids=True)
+        assert got == exp
+        # do we really have an unchanged tree after the dump/delete/load?
+        got = [(o.desc, o.get_depth(), o.get_children_count()) for o in mp_model.get_tree()]
+        assert got == UNCHANGED
 
 
 @pytest.mark.django_db

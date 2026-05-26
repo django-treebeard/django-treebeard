@@ -258,7 +258,7 @@ extra steps, materialized path is more efficient than other approaches.
 
         MyNodeModel.fix_tree()
 
-
+  .. automethod:: load_bulk
 
 .. autoclass:: MP_NodeManager
   :show-inheritance:

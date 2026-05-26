@@ -188,6 +188,7 @@ BASE_MODELS = [
 
 PROXY_MODELS = [AL_TestNode_Proxy, MP_TestNode_Proxy, NS_TestNode_Proxy]
 SORTED_MODELS = [AL_TestNodeSorted, MP_TestNodeSorted, NS_TestNodeSorted]
+MP_MODELS = [MP_TestNode, MP_TestNodeUuid, MP_TestNodeCustomId]
 MP_SHORTPATH_MODELS = [MP_TestNodeShortPath, MP_TestSortedNodeShortPath]
 RELATED_MODELS = [AL_TestNodeRelated, MP_TestNodeRelated, NS_TestNodeRelated]
 

@@ -9,6 +9,7 @@ from django.db import models, transaction
 from django.db.models import Q
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
+from treebeard.utils import prepare_dumpdata_for_loading
 
 
 class Node(models.Model):
@@ -77,27 +78,16 @@ class Node(models.Model):
 
         # tree, iterative preorder
         added = []
+        bulk_data = prepare_dumpdata_for_loading(cls, data=bulk_data, keep_ids=keep_ids)
         # stack of nodes to analyze
         stack = [(parent, node) for node in bulk_data[::-1]]
-        foreign_key_fields = {field.name for field in cls._meta.fields if (field.one_to_one or field.many_to_one)}
-        pk_field = cls._meta.pk.attname
 
         while stack:
             parent, node_struct = stack.pop()
-            # shallow copy of the data structure so it doesn't persist...
-            node_data = node_struct["data"].copy()
-            for field in foreign_key_fields:
-                # Append _id to field name, so that we don't need to load the foreign objects into memory
-                node_data[f"{field}_id"] = node_data.pop(field, None)
-            if keep_ids:
-                node_data["pk"] = node_struct[pk_field]
-
-            node_obj = parent.add_child(**node_data) if parent else cls.add_root(**node_data)
+            node_obj = parent.add_child(**node_struct["data"]) if parent else cls.add_root(**node_struct["data"])
             added.append(node_obj.pk)
-            if "children" in node_struct:
-                # extending the stack with the current node as the parent of
-                # the new nodes
-                stack.extend([(node_obj, node) for node in node_struct["children"][::-1]])
+            # extending the stack with the current node as the parent of the new nodes
+            stack.extend([(node_obj, node) for node in node_struct["children"][::-1]])
         return added
 
     @classmethod
