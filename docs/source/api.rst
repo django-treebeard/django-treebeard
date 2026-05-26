@@ -279,14 +279,6 @@ API
 
      .. note::
 
-            If your node model has a ForeignKey this method will try to load
-            the related object before loading the data. If the related object
-            doesn't exist it won't load anything and will raise a DoesNotExist
-            exception. This is done because the dump_data method uses integers
-            to dump related objects.
-
-     .. note::
-
             If your node model has :attr:`node_order_by` enabled, it will
             take precedence over the order in the structure.
 

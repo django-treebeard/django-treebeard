@@ -14,6 +14,7 @@ from django.utils.translation import gettext_noop as _
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node
 from treebeard.numconv import NumConv
+from treebeard.utils import prepare_dumpdata_for_loading
 
 path_updated = Signal()
 nodes_deleted = Signal()
@@ -1028,6 +1029,100 @@ class MP_Node(Node):
     def _get_children_path_interval(cls, path):
         """:returns: An interval of all possible children paths for a node."""
         return (path + cls.alphabet[0] * cls.steplen, path + cls.alphabet[-1] * cls.steplen)
+
+    @classmethod
+    @transaction.atomic
+    def load_bulk(
+        cls,
+        bulk_data,
+        parent=None,
+        keep_ids=False,
+        bulk_create=False,
+        batch_size=1000,
+    ) -> list:
+        """
+        Loads a list/dictionary structure to the tree.
+
+        :param bulk_data:
+
+            The data that will be loaded, the structure is a list of
+            dictionaries with 2 keys:
+
+            - ``data``: will store arguments that will be passed for object
+                creation, and
+
+            - ``children``: a list of dictionaries, each one has it's own
+                ``data`` and ``children`` keys (a recursive structure)
+
+        :param parent:
+
+            The node that will receive the structure as children, if not
+            specified the first level of the structure will be loaded as root
+            nodes
+
+        :param keep_ids:
+
+            If enabled, loads the nodes with the same primary keys that are
+            given in the structure. Will error if there are nodes without
+            primary key info or if the primary keys are already used.
+
+        :param bulk_create:
+
+            Whether to bulk create objects using Django's ``bulk_create()`` method. Only works
+            for models without multi-table inheritance. Also does not work with
+            MySQL and MSSQL database backends.
+
+        :param batch_size:
+
+            The batch size for ``bulk_create()`` when creating descendant nodes.
+            Default is 1000.
+
+        :returns: A list of the added node ids.
+
+        The ordering of nodes in the loaded data is preserved. If this
+        needs to be corrected (e.g., to cater for a new `node_order_by`)
+        then `fix_tree()` can be run separately on the imported subtree.
+        """
+
+        if not bulk_create:
+            return super().load_bulk(bulk_data, parent=parent, keep_ids=keep_ids)
+
+        conn = connections[router.db_for_write(cls)]
+        if not conn.features.can_return_rows_from_bulk_insert or conn.vendor == "microsoft":
+            raise ValueError("Database backend does not support bulk load. Use load_bulk without bulk_create=True.")
+
+        added = []
+        bulk_data = prepare_dumpdata_for_loading(cls, data=bulk_data, keep_ids=keep_ids)
+        children_to_create = []
+
+        def _build_children(parent_node, children) -> None:
+            child_depth = parent_node.depth + 1
+
+            for i, child in enumerate(children):
+                child_obj = cls(
+                    depth=child_depth,
+                    numchild=len(child["children"]),
+                    path=cls._get_path(parent_node.path, child_depth, i + 1),
+                    **child["data"],
+                )
+
+                children_to_create.append(child_obj)
+
+                # Recursively process grandchildren
+                _build_children(child_obj, child["children"])
+
+        # Create first level of the bulk data using standard operations, since there may be existing siblings
+        for node_struct in bulk_data:
+            node_struct["data"]["numchild"] = len(node_struct["children"])  # Set numchild manually
+            node_obj = parent.add_child(**node_struct["data"]) if parent else cls.add_root(**node_struct["data"])
+            added.append(node_obj.pk)
+            _build_children(node_obj, node_struct["children"])
+
+        # Bulk create descendants
+        created = cls.objects.bulk_create(children_to_create, batch_size=batch_size)
+        added.extend([obj.pk for obj in created])
+
+        return added
 
     class Meta:
         """Abstract model."""
