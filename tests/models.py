@@ -224,7 +224,12 @@ if os.environ.get("DATABASE_ENGINE", "") == "psql":
     class LT_TestNodeInherited(LT_TestNode):
         extra_desc = models.CharField(max_length=255)
 
-    class LT_TestNodeInheritedSorted(LT_TestNodeSorted): ...
+        class Meta:
+            constraints = []  # Override parent class constraints
+
+    class LT_TestNodeInheritedSorted(LT_TestNodeSorted):
+        class Meta:
+            constraints = []  # Override parent class constraints
 
     class LT_TestNodeSomeDep(models.Model):
         node = models.ForeignKey(LT_TestNode, on_delete=models.CASCADE)

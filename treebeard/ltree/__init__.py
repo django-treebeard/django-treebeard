@@ -46,7 +46,9 @@ def generate_label(
 
     start = after or char_choices[0]
 
-    if before and before <= start:
+    if (
+        before and (before <= start) or before == f"{start}0"
+    ):  # If before == {start}0 there is no semantic gap in between
         raise InvalidLabelConstraints
 
     # Construct sets of characters for each position, appending one at the end if we need to extend the string
@@ -175,6 +177,7 @@ class LT_ComplexAddMoveHandler:
         """
         result_class = self.node_cls.tree_model()
         node_depth = len(start_node.path)
+
         if node_depth > 1:
             result_class.objects.filter(
                 path__descendants=start_node.path[:-1], path__gte=start_node.path, path__depth=node_depth
@@ -413,7 +416,7 @@ class LT_Node(Node):
     """Abstract model to create your own Postgres LTree trees."""
 
     node_order_by = []
-    path = PathField(unique=True)
+    path = PathField()
 
     TREEBEARD_IDENTIFYING_FIELD = "path"
     MOVENODE_FORM_EXCLUDED_FIELDS = ("path",)
@@ -656,3 +659,10 @@ class LT_Node(Node):
 
     class Meta:
         abstract = True
+        constraints = [
+            models.UniqueConstraint(
+                name="%(app_label)s_%(class)s_deferred_unique_path",
+                fields=["path"],
+                deferrable=models.Deferrable.DEFERRED,
+            )
+        ]

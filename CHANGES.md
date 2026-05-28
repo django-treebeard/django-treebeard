@@ -3,6 +3,7 @@ Next release (in development)
 
 * Fixed `MP_Node` paths being incremented unnecessarily when saving nodes with `node_order_by` in the admin.
 * Optimised `MoveNodeForm` to skip move logic if no treebeard-specific fields were modified.
+* Changed the unique constraint for `LTree.path` to be deferrable, so that move operations do not fail. *This requires a database migration for projects using the experimental LTree implementation*.
 
 
 Release 5.1.0 (May 12, 2026)
