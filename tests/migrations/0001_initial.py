@@ -409,11 +409,18 @@ if os.environ.get("DATABASE_ENGINE") == "psql":
                         "id",
                         models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                     ),
-                    ("path", treebeard.ltree.fields.PathField(unique=True)),
+                    ("path", treebeard.ltree.fields.PathField()),
                     ("desc", models.CharField(max_length=255)),
                 ],
                 options={
                     "abstract": False,
+                    "constraints": [
+                        models.UniqueConstraint(
+                            name="tests_lt_testnode_deferred_unique_path",
+                            fields=["path"],
+                            deferrable=models.Deferrable.DEFERRED,
+                        )
+                    ],
                 },
             ),
             migrations.CreateModel(
@@ -464,13 +471,20 @@ if os.environ.get("DATABASE_ENGINE") == "psql":
                         "id",
                         models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
                     ),
-                    ("path", treebeard.ltree.fields.PathField(unique=True)),
+                    ("path", treebeard.ltree.fields.PathField()),
                     ("val1", models.IntegerField()),
                     ("val2", models.IntegerField()),
                     ("desc", models.CharField(max_length=255)),
                 ],
                 options={
                     "abstract": False,
+                    "constraints": [
+                        models.UniqueConstraint(
+                            name="tests_lt_testnodesorted_deferred_unique_path",
+                            fields=["path"],
+                            deferrable=models.Deferrable.DEFERRED,
+                        )
+                    ],
                 },
             ),
             migrations.CreateModel(
