@@ -95,7 +95,7 @@ class AL_TestNodeInherited(AL_TestNode):
 
 
 class MP_TestNodeSorted(MP_Node, DescMixin):
-    steplen = 1
+    steplen = 2
     node_order_by = ["val1", "val2", "-desc"]
     val1 = models.IntegerField()
     val2 = models.IntegerField()
@@ -191,6 +191,7 @@ SORTED_MODELS = [AL_TestNodeSorted, MP_TestNodeSorted, NS_TestNodeSorted]
 MP_MODELS = [MP_TestNode, MP_TestNodeUuid, MP_TestNodeCustomId]
 MP_SHORTPATH_MODELS = [MP_TestNodeShortPath, MP_TestSortedNodeShortPath]
 RELATED_MODELS = [AL_TestNodeRelated, MP_TestNodeRelated, NS_TestNodeRelated]
+BENCHMARK_MODELS = [AL_TestNode, MP_TestNode, NS_TestNode]
 
 # Pairs of dependent models and base models that they depend on
 DEP_MODELS = [(AL_TestNode, AL_TestNodeSomeDep), (MP_TestNode, MP_TestNodeSomeDep), (NS_TestNode, NS_TestNodeSomeDep)]
@@ -241,3 +242,4 @@ if os.environ.get("DATABASE_ENGINE", "") == "psql":
     SORTED_MODELS.append(LT_TestNodeSorted)
     INHERITED_MODELS_WITH_SORT.append((LT_TestNodeSorted, LT_TestNodeInheritedSorted))
     LT_BASE_MODELS.append(LT_TestNode)
+    BENCHMARK_MODELS.append(LT_TestNode)

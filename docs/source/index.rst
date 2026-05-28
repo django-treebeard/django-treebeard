@@ -27,6 +27,7 @@ Overview
 
    install
    tutorial
+   choosing
    caveats
 
 .. toctree::
