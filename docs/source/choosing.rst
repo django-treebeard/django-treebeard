@@ -25,8 +25,8 @@ The code used to generate the benchmarks can be found in the source code at `tes
 .. csv-table::
    :header: Operation, AL,  NS, MP, LT
 
-   Insertion: 100 nodes, **89ms**, 517ms, 263ms, 434ms
-   Insertion: 100 nodes with `node_order_by` in random order, **40ms**, 1300ms, 1400ms, 1350ms
-   Read: fetch all descendants of a root, 36ms, 10ms, **2ms**, **2ms**
-   "Move: root to child, child to root", 47ms, 75ms, **23ms**, **18ms**
-   Delete: delete a root and all descendants, 74ms, 57ms, **15ms**, **17ms**
+   Insertion: 100 nodes, **172ms**, 421ms, 204ms, 204ms
+   Insertion: 100 nodes with `node_order_by` supplied in random order, **103ms**, 1200ms, 1500ms, 920ms
+   Read: fetch all descendants of a root, 14ms, 0.9ms, **0.7ms**, **0.6ms**
+   "Move: root to child, child to root", 23ms, 15ms, **6ms**, **3ms**
+   Delete: delete a root and all descendants, 35ms, 10ms, **8ms**, **5ms**

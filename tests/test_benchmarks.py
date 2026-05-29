@@ -2,6 +2,7 @@ import os
 from random import randint
 
 import pytest
+from django.db import connection
 
 from tests import models
 
@@ -84,10 +85,16 @@ def delete(cls):
 
 
 def teardown(cls):
-    cls._base_manager.all().delete()
+    # Truncate table between rounds
+    # This is preferable to deleting all rows which leads to GC issues on some backends
+    cursor = connection.cursor()
+    if connection.vendor == "sqlite":
+        cursor.execute(f"DELETE FROM {cls._meta.db_table};")
+    else:
+        cursor.execute(f"TRUNCATE TABLE {cls._meta.db_table} CASCADE;")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.skipif(not os.environ.get("TEST_BENCHMARKS"), reason="Skipping benchmarks")
 class TestBenchmarks:
     def test_create(self, benchmark_model, benchmark):
@@ -109,8 +116,10 @@ class TestBenchmarks:
         benchmark.pedantic(move, args=[benchmark_model], rounds=10, teardown=teardown, setup=setup)
 
     def test_move_sorted(self, sorted_model, benchmark):
-        create_sorted_nodes(sorted_model)
-        benchmark.pedantic(move_sorted, args=[sorted_model])
+        def setup():
+            create_sorted_nodes(sorted_model)
+
+        benchmark.pedantic(move_sorted, args=[sorted_model], rounds=10, teardown=teardown, setup=setup)
 
     def test_delete(self, benchmark_model, benchmark):
         def setup():
