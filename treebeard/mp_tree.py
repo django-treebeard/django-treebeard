@@ -935,6 +935,9 @@ class MP_Node(Node):
 
     def get_root(self):
         """:returns: the root node for the current node object."""
+        if self.is_root():
+            return self
+
         return self.tree_model().objects.get(path=self.path[0 : self.steplen])
 
     def is_root(self):
@@ -953,8 +956,11 @@ class MP_Node(Node):
         if self.is_root():
             return self.tree_model().objects.none()
 
-        paths = [self.path[0:pos] for pos in range(0, len(self.path), self.steplen)[1:]]
-        return self.tree_model().objects.filter(path__in=paths).order_by("depth")
+        return (
+            self.tree_model()
+            .objects.alias(ref_path=Value(self._get_parent_path_from_path(self.path)))
+            .filter(ref_path__startswith=F("path"))
+        )
 
     def get_parent(self, update=False):
         """
