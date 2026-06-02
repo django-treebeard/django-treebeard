@@ -1,5 +1,14 @@
-Next release (in development)
------------------------------
+Release 5.2.0 (Jun 2, 2026)
+---------------------------
+
+Treebeard 5.1.0 is a minor release that includes some bug fixes.
+
+New features:
+
+* Added a `bulk_create` option to `MP_Node.load_bulk()`, that creates database entries in bulk instead of one at a time.
+* Added signals to `MP_Node`, `NS_Node` and `LT_Node` implementations to allow external data stores to stay in sync with Treebeard-based models.
+
+Big fixes:
 
 * Fixed `MP_Node` paths being incremented unnecessarily when saving nodes with `node_order_by` in the admin.
 * Optimised `MoveNodeForm` to skip move logic if no treebeard-specific fields were modified.
