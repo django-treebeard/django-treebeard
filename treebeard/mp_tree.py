@@ -4,7 +4,7 @@ import collections
 from functools import cache
 from typing import Any
 
-from django.core import serializers
+from django.core import checks, serializers
 from django.db import connections, models, router, transaction
 from django.db.models import F, Func, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Concat, Greatest, Length, Substr
@@ -92,7 +92,7 @@ class MP_NodeManager(models.Manager):
 
     def get_queryset(self):
         """Sets the custom queryset as the default."""
-        return MP_NodeQuerySet(self.model).order_by("path")
+        return MP_NodeQuerySet(self.model, using=self._db).order_by("path")
 
 
 class MP_ComplexAddMoveHandler:
@@ -1129,6 +1129,23 @@ class MP_Node(Node):
         added.extend([obj.pk for obj in created])
 
         return added
+
+    @classmethod
+    def check(cls, **kwargs):
+        errors = super().check(**kwargs)
+        manager_cls = cls._default_manager.__class__
+        # Raise a warning if the default manager for the model doesn't subclass MP_NodeManager
+        # This will allow us to move class-level methods into the manager in future (see issue #44)
+        if not issubclass(manager_cls, MP_NodeManager):
+            errors.append(
+                checks.Warning(
+                    f"{manager_cls.__module__}.{manager_cls.__name__} does not subclass "
+                    "treebeard.mp_tree.MP_NodeManager. This will cause an error in Treebeard 6.",
+                    obj=manager_cls,
+                    id="treebeard.E001",
+                )
+            )
+        return errors
 
     class Meta:
         """Abstract model."""

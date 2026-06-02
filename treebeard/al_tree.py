@@ -1,6 +1,6 @@
 """Adjacency List"""
 
-from django.core import serializers
+from django.core import checks, serializers
 from django.db import models, transaction
 from django.db.models import Exists, Max, Min, OuterRef
 from django.utils.translation import gettext_noop as _
@@ -352,6 +352,23 @@ class AL_Node(Node):
             self.sib_order = sib_order or self.__class__._get_new_sibling_order(pos, target)
 
         self.save()
+
+    @classmethod
+    def check(cls, **kwargs):
+        errors = super().check(**kwargs)
+        manager_cls = cls._default_manager.__class__
+        # Raise a warning if the default manager for the model doesn't subclass AL_NodeManager
+        # This will allow us to move class-level methods into the manager in future (see issue #44)
+        if not issubclass(manager_cls, AL_NodeManager):
+            errors.append(
+                checks.Warning(
+                    f"{manager_cls.__module__}.{manager_cls.__name__} does not subclass "
+                    "treebeard.al_tree.AL_NodeManager. This will cause an error in Treebeard 6.",
+                    obj=manager_cls,
+                    id="treebeard.E001",
+                )
+            )
+        return errors
 
     class Meta:
         """Abstract model."""
