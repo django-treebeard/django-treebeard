@@ -1,18 +1,18 @@
 from copy import deepcopy
 from functools import cache
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 from django.db import models
 
 
 class DumpData(TypedDict):
     data: dict[str, Any]
-    children: NotRequired[list["DumpData"]]
+    children: list["DumpData"]  # TODO: This should really be NotRequired. Add when Python 3.10 support is dropped
 
 
 class PreparedDumpData(DumpData):
     children: list["DumpData"]
-    pk: NotRequired[Any]
+    pk: Any  # TODO: This should really be NotRequired. Add when Python 3.10 support is dropped
 
 
 @cache
