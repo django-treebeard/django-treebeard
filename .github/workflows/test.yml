@@ -33,8 +33,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: [3.12, 3.14]
+        python-version: ["3.10", 3.14]
         django-version: [52, 60]
+        exclude:
+          - python-version: "3.10"
+            django-version: 60
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
@@ -52,8 +55,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: [3.12, 3.14]
+        python-version: ["3.10", 3.14]
         django-version: [52, 60]
+        exclude:
+          - python-version: "3.10"
+            django-version: 60
     services:
       postgres:
         image: postgres:15
@@ -87,8 +93,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: [3.12, 3.14]
+        python-version: ["3.10", 3.14]
         django-version: [52, 60]
+        exclude:
+          - python-version: "3.10"
+            django-version: 60
     services:
       mysql:
         image: mysql:9.5
@@ -119,8 +128,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: [3.12, 3.14]
+        python-version: ["3.10", 3.14]
         django-version: [52, 60]
+        exclude:
+          - python-version: "3.10"
+            django-version: 60
     services:
       mysql:
         image: mariadb:10.6
@@ -151,8 +163,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: [3.12, 3.14]
+        python-version: ["3.10", 3.14]
         django-version: [52, 60]
+        exclude:
+          - python-version: "3.10"
+            django-version: 60
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2019-latest

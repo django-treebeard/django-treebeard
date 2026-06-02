@@ -1,3 +1,11 @@
+Release 5.2.1 (Jun 2, 2026)
+---------------------------
+
+Treebeard 5.2.1 is a bugfix release.
+
+- Fixed import error for type annotation unavailable on Python 3.10.
+
+
 Release 5.2.0 (Jun 2, 2026)
 ---------------------------
 
