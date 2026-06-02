@@ -7,7 +7,7 @@ import string
 from collections.abc import Iterable
 from typing import Any
 
-from django.core import serializers
+from django.core import checks, serializers
 from django.db import models, transaction
 from django.db.models import F, Func, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Concat
@@ -136,7 +136,7 @@ class LT_NodeManager(models.Manager):
 
     def get_queryset(self):
         """Sets the custom queryset as the default."""
-        return LT_NodeQuerySet(self.model).order_by("path")
+        return LT_NodeQuerySet(self.model, using=self._db).order_by("path")
 
 
 class LT_ComplexAddMoveHandler:
@@ -656,6 +656,23 @@ class LT_Node(Node):
         relative to another node.
         """
         return LT_MoveHandler(self, target, pos).process()
+
+    @classmethod
+    def check(cls, **kwargs):
+        errors = super().check(**kwargs)
+        manager_cls = cls._default_manager.__class__
+        # Raise a warning if the default manager for the model doesn't subclass LT_NodeManager
+        # This will allow us to move class-level methods into the manager in future (see issue #44)
+        if not issubclass(manager_cls, LT_NodeManager):
+            errors.append(
+                checks.Warning(
+                    f"{manager_cls.__module__}.{manager_cls.__name__} does not subclass "
+                    "treebeard.ltree.LT_NodeManager. This will cause an error in Treebeard 6.",
+                    obj=manager_cls,
+                    id="treebeard.E001",
+                )
+            )
+        return errors
 
     class Meta:
         abstract = True

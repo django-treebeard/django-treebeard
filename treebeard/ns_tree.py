@@ -4,7 +4,7 @@ import operator
 from functools import reduce
 from itertools import groupby
 
-from django.core import serializers
+from django.core import checks, serializers
 from django.db import models, transaction
 from django.db.models import Case, F, Q, When
 from django.dispatch import Signal
@@ -80,7 +80,7 @@ class NS_NodeManager(models.Manager):
 
     def get_queryset(self):
         """Sets the custom queryset as the default."""
-        return NS_NodeQuerySet(self.model).order_by("tree_id", "lft")
+        return NS_NodeQuerySet(self.model, using=self._db).order_by("tree_id", "lft")
 
 
 class NS_Node(Node):
@@ -637,6 +637,23 @@ class NS_Node(Node):
                     wrong_depth.append(node["pk"])
 
         return reversed_lft_rgt, overlapping_nodes, duplicate_tree_ids, wrong_depth
+
+    @classmethod
+    def check(cls, **kwargs):
+        errors = super().check(**kwargs)
+        manager_cls = cls._default_manager.__class__
+        # Raise a warning if the default manager for the model doesn't subclass NS_NodeManager
+        # This will allow us to move class-level methods into the manager in future (see issue #44)
+        if not issubclass(manager_cls, NS_NodeManager):
+            errors.append(
+                checks.Warning(
+                    f"{manager_cls.__module__}.{manager_cls.__name__} does not subclass "
+                    "treebeard.ns_tree.NS_NodeManager. This will cause an error in Treebeard 6.",
+                    obj=manager_cls,
+                    id="treebeard.E001",
+                )
+            )
+        return errors
 
     class Meta:
         """Abstract model."""

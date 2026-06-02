@@ -7,12 +7,15 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from django.apps import apps
 from django.contrib.admin.options import TO_FIELD_VAR
 from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import AnonymousUser, User
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core.checks.model_checks import check_all_models
 from django.core.exceptions import PermissionDenied
+from django.db.models import Manager
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.forms import ValidationError
@@ -4752,3 +4755,15 @@ class TestLT_Insertion(TestTreeBase):
         assert signals == [
             ("subtree_moved_right", lt_model, "A.0", "default"),
         ]
+
+
+@pytest.mark.django_db
+class TestChecks:
+    def test_checks_warning_if_model_manager_doesnt_subclass_treebeard_manager(self, model, monkeypatch):
+        configs = [apps.get_app_config("tests")]
+        assert not check_all_models(configs)
+        # Monkey-patch default manager
+        monkeypatch.setattr(model._meta, "default_manager", Manager())
+        errors = check_all_models(configs)
+        assert len(errors) == 1
+        assert "does not subclass treebeard" in errors[0].msg
