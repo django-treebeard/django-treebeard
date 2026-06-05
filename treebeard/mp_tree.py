@@ -956,11 +956,9 @@ class MP_Node(Node):
         if self.is_root():
             return self.tree_model().objects.none()
 
-        return (
-            self.tree_model()
-            .objects.alias(ref_path=Value(self._get_parent_path_from_path(self.path)))
-            .filter(ref_path__startswith=F("path"))
-        )
+        # This is necessary to ensure the index is used as opposed to a table scan
+        paths = [self.path[0:pos] for pos in range(0, len(self.path), self.steplen)[1:]]
+        return self.tree_model().objects.filter(path__in=paths).order_by("depth")
 
     def get_parent(self, update=False):
         """

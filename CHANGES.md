@@ -1,3 +1,11 @@
+Release 5.2.2 (Jun 5, 2026)
+---------------------------
+
+Treebeard 5.2.2 is a bugfix release.
+
+- Fixed performance regression in `MP_Node.get_ancestors()` (https://github.com/django-treebeard/django-treebeard/issues/403).
+
+
 Release 5.2.1 (Jun 2, 2026)
 ---------------------------
 
