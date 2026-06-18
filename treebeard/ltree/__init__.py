@@ -106,7 +106,7 @@ class LT_NodeQuerySet(models.query.QuerySet):
         """
         # Construct the minimal list of nodes that need deleting along with their descendants
         paths_to_remove = set()
-        for node in self.order_by("path").only("path").iterator():
+        for node in self.order_by("path").only("path").prefetch_related(None).iterator():
             found = False
             for depth in range(1, len(node.path)):
                 path = node.path[0:depth]

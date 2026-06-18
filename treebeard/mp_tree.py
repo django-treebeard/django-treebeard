@@ -39,7 +39,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
         # to be deleted and remove nodes from the list if an ancestor is
         # already getting removed, since that would be redundant
         removed = {}
-        for node in self.order_by("depth", "path").only("path", "depth", "numchild").iterator():
+        for node in self.order_by("depth", "path").only("path", "depth", "numchild").prefetch_related(None).iterator():
             found = False
             for depth in range(1, int(len(node.path) / node.steplen)):
                 path = node._get_basepath(node.path, depth)
