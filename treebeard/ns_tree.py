@@ -39,7 +39,7 @@ class NS_NodeQuerySet(models.query.QuerySet):
         last_node = None
         toremove = []
         ranges = []
-        for node in self.order_by("tree_id", "lft").values("tree_id", "lft", "rgt").iterator():
+        for node in self.order_by("tree_id", "lft").values("tree_id", "lft", "rgt").prefetch_related(None).iterator():
             if (
                 last_node
                 and last_node["tree_id"] == node["tree_id"]
