@@ -291,7 +291,7 @@ class Migration(migrations.Migration):
                 ("depth", models.PositiveIntegerField(db_index=True)),
                 ("desc", models.CharField(max_length=255)),
                 ("related", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.relatedmodel")),
-                ("related_m2m", models.ManyToManyField(to="tests.relatedmodel")),
+                ("related_m2m", models.ManyToManyField(to="tests.relatedmodel", related_name="+")),
             ],
             options={
                 "abstract": False,
@@ -313,7 +313,7 @@ class Migration(migrations.Migration):
                 ("numchild", models.PositiveIntegerField(default=0)),
                 ("desc", models.CharField(max_length=255)),
                 ("related", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.relatedmodel")),
-                ("related_m2m", models.ManyToManyField(to="tests.relatedmodel")),
+                ("related_m2m", models.ManyToManyField(to="tests.relatedmodel", related_name="+")),
             ],
             options={
                 "abstract": False,
@@ -363,7 +363,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("related", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.relatedmodel")),
-                ("related_m2m", models.ManyToManyField(to="tests.relatedmodel")),
+                ("related_m2m", models.ManyToManyField(to="tests.relatedmodel", related_name="+")),
             ],
             options={
                 "abstract": False,
@@ -470,7 +470,7 @@ if os.environ.get("DATABASE_ENGINE") == "psql":
                         "related",
                         models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.relatedmodel"),
                     ),
-                    ("related_m2m", models.ManyToManyField(to="tests.relatedmodel")),
+                    ("related_m2m", models.ManyToManyField(to="tests.relatedmodel", related_name="+")),
                 ],
                 options={
                     "abstract": False,

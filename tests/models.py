@@ -32,7 +32,7 @@ class RelatedNodeMixin(models.Model):
     """
 
     related = models.ForeignKey(RelatedModel, on_delete=models.CASCADE)
-    related_m2m = models.ManyToManyField(RelatedModel)
+    related_m2m = models.ManyToManyField(RelatedModel, related_name="+")
 
     class Meta:
         abstract = True
