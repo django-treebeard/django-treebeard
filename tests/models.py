@@ -26,6 +26,18 @@ class DescMixin(models.Model):
 class RelatedModel(DescMixin): ...
 
 
+class RelatedNodeMixin(models.Model):
+    """
+    Mixin for nodes with relationships (foreign key, m2m)
+    """
+
+    related = models.ForeignKey(RelatedModel, on_delete=models.CASCADE)
+    related_m2m = models.ManyToManyField(RelatedModel)
+
+    class Meta:
+        abstract = True
+
+
 class MP_TestNode(MP_Node, DescMixin):
     steplen = 3
 
@@ -34,9 +46,8 @@ class MP_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(MP_TestNode, on_delete=models.CASCADE)
 
 
-class MP_TestNodeRelated(MP_Node, DescMixin):
+class MP_TestNodeRelated(MP_Node, DescMixin, RelatedNodeMixin):
     steplen = 3
-    related = models.ForeignKey(RelatedModel, on_delete=models.CASCADE)
 
 
 class MP_TestNodeInherited(MP_TestNode):
@@ -55,8 +66,7 @@ class NS_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(NS_TestNode, on_delete=models.CASCADE)
 
 
-class NS_TestNodeRelated(NS_Node, DescMixin):
-    related = models.ForeignKey(RelatedModel, on_delete=models.CASCADE)
+class NS_TestNodeRelated(NS_Node, DescMixin, RelatedNodeMixin): ...
 
 
 class NS_TestNodeInherited(NS_TestNode):
@@ -78,7 +88,7 @@ class AL_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(AL_TestNode, on_delete=models.CASCADE)
 
 
-class AL_TestNodeRelated(AL_Node, DescMixin):
+class AL_TestNodeRelated(AL_Node, DescMixin, RelatedNodeMixin):
     parent = models.ForeignKey(
         "self",
         related_name="children_set",
@@ -87,7 +97,6 @@ class AL_TestNodeRelated(AL_Node, DescMixin):
         on_delete=models.CASCADE,
     )
     sib_order = models.PositiveIntegerField()
-    related = models.ForeignKey(RelatedModel, on_delete=models.CASCADE)
 
 
 class AL_TestNodeInherited(AL_TestNode):
@@ -232,6 +241,8 @@ if os.environ.get("DATABASE_ENGINE", "") == "psql":
         class Meta:
             constraints = []  # Override parent class constraints
 
+    class LT_TestNodeRelated(LT_Node, DescMixin, RelatedNodeMixin): ...
+
     class LT_TestNodeSomeDep(models.Model):
         node = models.ForeignKey(LT_TestNode, on_delete=models.CASCADE)
 
@@ -240,6 +251,7 @@ if os.environ.get("DATABASE_ENGINE", "") == "psql":
     DEP_MODELS.append((LT_TestNode, LT_TestNodeSomeDep))
     INHERITED_MODELS.append((LT_TestNode, LT_TestNodeInherited))
     SORTED_MODELS.append(LT_TestNodeSorted)
+    RELATED_MODELS.append(LT_TestNodeRelated)
     INHERITED_MODELS_WITH_SORT.append((LT_TestNodeSorted, LT_TestNodeInheritedSorted))
     LT_BASE_MODELS.append(LT_TestNode)
     BENCHMARK_MODELS.append(LT_TestNode)

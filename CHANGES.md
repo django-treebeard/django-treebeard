@@ -1,3 +1,9 @@
+Next release (in development)
+-----------------------------
+
+- Added support for loading data for many-to-many relationships with `load_bulk()`.
+
+
 Release 5.2.2 (Jun 5, 2026)
 ---------------------------
 

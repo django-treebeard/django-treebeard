@@ -9,7 +9,7 @@ from django.db import models, transaction
 from django.db.models import Q
 
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
-from treebeard.utils import prepare_dumpdata_for_loading
+from treebeard.utils import prepare_dumpdata_for_loading, save_m2m
 
 
 class Node(models.Model):
@@ -80,14 +80,19 @@ class Node(models.Model):
         added = []
         bulk_data = prepare_dumpdata_for_loading(cls, data=bulk_data, keep_ids=keep_ids)
         # stack of nodes to analyze
-        stack = [(parent, node) for node in bulk_data[::-1]]
+        stack = [(parent, deserialized_obj) for deserialized_obj in bulk_data[::-1]]
 
         while stack:
-            parent, node_struct = stack.pop()
-            node_obj = parent.add_child(**node_struct["data"]) if parent else cls.add_root(**node_struct["data"])
+            parent, deserialized_obj = stack.pop()
+            node_obj = deserialized_obj.object = (
+                parent.add_child(instance=deserialized_obj.object)
+                if parent
+                else cls.add_root(instance=deserialized_obj.object)
+            )
+            save_m2m(node_obj, deserialized_obj)
             added.append(node_obj.pk)
             # extending the stack with the current node as the parent of the new nodes
-            stack.extend([(node_obj, node) for node in node_struct["children"][::-1]])
+            stack.extend([(node_obj, child) for child in deserialized_obj.children[::-1]])
         return added
 
     @classmethod

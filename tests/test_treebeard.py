@@ -118,6 +118,11 @@ def mp_model(request):
     return request.param
 
 
+@pytest.fixture(scope="function", params=[models.MP_TestNodeRelated])
+def mp_relatedmodel(request):
+    return request.param
+
+
 @pytest.fixture(scope="function", params=models.MP_SHORTPATH_MODELS)
 def mpshort_model(request):
     return request.param
@@ -463,32 +468,30 @@ class TestClassMethods(TestNonEmptyTree):
         got = [(o.desc, o.get_depth(), o.get_children_count()) for o in model.get_tree()]
         assert got == UNCHANGED
 
-    def test_load_and_dump_bulk_with_fk(self, related_model):
-        # https://bitbucket.org/tabo/django-treebeard/issue/48/
-        related_model.objects.all().delete()
-        related, _ = models.RelatedModel.objects.get_or_create(desc=f"Test {related_model.__name__}")
+    def test_load_and_dump_bulk_with_related_models(self, related_model):
+        related = models.RelatedModel.objects.create(desc=f"Test {related_model.__name__}")
 
         related_data = [
-            {"data": {"desc": "1", "related": related.pk}},
+            {"data": {"desc": "1", "related": related.pk, "related_m2m": [related.pk]}},
             {
-                "data": {"desc": "2", "related": related.pk},
+                "data": {"desc": "2", "related": related.pk, "related_m2m": []},
                 "children": [
-                    {"data": {"desc": "21", "related": related.pk}},
-                    {"data": {"desc": "22", "related": related.pk}},
+                    {"data": {"desc": "21", "related": related.pk, "related_m2m": [related.pk]}},
+                    {"data": {"desc": "22", "related": related.pk, "related_m2m": [related.pk]}},
                     {
-                        "data": {"desc": "23", "related": related.pk},
+                        "data": {"desc": "23", "related": related.pk, "related_m2m": []},
                         "children": [
-                            {"data": {"desc": "231", "related": related.pk}},
+                            {"data": {"desc": "231", "related": related.pk, "related_m2m": [related.pk]}},
                         ],
                     },
-                    {"data": {"desc": "24", "related": related.pk}},
+                    {"data": {"desc": "24", "related": related.pk, "related_m2m": []}},
                 ],
             },
-            {"data": {"desc": "3", "related": related.pk}},
+            {"data": {"desc": "3", "related": related.pk, "related_m2m": []}},
             {
-                "data": {"desc": "4", "related": related.pk},
+                "data": {"desc": "4", "related": related.pk, "related_m2m": []},
                 "children": [
-                    {"data": {"desc": "41", "related": related.pk}},
+                    {"data": {"desc": "41", "related": related.pk, "related_m2m": []}},
                 ],
             },
         ]
@@ -3566,6 +3569,37 @@ class TestMP_TreeLoadBulk(TestTreeBase):
         # do we really have an unchanged tree after the dump/delete/load?
         got = [(o.desc, o.get_depth(), o.get_children_count()) for o in mp_model.get_tree()]
         assert got == UNCHANGED
+
+    def test_load_bulk_keeping_ids_with_bulk_create_and_many_to_many(self, mp_relatedmodel):
+        related = models.RelatedModel.objects.create(desc=f"Test {related_model.__name__}")
+
+        related_data = [
+            {"data": {"desc": "1", "related": related.pk, "related_m2m": [related.pk]}},
+            {
+                "data": {"desc": "2", "related": related.pk, "related_m2m": []},
+                "children": [
+                    {"data": {"desc": "21", "related": related.pk, "related_m2m": [related.pk]}},
+                    {"data": {"desc": "22", "related": related.pk, "related_m2m": [related.pk]}},
+                    {
+                        "data": {"desc": "23", "related": related.pk, "related_m2m": []},
+                        "children": [
+                            {"data": {"desc": "231", "related": related.pk, "related_m2m": []}},
+                        ],
+                    },
+                    {"data": {"desc": "24", "related": related.pk, "related_m2m": []}},
+                ],
+            },
+            {"data": {"desc": "3", "related": related.pk, "related_m2m": []}},
+            {
+                "data": {"desc": "4", "related": related.pk, "related_m2m": []},
+                "children": [
+                    {"data": {"desc": "41", "related": related.pk, "related_m2m": []}},
+                ],
+            },
+        ]
+        mp_relatedmodel.load_bulk(related_data, bulk_create=True)
+        got = mp_relatedmodel.dump_bulk(keep_ids=False)
+        assert got == related_data
 
 
 @pytest.mark.django_db
