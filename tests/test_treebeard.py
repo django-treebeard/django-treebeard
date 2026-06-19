@@ -1755,6 +1755,15 @@ class TestDelete(TestTreeBase):
                 ("nodes_deleted", delete_model, ["A", "B", "C", "D"], "default"),
             ]
 
+    def test_delete_with_prefetch_related(self, related_model):
+        # Regression test for https://github.com/django-treebeard/django-treebeard/issues/405
+        # If `delete()` is run on a queryset with `prefetch_related()` set, then Treebeard's use
+        # of `iterator()` will throw an exception unless the prefetch is cleared.
+        related = models.RelatedModel.objects.create(desc=f"Test {related_model.__name__}")
+        related_model.add_root(desc="A", related=related)
+        num_deleted, _ = related_model.objects.prefetch_related("related_m2m").all().delete()
+        assert num_deleted == 1
+
 
 @pytest.mark.django_db
 class TestMoveErrors(TestNonEmptyTree):
