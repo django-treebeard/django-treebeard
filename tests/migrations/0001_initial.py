@@ -291,6 +291,7 @@ class Migration(migrations.Migration):
                 ("depth", models.PositiveIntegerField(db_index=True)),
                 ("desc", models.CharField(max_length=255)),
                 ("related", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.relatedmodel")),
+                ("related_m2m", models.ManyToManyField(to="tests.relatedmodel")),
             ],
             options={
                 "abstract": False,
@@ -312,6 +313,7 @@ class Migration(migrations.Migration):
                 ("numchild", models.PositiveIntegerField(default=0)),
                 ("desc", models.CharField(max_length=255)),
                 ("related", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.relatedmodel")),
+                ("related_m2m", models.ManyToManyField(to="tests.relatedmodel")),
             ],
             options={
                 "abstract": False,
@@ -361,6 +363,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("related", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.relatedmodel")),
+                ("related_m2m", models.ManyToManyField(to="tests.relatedmodel")),
             ],
             options={
                 "abstract": False,
@@ -453,6 +456,32 @@ if os.environ.get("DATABASE_ENGINE") == "psql":
                     ),
                     ("node", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.lt_testnode")),
                 ],
+            ),
+            migrations.CreateModel(
+                name="LT_TestNodeRelated",
+                fields=[
+                    (
+                        "id",
+                        models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID"),
+                    ),
+                    ("path", treebeard.ltree.fields.PathField()),
+                    ("desc", models.CharField(max_length=255)),
+                    (
+                        "related",
+                        models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="tests.relatedmodel"),
+                    ),
+                    ("related_m2m", models.ManyToManyField(to="tests.relatedmodel")),
+                ],
+                options={
+                    "abstract": False,
+                    "constraints": [
+                        models.UniqueConstraint(
+                            deferrable=django.db.models.constraints.Deferrable["DEFERRED"],
+                            fields=("path",),
+                            name="tests_lt_testnoderelated_deferred_unique_path",
+                        )
+                    ],
+                },
             ),
             migrations.CreateModel(
                 name="LT_TestNode_Proxy",

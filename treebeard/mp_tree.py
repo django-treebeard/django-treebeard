@@ -14,7 +14,7 @@ from django.utils.translation import gettext_noop as _
 from treebeard.exceptions import InvalidMoveToDescendant, NodeAlreadySaved, PathOverflow
 from treebeard.models import Node
 from treebeard.numconv import NumConv
-from treebeard.utils import prepare_dumpdata_for_loading
+from treebeard.utils import prepare_dumpdata_for_loading, save_m2m
 
 path_updated = Signal()
 nodes_deleted = Signal()
@@ -1103,27 +1103,34 @@ class MP_Node(Node):
             child_depth = parent_node.depth + 1
 
             for i, child in enumerate(children):
-                child_obj = cls(
-                    depth=child_depth,
-                    numchild=len(child["children"]),
-                    path=cls._get_path(parent_node.path, child_depth, i + 1),
-                    **child["data"],
-                )
+                child.object.depth = child_depth
+                child.object.numchild = len(child.children)
+                child.object.path = cls._get_path(parent_node.path, child_depth, i + 1)
 
-                children_to_create.append(child_obj)
+                children_to_create.append(child)
 
                 # Recursively process grandchildren
-                _build_children(child_obj, child["children"])
+                _build_children(child.object, child.children)
 
         # Create first level of the bulk data using standard operations, since there may be existing siblings
-        for node_struct in bulk_data:
-            node_struct["data"]["numchild"] = len(node_struct["children"])  # Set numchild manually
-            node_obj = parent.add_child(**node_struct["data"]) if parent else cls.add_root(**node_struct["data"])
+        for deserialized_obj in bulk_data:
+            deserialized_obj.object.numchild = len(deserialized_obj.children)  # Set numchild manually
+            node_obj = (
+                parent.add_child(instance=deserialized_obj.object)
+                if parent
+                else cls.add_root(instance=deserialized_obj.object)
+            )
+            save_m2m(node_obj, deserialized_obj)
             added.append(node_obj.pk)
-            _build_children(node_obj, node_struct["children"])
+            _build_children(node_obj, deserialized_obj.children)
 
         # Bulk create descendants
-        created = cls.objects.bulk_create(children_to_create, batch_size=batch_size)
+        created = cls.objects.bulk_create([obj.object for obj in children_to_create], batch_size=batch_size)
+
+        # Save m2m relationships
+        for obj, source in zip(created, children_to_create):
+            save_m2m(obj, source)
+
         added.extend([obj.pk for obj in created])
 
         return added
