@@ -1,7 +1,12 @@
-Next release (in development)
------------------------------
+Release 5.3.0 (Jun 24, 2026)
+----------------------------
 
-- Added support for loading data for many-to-many relationships with `load_bulk()`.
+Treebeard 5.2.2 is a minor release release.
+
+- Added support for loading data for many-to-many relationships with `load_bulk()`. These were previously
+  exported when using `dump_bulk()`, but were not handled when loading the same data.
+- Fixed an exception arising when running `delete()` operations on querysets that had a prefetch.
+- Added a warning when the default manager for a model extending a Treebeard `Node` class does not subclass the corresponding Treebeard model manager. This will raise an error in the next major release of Treebeard.
 
 
 Release 5.2.2 (Jun 5, 2026)
