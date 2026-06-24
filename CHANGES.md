@@ -1,7 +1,7 @@
 Release 5.3.0 (Jun 24, 2026)
 ----------------------------
 
-Treebeard 5.2.2 is a minor release release.
+Treebeard 5.3.0 is a minor release release.
 
 - Added support for loading data for many-to-many relationships with `load_bulk()`. These were previously
   exported when using `dump_bulk()`, but were not handled when loading the same data.
