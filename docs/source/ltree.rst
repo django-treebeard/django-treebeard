@@ -90,14 +90,6 @@ To use the ``ltree`` module, you need to create the extension in your database:
 
      See: :meth:`treebeard.models.Node.add_root`
 
-  .. automethod:: add_child
-
-     See: :meth:`treebeard.models.Node.add_child`
-
-  .. automethod:: add_sibling
-
-     See: :meth:`treebeard.models.Node.add_sibling`
-
   .. automethod:: move
 
      See: :meth:`treebeard.models.Node.move`
@@ -108,6 +100,14 @@ To use the ``ltree`` module, you need to create the extension in your database:
 
 .. autoclass:: LT_NodeManager
   :show-inheritance:
+
+  .. automethod:: add_child
+
+     See: :meth:`treebeard.models.NodeManager.add_child`
+
+  .. automethod:: add_sibling
+
+     See: :meth:`treebeard.models.NodeManager.add_sibling`
 
 .. autoclass:: LT_NodeQuerySet
   :show-inheritance:

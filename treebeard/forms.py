@@ -76,11 +76,12 @@ class MoveNodeForm(forms.ModelForm):
     )
 
     def _get_initial(self, instance):
+        manager = self._meta.model.objects
         if self.is_sorted:
             position = "sorted-child"
-            ref_node = instance.get_parent()
+            ref_node = manager.get_parent(instance)
         else:
-            prev_sibling = instance.get_prev_sibling()
+            prev_sibling = manager.get_prev_sibling(instance)
             if prev_sibling:
                 position = "right"
                 ref_node = prev_sibling
@@ -89,7 +90,7 @@ class MoveNodeForm(forms.ModelForm):
                 if instance.is_root():
                     ref_node = None
                 else:
-                    ref_node = instance.get_parent()
+                    ref_node = manager.get_parent(instance)
         return {"treebeard_ref_node": ref_node, "treebeard_position": position}
 
     def _set_ref_model_queryset(self, opts, instance):
@@ -102,8 +103,8 @@ class MoveNodeForm(forms.ModelForm):
         Excludes the instance and its descendants since a move relative to those would be invalid
         """
         if issubclass(opts.model, AL_Node):
-            choices = opts.model.get_tree()
-            descendants = instance.get_descendants(include_self=True) if instance else []
+            choices = opts.model.objects.get_tree()
+            descendants = opts.model.objects.get_descendants(instance, include_self=True) if instance else []
             field = self.fields["treebeard_ref_node"]
             self.fields["treebeard_ref_node"]._choices = [("", "--------")] + [
                 (field.prepare_value(node), field.label_from_instance(node))
@@ -116,8 +117,8 @@ class MoveNodeForm(forms.ModelForm):
             self.fields["treebeard_ref_node"].queryset = opts.model.objects.all()
             return
 
-        queryset = opts.model.get_tree()
-        descendants = instance.get_descendants(include_self=True) if instance else None
+        queryset = opts.model.objects.get_tree()
+        descendants = opts.model.objects.get_descendants(instance, include_self=True) if instance else None
         if descendants:
             queryset = queryset.exclude(pk__in=descendants.values_list("pk", flat=True))
 
@@ -159,29 +160,30 @@ class MoveNodeForm(forms.ModelForm):
 
         reference_node = self.cleaned_data.pop("treebeard_ref_node", None)
         position_type = self.cleaned_data.pop("treebeard_position")
+        manager = self._meta.model.objects
 
         # If no treebeard fields have been modified, skip treebeard-specific logic and delegate to parent class
         treebeard_fields = {
             "treebeard_ref_node",
             "treebeard_position",
-            *(self.instance.tree_model().node_order_by or []),
+            *(manager.tree_model.node_order_by or []),
         }
         if not set(self.changed_data) & treebeard_fields:
             return super().save(commit=commit)
 
         if self.instance._state.adding:
             if reference_node:
-                self.instance = reference_node.add_child(instance=self.instance)
-                self.instance.move(reference_node, pos=position_type)
+                self.instance = manager.add_child(reference_node, instance=self.instance)
+                manager.move(self.instance, reference_node, pos=position_type)
             else:
-                self.instance = self._meta.model.add_root(instance=self.instance)
+                self.instance = manager.add_root(instance=self.instance)
         else:
             self.instance.save()
             if reference_node:
-                self.instance.move(reference_node, pos=position_type)
+                manager.move(self.instance, reference_node, pos=position_type)
             else:
                 pos = "sorted-sibling" if self.is_sorted else "first-sibling"
-                self.instance.move(self._meta.model.get_first_root_node(), pos)
+                manager.move(self.instance, manager.get_first_root_node(), pos)
         # Reload the instance
         self.instance.refresh_from_db()
         super().save(commit=commit)

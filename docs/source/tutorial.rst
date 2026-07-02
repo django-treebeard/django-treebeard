@@ -30,17 +30,17 @@ Let's create some nodes:
 
     >>> from treebeard_tutorial.models import Category
     >>> get = lambda node_id: Category.objects.get(pk=node_id)
-    >>> root = Category.add_root(name='Computer Hardware')
-    >>> node = get(root.pk).add_child(name='Memory')
-    >>> get(node.pk).add_sibling(name='Hard Drives')
+    >>> root = Category.objects.add_root({"name": "Computer Hardware"})
+    >>> node = get(root.pk).add_child({"name": "Memory"})
+    >>> get(node.pk).add_sibling({"name": "Hard Drives"})
     <Category: Category: Hard Drives>
-    >>> get(node.pk).add_sibling(name='SSD')
+    >>> get(node.pk).add_sibling({"name": "SSD"})
     <Category: Category: SSD>
-    >>> get(node.pk).add_child(name='Desktop Memory')
+    >>> get(node.pk).add_child({"name": "Desktop Memory"})
     <Category: Category: Desktop Memory>
-    >>> get(node.pk).add_child(name='Laptop Memory')
+    >>> get(node.pk).add_child({"name": "Laptop Memory"})
     <Category: Category: Laptop Memory>
-    >>> get(node.pk).add_child(name='Server Memory')
+    >>> get(node.pk).add_child({"name": "Server Memory"})
     <Category: Category: Server Memory>
 
 .. note::
@@ -68,7 +68,7 @@ You can see the tree structure with code:
 
 .. code-block:: python
 
-    >>> Category.dump_bulk()
+    >>> Category.objects.dump_bulk()
     [{'id': 1, 'data': {'name': u'Computer Hardware'},
       'children': [
          {'id': 3, 'data': {'name': u'Hard Drives'}},
@@ -78,7 +78,7 @@ You can see the tree structure with code:
              {'id': 6, 'data': {'name': u'Laptop Memory'}},
              {'id': 7, 'data': {'name': u'Server Memory'}}]},
          {'id': 4, 'data': {'name': u'SSD'}}]}]
-    >>> Category.get_annotated_list()
+    >>> Category.objects.get_annotated_list()
     [(<Category: Category: Computer Hardware>,
       {'close': [], 'level': 0, 'open': True}),
      (<Category: Category: Hard Drives>,
