@@ -1,5 +1,5 @@
 
-Release 6.0.0 (in development)
+Release 6.0.0 (Jul 20, 2026)
 ------------------------------
 
 Treebeard 6.0.0 is a major release. It features a change to Treebeard's API.

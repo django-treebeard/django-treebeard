@@ -18,4 +18,4 @@ Release logic:
 14. git push
 """
 
-__version__ = "5.3.0"
+__version__ = "6.0.0"
