@@ -86,18 +86,6 @@ To use the ``ltree`` module, you need to create the extension in your database:
      ``ltree`` field, stores an ltree hierarchy for the node. The values are auto-generated
      by Treebeard from a simple alphabet.
 
-  .. automethod:: add_root
-
-     See: :meth:`treebeard.models.Node.add_root`
-
-  .. automethod:: move
-
-     See: :meth:`treebeard.models.Node.move`
-
-  .. automethod:: get_tree
-
-     See: :meth:`treebeard.models.Node.get_tree`
-
 .. autoclass:: LT_NodeManager
   :show-inheritance:
 

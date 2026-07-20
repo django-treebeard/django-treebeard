@@ -68,11 +68,6 @@ write/delete operations.
      ``PositiveIntegerField``
 
 
-  .. automethod:: get_tree
-
-        See: :meth:`treebeard.models.Node.get_tree`
-
-
 .. autoclass:: NS_NodeManager
   :show-inheritance:
 

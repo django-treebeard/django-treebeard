@@ -223,18 +223,6 @@ extra steps, materialized path is more efficient than other approaches.
 
         This method returns a queryset.
 
-  .. automethod:: add_root
-
-     See: :meth:`treebeard.models.NodeManager.add_root`
-
-  .. automethod:: add_child
-
-     See: :meth:`treebeard.models.NodeManager.add_child`
-
-  .. automethod:: add_sibling
-
-     See: :meth:`treebeard.models.NodeManager.add_sibling`
-
   .. automethod:: find_problems
 
    Example:
