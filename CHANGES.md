@@ -1,3 +1,11 @@
+Next release (in development)
+-----------------------------
+
+- Added a `max_depth` argument to the `get_tree` and `get_descendant` methods, 
+  to allow control over the depth of the tree that is returned.
+- Improved the efficiency of `get_descendant_count()` to use a database count instead
+  of fetching the entire queryset (for MP, NS and LT implementations).
+
 
 Release 6.0.0 (Jul 20, 2026)
 ------------------------------

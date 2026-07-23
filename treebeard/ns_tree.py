@@ -83,21 +83,31 @@ class NS_NodeManager(NodeManager):
         """Sets the custom queryset as the default."""
         return NS_NodeQuerySet(self.model, using=self._db).order_by("tree_id", "lft")
 
-    def get_tree(self, parent=None):
+    def get_tree(self, parent=None, max_depth: int | None = None):
         """
         :returns:
 
-            A *queryset* of nodes ordered as DFS, including the parent.
-            If no parent is given, all trees are returned.
+            A queryset of nodes ordered as DFS, including the parent. If
+            no parent is given, the entire tree is returned.
+
+            If max_depth is set then the tree is limited to the specified depth, relative
+            to the parent (or the root if no parent is specified).
         """
         cls = self.tree_model
 
-        if parent is None:
-            # return the entire tree
-            return cls.objects.all()
-        if parent.is_leaf():
+        if parent and parent.is_leaf():
             return cls.objects.filter(pk=parent.pk)
-        return cls.objects.filter(tree_id=parent.tree_id, lft__range=(parent.lft, parent.rgt - 1))
+
+        filters = {}
+
+        if parent:
+            filters["tree_id"] = parent.tree_id
+            filters["lft__range"] = (parent.lft, parent.rgt - 1)
+
+        if max_depth:
+            filters["depth__lte"] = max_depth + (parent.depth if parent else 0)
+
+        return cls.objects.filter(**filters)
 
     @transaction.atomic
     @check_create_args
@@ -496,9 +506,16 @@ class NS_NodeManager(NodeManager):
             return self.get_root_nodes()
         return self.get_children(self.get_parent(node, True))
 
-    def get_descendant_count(self, node):
-        """:returns: the number of descendants of a node."""
-        return (node.rgt - node.lft - 1) / 2
+    def get_descendant_count(self, node, max_depth: int | None = None):
+        """:returns: the number of descendants of a node.
+
+        If max_depth is set then the count is limited to the specified depth relative
+        to the node.
+        """
+        if not max_depth:
+            return (node.rgt - node.lft - 1) / 2
+
+        return self.get_descendants(node, max_depth=max_depth).count()
 
     def get_root(self, node):
         """:returns: the root node for the supplied node object."""
@@ -533,17 +550,20 @@ class NS_NodeManager(NodeManager):
             return self.tree_model.objects.none()
         return self.tree_model.objects.filter(tree_id=node.tree_id, lft__lt=node.lft, rgt__gt=node.rgt)
 
-    def get_descendants(self, node, include_self=False):
+    def get_descendants(self, node, include_self=False, max_depth: int | None = None):
         """
         :returns: A queryset of all the node's descendants as DFS, doesn't
             include the node itself if `include_self` is `False`
+
+            If max_depth is set then the tree is limited to the specified depth relative
+            to the node.
         """
         manager = self.tree_model.objects
         if include_self:
-            return manager.get_tree(node)
+            return manager.get_tree(node, max_depth=max_depth)
         if node.is_leaf():
             return manager.none()
-        return manager.get_tree(node).exclude(pk=node.pk)
+        return manager.get_tree(node, max_depth=max_depth).exclude(pk=node.pk)
 
     def _alter_gap(self, tree_id, start_index, offset):
         """
