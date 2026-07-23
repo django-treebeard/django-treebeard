@@ -397,7 +397,7 @@ class MP_NodeManager(NodeManager):
         :raise PathOverflow: when no more child nodes can be added
         """
         # Lock the parent row
-        node = self.select_for_update().get(pk=target.pk)
+        node = target.__class__.objects.select_for_update().get(pk=target.pk)
         if self.model.node_order_by and not node.is_leaf():
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
