@@ -215,14 +215,6 @@ extra steps, materialized path is more efficient than other approaches.
 .. autoclass:: MP_NodeManager
   :show-inheritance:
 
-  .. automethod:: get_tree
-
-     See: :meth:`treebeard.models.NodeManager.get_tree`
-
-     .. note::
-
-        This method returns a queryset.
-
   .. automethod:: find_problems
 
    Example:

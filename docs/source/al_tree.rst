@@ -111,3 +111,9 @@ slow reads. If you read more than you write, use
 
 .. autoclass:: AL_NodeManager
   :show-inheritance:
+
+  .. automethod:: get_tree
+
+     .. note::
+
+        This method returns a list, not a queryset.

@@ -202,12 +202,15 @@ class NodeManager(models.Manager):
 
         return base_class
 
-    def get_tree(self, parent=None):  # pragma: no cover
+    def get_tree(self, parent=None, max_depth: int | None = None):  # pragma: no cover
         """
         :returns:
 
-            A list of nodes ordered as DFS, including the parent. If
+            A queryset of nodes ordered as DFS, including the parent. If
             no parent is given, the entire tree is returned.
+
+            If max_depth is set then the tree is limited to the specified depth, relative
+            to the parent (or the root if no parent is specified).
         """
         raise NotImplementedError
 
@@ -519,18 +522,25 @@ class NodeManager(models.Manager):
         """
         raise NotImplementedError
 
-    def get_descendants(self, node, include_self=False):
+    def get_descendants(self, node, include_self=False, max_depth: int | None = None):
         """
         :returns:
 
             A queryset of all the node's descendants, doesn't
             include the node itself if include_self is False.
+
+            If max_depth is set then the tree is limited to the specified depth relative
+            to the node.
         """
         raise NotImplementedError
 
-    def get_descendant_count(self, node):
-        """:returns: the number of descendants of a node."""
-        return self.get_descendants(node).count()
+    def get_descendant_count(self, node, max_depth: int | None = None):
+        """:returns: the number of descendants of a node
+
+        If max_depth is set then the count is limited to the specified depth relative
+        to the node.
+        """
+        return self.get_descendants(node, max_depth=max_depth).count()
 
     def get_first_child(self, node):
         """

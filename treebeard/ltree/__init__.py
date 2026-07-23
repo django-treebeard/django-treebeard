@@ -138,20 +138,26 @@ class LT_NodeManager(NodeManager):
         """Sets the custom queryset as the default."""
         return LT_NodeQuerySet(self.model, using=self._db).order_by("path")
 
-    def get_tree(self, parent=None):
+    def get_tree(self, parent=None, max_depth: int | None = None):
         """
         :returns:
 
-            A *queryset* of nodes ordered as DFS, including the parent.
-            If no parent is given, the entire tree is returned.
+            A queryset of nodes ordered as DFS, including the parent. If
+            no parent is given, the entire tree is returned.
+
+            If max_depth is set then the tree is limited to the specified depth, relative
+            to the parent (or the root if no parent is specified).
         """
         cls = self.tree_model
 
-        if parent is None:
-            # return the entire tree
-            return cls.objects.all()
+        filters = {}
+        if parent:
+            filters["path__descendants"] = parent.path
 
-        return cls.objects.filter(path__descendants=parent.path)
+        if max_depth:
+            filters["path__depth__lte"] = max_depth + (parent.get_depth() if parent else 0)
+
+        return cls.objects.filter(**filters)
 
     @transaction.atomic
     @check_create_args
@@ -506,16 +512,19 @@ class LT_NodeManager(NodeManager):
         """
         return self.get_siblings(node).filter(path__gt=node.path).first()
 
-    def get_descendants(self, node, include_self=False):
+    def get_descendants(self, node, include_self=False, max_depth: int | None = None):
         """
         :returns: A queryset of all the node's descendants as DFS, doesn't
             include the node itself if `include_self` is False
+
+            If max_depth is set then the tree is limited to the specified depth relative
+            to the node.
         """
         manager = self.tree_model.objects
         if include_self:
-            return manager.get_tree(node)
+            return manager.get_tree(node, max_depth=max_depth)
 
-        return manager.get_tree(node).exclude(pk=node.pk)
+        return manager.get_tree(node, max_depth=max_depth).exclude(pk=node.pk)
 
     def get_prev_sibling(self, node):
         """
