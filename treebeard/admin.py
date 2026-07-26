@@ -1,14 +1,13 @@
 """Django admin support for treebeard"""
 
-import sys
-
+from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.urls import path
-from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
+from django.views.i18n import JavaScriptCatalog
 
 from treebeard.al_tree import AL_Node
 from treebeard.exceptions import InvalidMoveToDescendant, InvalidPosition, MissingNodeOrderBy, PathOverflow
@@ -72,70 +71,65 @@ class TreeAdmin(admin.ModelAdmin):
         """
         Adds a url to move nodes to this admin
         """
-        urls = super().get_urls()
-        from django.views.i18n import JavaScriptCatalog
-
-        jsi18n_url = path("jsi18n/", JavaScriptCatalog.as_view(packages=["treebeard"]), name="javascript-catalog")
-
         new_urls = [
-            path(
-                "move/",
-                self.admin_site.admin_view(self.move_node),
-            ),
-            jsi18n_url,
+            path("move/", self.admin_site.admin_view(self.move_node)),
+            path("jsi18n/", JavaScriptCatalog.as_view(packages=["treebeard"]), name="javascript-catalog"),
         ]
-        return new_urls + urls
-
-    def get_node(self, node_id):
-        return self.model.objects.get(pk=node_id)
-
-    def try_to_move_node(self, as_child, node, pos, request, target):
-        try:
-            self.model.objects.move(node, target, pos=pos)
-            # Call the save method on the (reloaded) node in order to trigger
-            # possible signal handlers etc.
-            node = self.get_node(node.pk)
-            node.save()
-        except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant, InvalidPosition):
-            e = sys.exc_info()[1]
-            # An error was raised while trying to move the node, then set an
-            # error message and return 400, this will cause a reload on the
-            # client to show the message
-            messages.error(request, _("Exception raised while moving node: %s") % _(force_str(e)))
-            return HttpResponseBadRequest("Exception raised during move")
-        if as_child:
-            msg = _('Moved node "%(node)s" as child of "%(other)s"')
-        else:
-            msg = _('Moved node "%(node)s" as sibling of "%(other)s"')
-        messages.info(request, msg % {"node": node, "other": target})
-        return HttpResponse("OK")
+        return new_urls + super().get_urls()
 
     def move_node(self, request):
-        try:
-            node_id = request.POST["node_id"]
-            target_id = request.POST["sibling_id"]
-            as_child = bool(int(request.POST.get("as_child", 0)))
-        except (KeyError, ValueError):
-            # Some parameters were missing return a BadRequest
-            return HttpResponseBadRequest("Malformed POST params")
+        if not self.has_view_or_change_permission(request):
+            raise PermissionDenied
 
-        node = self.get_node(node_id)
+        qs = self.get_queryset(request)
+
+        class MoveForm(forms.Form):
+            node = forms.ModelChoiceField(queryset=qs)
+            target = forms.ModelChoiceField(queryset=qs)
+            relation = forms.ChoiceField(choices=(("child", "child"), ("sibling", "sibling")))
+
+        form = MoveForm(request.POST)
+
+        if not form.is_valid():
+            messages.error(request, _("Invalid form data provided"))
+            return HttpResponseBadRequest("Invalid form data provided")
+
+        node = form.cleaned_data["node"]
+        target = form.cleaned_data["target"]
+        relation = form.cleaned_data["relation"]
 
         if not self.has_change_permission(request, node):
             # The JS will trigger a page reload on error. This message will be displayed after reload.
             messages.error(request, _("You do not have permission to change this object."))
             raise PermissionDenied
 
-        target = self.get_node(target_id)
-        is_sorted = True if node.node_order_by else False
-
         pos = {
-            (True, True): "sorted-child",
-            (True, False): "last-child",
-            (False, True): "sorted-sibling",
-            (False, False): "left",
-        }[as_child, is_sorted]
-        return self.try_to_move_node(as_child, node, pos, request, target)
+            ("child", True): "sorted-child",
+            ("child", False): "last-child",
+            ("sibling", True): "sorted-sibling",
+            ("sibling", False): "left",
+        }[relation, bool(self.model.node_order_by)]
+
+        try:
+            self.model.objects.move(node, target, pos=pos)
+            # Call the save method on the (reloaded) node in order to trigger
+            # possible signal handlers etc.
+            node.refresh_from_db()
+            node.save()
+        except (MissingNodeOrderBy, PathOverflow, InvalidMoveToDescendant, InvalidPosition) as exc:
+            # An error was raised while trying to move the node, then set an
+            # error message and return 400, this will cause a reload on the
+            # client to show the message
+            messages.error(request, _(str(exc)))
+            return HttpResponseBadRequest("Exception raised during move")
+
+        msg = (
+            _('Moved node "%(node)s" as child of "%(other)s"')
+            if relation == "child"
+            else _('Moved node "%(node)s" as sibling of "%(other)s"')
+        )
+        messages.info(request, msg % {"node": node, "other": target})
+        return HttpResponse("OK")
 
 
 def admin_factory(form_class):

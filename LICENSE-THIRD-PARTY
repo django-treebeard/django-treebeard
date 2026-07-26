@@ -14,16 +14,6 @@ uses code adapted from the following libraries, which is subject to their respec
    Copyright 2007 Jonathan Buchanan
    License: MIT
 
-3. jquery-ui v1.10.0 (https://github.com/jquery/jquery-ui)
-   Used in: treebeard/static/treebeard/treebeard-admin.js (disableSelection)
-   Copyright jQuery Foundation and other contributors
-   License: MIT
-
-4. jquery-color v2.1.0 (https://github.com/jquery/jquery-color)
-   Used in: treebeard/static/treebeard/treebeard-admin.js (animate background)
-   Copyright JS Foundation and other contributors
-   License: MIT
-
 ---
 The following license applies to the libraries listed above:
 

@@ -4665,53 +4665,29 @@ class TestTreeAdmin(TestNonEmptyTree):
         assert '<input type="hidden" id="has-change-permission" value="0"/>' in content
         assert '<input type="hidden" id="has-filters" value="1"/>' in content
 
-    def test_get_node(self, model):
+    def test_move_node_validate(self, model):
         admin_obj = self._get_admin_obj(model)
-        target = model.objects.get(desc="2")
-        assert admin_obj.get_node(target.pk) == target
-
-    def test_move_node_validate_keyerror(self, model):
-        admin_obj = self._get_admin_obj(model)
-        request = self._mocked_request(data={})
+        user = self._create_user("tmp", is_superuser=True)
+        request = self._mocked_request(data={}, user=user)
         response = admin_obj.move_node(request)
         assert response.status_code == 400
-        assert response.content.decode() == "Malformed POST params"
-        request = self._mocked_request(data={"node_id": 1})
+        assert response.content.decode() == "Invalid form data provided"
+        request = self._mocked_request(data={"node": 1}, user=user)
         response = admin_obj.move_node(request)
         assert response.status_code == 400
-        assert response.content.decode() == "Malformed POST params"
-
-    def test_move_node_validate_valueerror(self, model):
-        admin_obj = self._get_admin_obj(model)
-        request = self._mocked_request(data={"node_id": 1, "sibling_id": 2, "as_child": "invalid"})
-        response = admin_obj.move_node(request)
-        assert response.status_code == 400
-        assert response.content.decode() == "Malformed POST params"
-
-    def test_move_validate_missing_nodeorderby(self, model):
-        node = model.objects.get(desc="231")
-        admin_obj = self._get_admin_obj(model)
-        request = self._mocked_request(data={})
-        response = admin_obj.try_to_move_node(True, node, "sorted-child", request, target=node)
-        assert response.status_code == 400
-
-        response = admin_obj.try_to_move_node(True, node, "sorted-sibling", request, target=node)
-        assert response.status_code == 400
-
-    def test_move_validate_invalid_pos(self, model):
-        node = model.objects.get(desc="231")
-        admin_obj = self._get_admin_obj(model)
-        request = self._mocked_request(data={})
-        response = admin_obj.try_to_move_node(True, node, "invalid_pos", request, target=node)
-        assert response.status_code == 400
+        assert response.content.decode() == "Invalid form data provided"
 
     def test_move_validate_to_descendant(self, model):
         node = model.objects.get(desc="2")
         target = model.objects.get(desc="231")
         admin_obj = self._get_admin_obj(model)
-        request = self._mocked_request(data={})
-        response = admin_obj.try_to_move_node(True, node, "first-sibling", request, target)
+        request = self._mocked_request(
+            data={"node": node.pk, "target": target.pk, "relation": "sibling"},
+            user=self._create_user("tmp", is_superuser=True),
+        )
+        response = admin_obj.move_node(request)
         assert response.status_code == 400
+        assert request._messages._queued_messages[0].message == "Can't move node to a descendant."
 
     def test_move_requires_change_permission(self, model):
         node = model.objects.get(desc="231")
@@ -4719,7 +4695,7 @@ class TestTreeAdmin(TestNonEmptyTree):
 
         admin_obj = self._get_admin_obj(model)
         request = self._mocked_request(
-            data={"node_id": node.pk, "sibling_id": target.pk, "as_child": 0},
+            data={"node": node.pk, "target": target.pk, "relation": "sibling"},
             user=self._create_user("test_move_perm"),
         )
 
@@ -4737,7 +4713,7 @@ class TestTreeAdmin(TestNonEmptyTree):
 
         admin_obj = self._get_admin_obj(model)
         request = self._mocked_request(
-            data={"node_id": node.pk, "sibling_id": target.pk, "as_child": 0},
+            data={"node": node.pk, "target": target.pk, "relation": "sibling"},
             user=self._create_user("tmp", is_superuser=True),
         )
         response = admin_obj.move_node(request)
@@ -4762,7 +4738,7 @@ class TestTreeAdmin(TestNonEmptyTree):
 
         admin_obj = self._get_admin_obj(model)
         request = self._mocked_request(
-            data={"node_id": node.pk, "sibling_id": target.pk, "as_child": 1},
+            data={"node": node.pk, "target": target.pk, "relation": "child"},
             user=self._create_user("tmp", is_superuser=True),
         )
         response = admin_obj.move_node(request)

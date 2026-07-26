@@ -1,17 +1,21 @@
 /* Treebeard Admin */
 
 .drag-handler {
-    width: 16px;
-    background: transparent url(expand-collapse.png) no-repeat left -48px;
-    height: 16px;
-    margin: 0 10px;
     display: inline-block;
     vertical-align: middle;
+    width: 16px;
+    height: 16px;
+    background-image: url(drag.svg);
+    background-repeat:  no-repeat;
+    background-position: center;
+    background-size: cover;
+    margin-right: 10px;
+    opacity: 0.3;
 }
 
 .drag-handler.active {
-    background: transparent url(expand-collapse.png) no-repeat left -32px;
     cursor: move;
+    opacity: 0.6;
 }
 
 .spacer {
@@ -19,36 +23,60 @@
     margin: 0 10px;
 }
 
-.treebeard-collapse {
-    width: 16px;
-    height: 16px;
+.treebeard-collapse::before {
+    display: block;
     display: inline-block;
-    text-indent: -999px;
+    margin-right: 5px;
+    padding: 0 5px;
+    content: "+";
+    color: #000;
+    font-weight: bold;
+    background-color: #DDD;
+    border-radius: 4px;
 }
 
-.treebeard-collapsed {
-    background: transparent url(expand-collapse.png) no-repeat left -16px;
+.treebeard-collapse.treebeard-expanded::before {
+    content: "-"
 }
 
-.treebeard-expanded {
-    background: transparent url(expand-collapse.png) no-repeat left 0;
-}
-
-#drag_line {
-    border-top: 5px solid #A0A;
-    background: #A0A;
-    display: block;
+#drag-tooltip {
     position: absolute;
-}
-
-#drag_line span {
-    position: relative;
-    display: block;
+    pointer-events: none; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100px;
     background: #FFD;
     color: #000;
     left: 100px;
     text-align: center;
     border: 1px solid #000;
-    vertical-align: center;
+}
+
+@keyframes highlightMoved {
+  0%  {background-color:yellow;}
+  100% {background-color:inherit;}
+}
+
+.recently-moved-node {
+    animation-name: highlightMoved;
+    animation-duration: 5s;
+}
+
+.active-node {
+    background-color: #B7D7E8 !important;
+}
+
+.target-node-parent {
+    background-color: rgba(170, 0, 170, 0.4) !important;
+}
+
+.target-node-sibling {
+    border-top: 2px solid rgba(170, 0, 170, 1) !important;
+}
+
+#ghost {
+    position: absolute;
+    width: 600px;
+    top: -10000px;
 }
