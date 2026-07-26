@@ -5,6 +5,8 @@ Next release (in development)
   to allow control over the depth of the tree that is returned.
 - Improved the efficiency of `get_descendant_count()` to use a database count instead
   of fetching the entire queryset (for MP, NS and LT implementations).
+- The drag/drop implementation in the admin view has been rewritten to be simpler and 
+  more flexible. Projects that have overridden Treebeard's admin views should refer to the source code for changes.
 
 
 Release 6.0.0 (Jul 20, 2026)
