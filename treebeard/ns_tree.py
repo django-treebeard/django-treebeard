@@ -129,7 +129,7 @@ class NS_NodeManager(NodeManager):
             # adding the first root node
             newtree_id = 1
 
-        newobj = instance or self.tree_model(**create_kwargs)
+        newobj = instance or self.model(**create_kwargs)
         newobj.depth = 1
         newobj.tree_id = newtree_id
         newobj.lft = 1
@@ -145,8 +145,7 @@ class NS_NodeManager(NodeManager):
         # Fetch the parent afresh from the database and lock the row
         # This guards against race conditions and state drift when adding multiple children,
         # and also ensures that we're working with the base tree model in the case of inherited models
-        cls = self.tree_model
-        node = self.filter(pk=target.pk).select_for_update().get()
+        node = target.__class__.objects.filter(pk=target.pk).select_for_update().get()
         if not node.is_leaf():
             # there are child nodes, delegate insertion to add_sibling
             if node.node_order_by:
@@ -163,7 +162,7 @@ class NS_NodeManager(NodeManager):
         # we're adding the first child of this node
         self._alter_gap(node.tree_id, node.rgt, 2)
 
-        newobj = instance or cls(**create_kwargs)
+        newobj = instance or self.model(**create_kwargs)
         newobj.tree_id = node.tree_id
         newobj.depth = node.depth + 1
         newobj.lft = node.lft + 1
@@ -185,9 +184,8 @@ class NS_NodeManager(NodeManager):
         """Adds a new node as a sibling to the target."""
 
         pos = self._prepare_pos_var_for_add_sibling(pos)
-        cls = self.tree_model
 
-        newobj = instance or cls(**create_kwargs)
+        newobj = instance or self.model(**create_kwargs)
         newobj.depth = target.depth
 
         if target.is_root():

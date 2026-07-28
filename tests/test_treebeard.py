@@ -1,5 +1,6 @@
 """Unit/Functional tests"""
 
+import json
 import os
 import threading
 from contextlib import contextmanager
@@ -8,9 +9,7 @@ from unittest.mock import patch
 
 import pytest
 from django.apps import apps
-from django.contrib.admin.options import TO_FIELD_VAR
 from django.contrib.admin.sites import AdminSite
-from django.contrib.admin.views.main import ChangeList
 from django.contrib.auth.models import AnonymousUser, User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import checks
@@ -20,12 +19,10 @@ from django.db.models import Manager
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.forms import ValidationError
-from django.template import Context, Template
 from django.test.client import RequestFactory
 from django.utils.timezone import now
 
 from tests import models
-from tests.admin import register_all as admin_register_all
 from treebeard import numconv
 from treebeard.admin import admin_factory
 from treebeard.al_tree import AL_Node
@@ -4377,202 +4374,23 @@ class TestForm(TestNonEmptyTree):
         assert instance.desc == "Modified Instance"
 
 
-@pytest.mark.django_db
-class TestAdminTreeContext(TestNonEmptyTree):
-    def test_tree_context(self, model_without_proxy):
-        model = model_without_proxy
-        request = RequestFactory().get("/admin/tree/")
-        request.user = AnonymousUser()
-        site = AdminSite()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        m = admin_class(model, site)
-        list_display = m.get_list_display(request)
-        list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
-            request,
-            model,
-            list_display,
-            list_display_links,
-            m.list_filter,
-            m.date_hierarchy,
-            m.search_fields,
-            m.list_select_related,
-            m.list_per_page,
-            m.list_max_show_all,
-            m.list_editable,
-            m,
-            [],
-            "",
-        )
-        cl.formset = None
-        tree_ctx = tree_context(cl)
-
-        for idx, obj in enumerate(cl.result_list):
-            assert tree_ctx[idx] == {
-                "node-id": str(obj.pk),
-                "parent-id": 0 if obj.is_root() else model.objects.get_parent(obj).pk,
-                "level": obj.get_depth(),
-                "has-children": 0 if obj.is_leaf() else 1,
-            }
-
-
-@pytest.mark.django_db
-class TestAdminTreeList(TestNonEmptyTree):
-    template = Template("{% load admin_tree_list %}{% result_tree cl request %}")
-
-    def test_result_tree_list(self, model_without_proxy):
-        """
-        Verifies that inclusion tag result_list generates a table when with
-        default ModelAdmin settings.
-        """
-        model = model_without_proxy
-        request = RequestFactory().get("/admin/tree/")
-        request.user = AnonymousUser()
-        site = AdminSite()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        m = admin_class(model, site)
-        list_display = m.get_list_display(request)
-        list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
-            request,
-            model,
-            list_display,
-            list_display_links,
-            m.list_filter,
-            m.date_hierarchy,
-            m.search_fields,
-            m.list_select_related,
-            m.list_per_page,
-            m.list_max_show_all,
-            m.list_editable,
-            m,
-            [],
-            "",
-        )
-        cl.formset = None
-        context = Context({"cl": cl, "request": request})
-        table_output = self.template.render(context)
-        output_template = '<li><a href="%s/" >%s</a>'
-        for object in model.objects.all():
-            expected_output = output_template % (object.pk, str(object))
-            assert expected_output in table_output
-
-    def test_result_tree_list_with_action(self, model_without_proxy):
-        model = model_without_proxy
-        request = RequestFactory().get("/admin/tree/")
-        request.user = AnonymousUser()
-        site = AdminSite()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        m = admin_class(model, site)
-        list_display = m.get_list_display(request)
-        list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
-            request,
-            model,
-            list_display,
-            list_display_links,
-            m.list_filter,
-            m.date_hierarchy,
-            m.search_fields,
-            m.list_select_related,
-            m.list_per_page,
-            m.list_max_show_all,
-            m.list_editable,
-            m,
-            [],
-            "",
-        )
-        cl.formset = None
-        context = Context({"cl": cl, "request": request, "action_form": True})
-        table_output = self.template.render(context)
-        output_template = (
-            '<input type="checkbox" class="action-select" value="%s" name="_selected_action" /> <a href="%s/" >%s</a>'
-        )
-
-        for object in model.objects.all():
-            expected_output = output_template % (object.pk, object.pk, str(object))
-            assert expected_output in table_output
-
-    def test_result_tree_list_with_get(self, model_without_proxy):
-        model = model_without_proxy
-        pk_field = model._meta.pk.attname
-        # Test t GET parameter with value id
-        request = RequestFactory().get(f"/admin/tree/?{TO_FIELD_VAR}={pk_field}")
-        request.user = AnonymousUser()
-        site = AdminSite()
-        admin_register_all(site)
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        m = admin_class(model, site)
-        list_display = m.get_list_display(request)
-        list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
-            request,
-            model,
-            list_display,
-            list_display_links,
-            m.list_filter,
-            m.date_hierarchy,
-            m.search_fields,
-            m.list_select_related,
-            m.list_per_page,
-            m.list_max_show_all,
-            m.list_editable,
-            m,
-            [],
-            "",
-        )
-        cl.formset = None
-        context = Context({"cl": cl, "request": request})
-        table_output = self.template.render(context)
-        output_template = "opener.dismissRelatedLookupPopup(window, '%s');"
-        for object in model.objects.all():
-            expected_output = output_template % object.pk
-            assert expected_output in table_output
-
-    def test_result_tree_list_escapes_labels(self, model):
-        """
-        Verifies that inclusion tag result_list generates a table when with
-        default ModelAdmin settings.
-        """
-        object = model.objects.add_root({"desc": "<>"})
-        request = RequestFactory().get("/admin/tree/")
-        request.user = AnonymousUser()
-        site = AdminSite()
-        form_class = movenodeform_factory(model)
-        admin_class = admin_factory(form_class)
-        m = admin_class(model, site)
-        list_display = m.get_list_display(request)
-        list_display_links = m.get_list_display_links(request, list_display)
-        cl = ChangeList(
-            request,
-            model,
-            list_display,
-            list_display_links,
-            m.list_filter,
-            m.date_hierarchy,
-            m.search_fields,
-            m.list_select_related,
-            m.list_per_page,
-            m.list_max_show_all,
-            m.list_editable,
-            m,
-            [],
-            "",
-        )
-        cl.formset = None
-        context = Context({"cl": cl, "request": request})
-        table_output = self.template.render(context)
-        expected_output = f'<li><a href="{object.pk}/" >&lt;&gt;</a>'
-        assert expected_output in table_output
-
-
-@pytest.mark.django_db
-class TestTreeAdmin(TestNonEmptyTree):
+class AdminTestMixin:
     site = AdminSite()
+
+    @staticmethod
+    @pytest.fixture(
+        scope="function",
+        params=models.INHERITED_MODELS,
+        ids=lambda fv: f"base={fv[0].__name__} inherited={fv[1].__name__}",
+    )
+    def inherited_model(request):
+        base_model, inherited_model = request.param
+        base_model.objects.add_root({"desc": "1"})
+        root_inherited = inherited_model.objects.add_root({"desc": "2"})
+        # Add two children, one inherited, one not
+        inherited_model.objects.add_child(root_inherited, instance=base_model(desc="3"))
+        inherited_model.objects.add_child(root_inherited, {"desc": "4"})
+        return inherited_model
 
     def _create_user(self, username, **kwargs):
         return User.objects.create(username=username, **kwargs)
@@ -4589,6 +4407,25 @@ class TestTreeAdmin(TestNonEmptyTree):
         admin_class = admin_factory(form_class)
         return admin_class(model_class, self.site)
 
+
+@pytest.mark.django_db
+class TestAdminTreeContext(TestNonEmptyTree, AdminTestMixin):
+    def test_tree_context_num_queries(self, model, django_assert_num_queries):
+        user = self._create_user("changelist_tmp", is_superuser=True)
+        request = RequestFactory().get("/")
+        request.user = user
+        request._treebeard_parent_id = None
+        admin_obj = self._get_admin_obj(model)
+
+        cl = admin_obj.get_changelist_instance(request)
+        with django_assert_num_queries(1):
+            tree_ctx = tree_context(cl, request)
+
+        assert len(tree_ctx) == 4
+
+
+@pytest.mark.django_db
+class TestTreeAdmin(TestNonEmptyTree, AdminTestMixin):
     def test_default_fields(self, model):
         site = AdminSite()
         form_class = movenodeform_factory(model)
@@ -4632,38 +4469,79 @@ class TestTreeAdmin(TestNonEmptyTree):
         target.refresh_from_db()
         assert len(model_without_proxy.objects.get_children(target)) == 1  # Second new child should not have been added
 
-    def test_changelist_view(self):
-        request = RequestFactory().get("/")
-        request.user = self._create_user("changelist_tmp", is_superuser=True)
-        admin_obj = self._get_admin_obj(models.AL_TestNode)
-        admin_obj.changelist_view(request)
-        assert admin_obj.change_list_template == "admin/tree_list.html"
-
-        admin_obj = self._get_admin_obj(models.MP_TestNode)
-        admin_obj.changelist_view(request)
-        assert admin_obj.change_list_template != "admin/tree_list.html"
-
-    def test_changelist_view_renders_hidden_inputs_with_extra_context(self):
+    def test_changelist_view_renders_tree_context(self, model):
         user = self._create_user("changelist_tmp", is_superuser=True)
         request = RequestFactory().get("/")
         request.user = user
-        admin_obj = self._get_admin_obj(models.MP_TestNode)
+        admin_obj = self._get_admin_obj(model)
         response = admin_obj.changelist_view(request)
         response.render()
         content = response.content.decode()
-        assert '<input type="hidden" id="has-change-permission" value="1"/>' in content
-        assert '<input type="hidden" id="has-filters" value="0"/>' in content
-        assert '<script id="tree-context" type="application/json">[]</script>' in content
+        assert '<script id="tree-context" type="application/json">' in content
 
-        request = RequestFactory().get("/?desc=foo")
-        request.user = user
-        admin_obj = self._get_admin_obj(models.MP_TestNode)
-        with patch.object(admin_obj, "has_change_permission", return_value=False):
-            response = admin_obj.changelist_view(request)
-            response.render()
-            content = response.content.decode()
-        assert '<input type="hidden" id="has-change-permission" value="0"/>' in content
-        assert '<input type="hidden" id="has-filters" value="1"/>' in content
+    def test_get_queryset_root_nodes(self, model):
+        admin_obj = self._get_admin_obj(model)
+        request = RequestFactory().get("/")
+        request.user = self._create_user("test_view_perm", is_superuser=True)
+        request._treebeard_parent_id = None
+        qs = admin_obj.get_queryset(request)
+        assert list(qs.values_list("pk", flat=True)) == list(
+            model.objects.get_root_nodes().values_list("pk", flat=True)
+        )
+
+    def test_get_queryset_child_nodes(self, model):
+        admin_obj = self._get_admin_obj(model)
+        parent = model.objects.get(desc="2")
+        request = RequestFactory().get("/")
+        request.user = self._create_user("test_view_perm", is_superuser=True)
+        request._treebeard_parent_id = parent.pk
+        qs = admin_obj.get_queryset(request)
+        assert list(qs.values_list("pk", flat=True)) == list(
+            model.objects.get_children(parent).values_list("pk", flat=True)
+        )
+
+    def test_get_queryset_inherited_model(self, inherited_model):
+        admin_obj = self._get_admin_obj(inherited_model)
+        parent = inherited_model.objects.get(desc="2")
+        request = RequestFactory().get("/")
+        request.user = self._create_user("test_view_perm", is_superuser=True)
+        request._treebeard_parent_id = parent.pk
+        qs = admin_obj.get_queryset(request)
+        # qs should only return the specific child
+        assert list(qs.values_list("desc", flat=True)) == ["4"]
+
+    def test_children_view_requires_view_permission(self, model):
+        admin_obj = self._get_admin_obj(model)
+        request = RequestFactory().get("/")
+        request.user = self._create_user("test_view_perm")
+        with pytest.raises(PermissionDenied):
+            admin_obj.children_view(request, 1)
+
+    def test_children_view(self, model):
+        admin_obj = self._get_admin_obj(model)
+        parent = model.objects.get(desc="2")
+        request = RequestFactory().get("/")
+        request.user = self._create_user("test_get_children", is_superuser=True)
+        response = admin_obj.children_view(request, parent_id=parent.pk)
+        data = json.loads(response.content)
+        tree_ctx = data["tree_context"]
+
+        assert len(tree_ctx) == 4
+        expected = [
+            {
+                "node-id": str(obj.pk),
+                "parent-id": str(parent.pk),
+                "level": obj.get_depth(),
+                "has-children": 0 if obj.is_leaf() else 1,
+                "can-change": 1,
+            }
+            for obj in model.objects.get_children(parent)
+        ]
+        assert tree_ctx == expected
+
+        assert data["page"] == 1
+        assert '<table id="result_list">' in data["result_html"]
+        assert request._treebeard_parent == parent
 
     def test_move_node_validate(self, model):
         admin_obj = self._get_admin_obj(model)
@@ -4699,11 +4577,17 @@ class TestTreeAdmin(TestNonEmptyTree):
             user=self._create_user("test_move_perm"),
         )
 
-        with patch.object(admin_obj, "has_change_permission", return_value=False):
+        with (
+            patch.object(admin_obj, "has_change_permission", return_value=False),
+            patch.object(admin_obj, "has_view_permission", return_value=True),
+        ):
             with pytest.raises(PermissionDenied):
                 admin_obj.move_node(request)
 
-        with patch.object(admin_obj, "has_change_permission", return_value=True):
+        with (
+            patch.object(admin_obj, "has_change_permission", return_value=True),
+            patch.object(admin_obj, "has_view_permission", return_value=True),
+        ):
             response = admin_obj.move_node(request)
             assert response.status_code == 200
 

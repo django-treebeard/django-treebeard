@@ -77,16 +77,16 @@ class AL_NodeManager(NodeManager):
     @check_create_args
     def add_child(self, target, create_kwargs=None, *, instance=None):
         """Adds a child to the node."""
-        cls = self.tree_model
-
-        newobj = instance or cls(**create_kwargs)
+        newobj = instance or self.model(**create_kwargs)
 
         try:
             newobj._cached_depth = target._cached_depth + 1
         except AttributeError:
             pass
-        if not cls.node_order_by:
-            max = cls.objects.filter(parent=target).aggregate(max=Max("sib_order"))["max"] or 0
+        if not self.model.node_order_by:
+            max = (
+                self.model.objects.tree_model.objects.filter(parent=target).aggregate(max=Max("sib_order"))["max"] or 0
+            )
             newobj.sib_order = max + 1
         newobj.parent = target
         newobj.save(using=self._db)
@@ -98,7 +98,7 @@ class AL_NodeManager(NodeManager):
         """Adds a new node as a sibling to the current node object."""
         pos = self._prepare_pos_var_for_add_sibling(pos)
 
-        newobj = instance or self.tree_model(**create_kwargs)
+        newobj = instance or self.model(**create_kwargs)
         if not target.node_order_by:
             newobj.sib_order = self._get_new_sibling_order(pos, target)
         newobj.parent_id = target.parent_id

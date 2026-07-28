@@ -1,12 +1,14 @@
 Next release (in development)
 -----------------------------
 
+- The `AdminTree` Django admin integration has been rewritten. The new implementation is
+  significantly more performant and scalable, and implements lazy-loading for node children.
+  Projects that had overridden admin behaviour should note that the new implementation
+  is not backwards compatible with older versions.
 - Added a `max_depth` argument to the `get_tree` and `get_descendant` methods, 
   to allow control over the depth of the tree that is returned.
 - Improved the efficiency of `get_descendant_count()` to use a database count instead
   of fetching the entire queryset (for MP, NS and LT implementations).
-- The drag/drop implementation in the admin view has been rewritten to be simpler and 
-  more flexible. Projects that have overridden Treebeard's admin views should refer to the source code for changes.
 
 
 Release 6.0.0 (Jul 20, 2026)

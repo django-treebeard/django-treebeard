@@ -3,6 +3,7 @@
 .drag-handler {
     display: inline-block;
     vertical-align: middle;
+    cursor: move;
     width: 16px;
     height: 16px;
     background-image: url(drag.svg);
@@ -10,12 +11,12 @@
     background-position: center;
     background-size: cover;
     margin-right: 10px;
-    opacity: 0.3;
+    opacity: 0.6;
 }
 
-.drag-handler.active {
-    cursor: move;
-    opacity: 0.6;
+.drag-handler-disabled {
+    opacity: 0.3;
+    cursor: default;
 }
 
 .spacer {
@@ -39,6 +40,17 @@
     content: "-"
 }
 
+@keyframes flicker {
+  0%   { opacity:1; }
+  50%  { opacity:0; }
+  100% { opacity:1; }
+}
+
+.treebeard-collapse.treebeard-loading::before {
+  content: "···";
+  animation: flicker 1s infinite;
+}
+
 #drag-tooltip {
     position: absolute;
     pointer-events: none; 
@@ -51,16 +63,6 @@
     left: 100px;
     text-align: center;
     border: 1px solid #000;
-}
-
-@keyframes highlightMoved {
-  0%  {background-color:yellow;}
-  100% {background-color:inherit;}
-}
-
-.recently-moved-node {
-    animation-name: highlightMoved;
-    animation-duration: 5s;
 }
 
 .active-node {
