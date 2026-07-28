@@ -1,5 +1,6 @@
 (function ($) {
     MOVE_NODE_ENDPOINT = 'move/';
+    GET_CHILDREN_ENDPOINT = 'children/';
     CSRF_TOKEN = document.currentScript.dataset.csrftoken;
 
     // Node class, handles UI tree operations for each 'row'
@@ -7,6 +8,7 @@
         constructor(elem) {
             this.$elem = $(elem);
             this.id = this.$elem.data('node-id');
+            this.childrenLoaded = Boolean(this.$elem.data("children-loaded"));
         }
 
         isCollapsed() {
@@ -28,10 +30,14 @@
         }
 
         expand() {
-            // Display each kid (will display in collapsed state)
-            this.children().show();
-            // Switch class to set the property expand/collapse icon
-            this.$elem.find('a.treebeard-collapse').removeClass('treebeard-collapsed').addClass('treebeard-expanded');
+            if (this.childrenLoaded) {
+                this.children().show();
+                // Switch class to set the property expand/collapse icon
+                this.$elem.find('a.treebeard-collapse').removeClass('treebeard-collapsed').addClass('treebeard-expanded');
+            }
+            else {
+                this.loadChildren();
+            }
         }
 
         toggle() {
@@ -41,13 +47,71 @@
                 this.collapse();
             }
         }
+
+        loadChildren(resultList = [], contextList = [], page = 1) {
+            this.$elem.attr("data-children-loaded", "1");
+            this.childrenLoaded = true;
+            this.$elem.find("a.treebeard-collapse").removeClass("treebeard-collapsed").addClass("treebeard-loading");
+            const params = new URLSearchParams(window.location.search);
+            params.set("p", page);
+
+            $.get(`${GET_CHILDREN_ENDPOINT}${this.id}/`, params.toString()).done(response => {
+                resultList.push(...$(response["result_html"]).find("#result_list tbody tr").toArray());
+                contextList.push(...response["tree_context"]);
+
+                if (response["page"] < response["num_pages"]) { // Recursively fetch all pages
+                    return this.loadChildren(resultList, contextList, response["page"] + 1);
+                }
+
+                const $resultList = $(resultList);
+                setupData($resultList, contextList);
+                $resultList.insertAfter(this.$elem);
+                this.$elem.find("a.treebeard-collapse").removeClass("treebeard-loading").addClass("treebeard-expanded");
+            });
+        }
+    }
+
+    const setupData = ($resultList, contextList) => {
+        $resultList.each((index, el) => Object.entries(contextList[index]).forEach(
+            ([key, val]) => $(el).attr(`data-${key}`, val))
+        );
+
+        // Add drag handler and spacers to each node
+        $resultList.each((idx, el) => {
+            const $row = $(el);
+            // Inject spacer and collapse buttons into the first table cell that isn't an action checkbox or drag handler
+            const $firstCell = $row.find("td,th").not(".action-checkbox").first();
+            if (!$firstCell.length) {
+                return;
+            }
+
+            const hasChildren = parseInt($row.data("has-children")),
+                canChange = parseInt($row.data("can-change")),
+                level = parseInt($row.data("level"));
+
+            const elements = [
+                canChange ? "<span class='drag-handler' draggable='true'></span>" : "<span class='drag-handler drag-handler-disabled'></span>"
+            ];
+
+            if (level > 1) {
+                elements.push("<span class='spacer'>&nbsp;</span>".repeat(level - 1));
+            }
+
+            if (hasChildren) {
+                elements.push("<a href='#' class='treebeard-collapse treebeard-collapsed' role='button'></a>");
+            }
+
+            $firstCell.prepend(elements);
+        });
     }
 
     const setupDragHandler = () => {
+        if ($('#has-change-permission').val() === "0") {
+            return;
+        }
+
         const $body = $('body');
         const $resultList = $("#result_list");
-
-        $('.drag-handler').attr("draggable", true).addClass('active');
 
         let dragPageY = null;
         let draggedNode = null;
@@ -147,68 +211,22 @@
                 },
             }).always(() => {
                 // Reload the page even on error, so that messages are displayed
-                window.location.hash = 'tree-node-' + draggedNode.id;
                 window.location.reload();
             });
         });
     }
 
-    const highlightRecentlyMoved = () => {
-        const hash = window.location.hash;
-        if (hash.startsWith("#tree-node-")) {
-            $(hash).addClass("recently-moved-node")
-        }
-    }
-
     $(document).ready(function () {
         const $resultList = $('#result_list tbody tr');
-
-        // Read in JSON context and link it to each row in the table
         const contextList = JSON.parse(document.getElementById('tree-context').textContent);
-        $resultList.each(function (index, el) {
-            Object.entries(contextList[index]).forEach(([key, val]) => {
-                $(el).attr(`data-${key}`, val);     // Must use attr() to set the HTML5 attribute, not data()
-                $(el).attr("id", `tree-node-${$(el).data("node-id")}`);     // Set ID on node
-            })
-        });
 
-        // Add drag handler and spacers to each node
-        $resultList.each((idx, el) => {
-            const $row = $(el);
-            // Inject spacer and collapse buttons into the first table cell that isn't an action checkbox or drag handler
-            const $firstCell = $row.find("td,th").not(".action-checkbox").first();
-            if (!$firstCell.length) {
-                return;
-            }
+        setupData($resultList, contextList);
 
-            const hasChildren = parseInt($row.data("has-children")),
-                level = parseInt($row.data("level"));
-
-            const elements = ["<span class='drag-handler'></span>"];
-
-            if (level > 1) {
-                elements.push("<span class='spacer'>&nbsp;</span>".repeat(level - 1));
-            }
-
-            if (hasChildren) {
-                elements.push("<a href='#' class='treebeard-collapse treebeard-expanded' role='button'></a>");
-            }
-
-            $firstCell.prepend(elements);
-        });
-
-        highlightRecentlyMoved();
-
-        // Don't activate drag or collapse if GET filters are set on the page, or if user has no change permission
-        if ($('#has-filters').val() === "1" || $('#has-change-permission').val() === "0") {
-            return;
-        }
-
-        setupDragHandler();
-
-        $resultList.on("click", "a.treebeard-collapse", (event) => {
+        $('#result_list').on("click", "a.treebeard-collapse", (event) => {
             event.preventDefault();
             new Node($(event.currentTarget).closest('tr')[0]).toggle();
         });
+
+        setupDragHandler();
     });
 })(django.jQuery);

@@ -30,26 +30,17 @@ API
 Interface
 ---------
 
-The features of the admin interface will depend on the tree type.
-
-Advanced Interface
-~~~~~~~~~~~~~~~~~~
-
-:doc:`Materialized Path <mp_tree>` and :doc:`Nested Sets <ns_tree>` trees have
-an AJAX interface based on `FeinCMS`_, that includes features like
-drag&drop and an attractive interface.
+The ``TreeAdmin`` class provides a lazy-loaded, drag and drop interface
+for working with trees. It efficiently loads the top level of the tree
+and allows expanding nodes to reveal their children.
 
 .. image:: _static/treebeard-admin-advanced.png
 
-Basic Interface
-~~~~~~~~~~~~~~~
+.. warning::
 
-:doc:`Adjacency List <al_tree>` trees have a basic admin interface.
+   ``TreeAdmin`` does not support ``list_editable`` fields, because of how the data is loaded. This parameter
+   will be ignored if it is set.
 
-.. image:: _static/treebeard-admin-basic.png
-
-
-.. _FeinCMS: http://www.feincms.org
 
 Model Detail Pages
 ~~~~~~~~~~~~~~~~~~
