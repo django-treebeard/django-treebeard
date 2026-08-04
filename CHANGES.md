@@ -61,7 +61,7 @@ Putting these methods on the model manager instead of the model class is more co
 Django's design patterns, and provides much more flexibility with their use. It also keeps the 
 model class slim, avoiding conflicts with code layered on top.
 
-Backward compatibility exists for all these methods, which will be removed in Treebeard 7.
+Backward compatibility exists for all these methods, which will be removed in Treebeard 8.
 
 It is now mandatory for the default model manager for a Treebeard model to subclass
 Treebeard's manager. An error will be raised if this is not the case.

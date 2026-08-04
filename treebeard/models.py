@@ -10,7 +10,7 @@ from django.db import models, transaction
 from django.db.models import Q
 from django.utils.functional import cached_property
 
-from treebeard.deprecation import RemovedInTreebeard7Warning, get_moved_manager_classmethod, get_moved_manager_method
+from treebeard.deprecation import RemovedInTreebeard8Warning, get_moved_manager_classmethod, get_moved_manager_method
 from treebeard.exceptions import InvalidPosition, MissingNodeOrderBy
 from treebeard.utils import prepare_dumpdata_for_loading, save_m2m
 
@@ -59,7 +59,7 @@ class Node(models.Model):
     def add_root(cls, **kwargs):
         warnings.warn(
             f"Using {cls.__name__}.add_root() is deprecated. Use {cls.__name__}.objects.add_root() instead.",
-            RemovedInTreebeard7Warning,
+            RemovedInTreebeard8Warning,
             stacklevel=2,
         )
         instance = kwargs.pop("instance", None)
@@ -69,7 +69,7 @@ class Node(models.Model):
         cls = self.__class__
         warnings.warn(
             f"Using {cls.__name__}.add_child() is deprecated. Use {cls.__name__}.objects.add_child(target) instead.",
-            RemovedInTreebeard7Warning,
+            RemovedInTreebeard8Warning,
             stacklevel=2,
         )
         instance = kwargs.pop("instance", None)
@@ -79,7 +79,7 @@ class Node(models.Model):
         cls = self.__class__
         warnings.warn(
             f"Using {cls.__name__}.add_sibling() is deprecated. Use {cls.__name__}.objects.add_sibling() instead.",
-            RemovedInTreebeard7Warning,
+            RemovedInTreebeard8Warning,
             stacklevel=2,
         )
         instance = kwargs.pop("instance", None)
@@ -89,7 +89,7 @@ class Node(models.Model):
         cls = self.__class__
         warnings.warn(
             f"Using {cls.__name__}.move() is deprecated. Use {cls.__name__}.objects.move() instead.",
-            RemovedInTreebeard7Warning,
+            RemovedInTreebeard8Warning,
             stacklevel=2,
         )
         return cls.objects.move(self, target, pos)
@@ -133,7 +133,7 @@ class Node(models.Model):
         abstract = True
 
 
-# Deprecated class methods that have moved to the model manager. Will be removed in Treebeard 7
+# Deprecated class methods that have moved to the model manager. Will be removed in Treebeard 8
 def _inject_moved_method_back_compat():
     moved_classmethods = [
         "load_bulk",

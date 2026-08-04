@@ -2,7 +2,7 @@
 Duplicate of test_treebeard.py that uses the old, deprecated API for methods that moved
 from the Node class to the model manager.
 
-To be removed when backward compatibility is removed in Treebeard 7.
+To be removed when backward compatibility is removed in Treebeard 8.
 """
 
 import os

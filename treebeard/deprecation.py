@@ -2,7 +2,7 @@ import warnings
 from functools import partial, partialmethod
 
 
-class RemovedInTreebeard7Warning(DeprecationWarning): ...
+class RemovedInTreebeard8Warning(DeprecationWarning): ...
 
 
 def _handle_moved_classmethod(cls, *args, treebeard_method, **kwargs):  # pragma: no cover
@@ -11,12 +11,12 @@ def _handle_moved_classmethod(cls, *args, treebeard_method, **kwargs):  # pragma
 
     Logs a warning, and calls the manager method.
 
-    This backward-compatibility will be removed in Treebeard 7.
+    This backward-compatibility will be removed in Treebeard 8.
     """
     warnings.warn(
         f"Using {cls.__name__}.{treebeard_method}() is deprecated. "
         f"Use {cls.__name__}.objects.{treebeard_method}() instead.",
-        RemovedInTreebeard7Warning,
+        RemovedInTreebeard8Warning,
         stacklevel=3,
     )
     return getattr(cls.objects, treebeard_method)(*args, **kwargs)
@@ -28,13 +28,13 @@ def _handle_moved_method(self, *args, treebeard_method, **kwargs):  # pragma: no
 
     Logs a warning, and calls the manager method.
 
-    This backward-compatibility will be removed in Treebeard 7.
+    This backward-compatibility will be removed in Treebeard 8.
     """
     cls = self.__class__
     warnings.warn(
         f"Using {cls.__name__}.{treebeard_method}() is deprecated. "
         f"Use {cls.__name__}.objects.{treebeard_method}() instead.",
-        RemovedInTreebeard7Warning,
+        RemovedInTreebeard8Warning,
         stacklevel=2,
     )
     return getattr(cls.objects, treebeard_method)(self, *args, **kwargs)

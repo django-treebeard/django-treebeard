@@ -12,7 +12,7 @@ from django.db.models.functions import Concat, Greatest, Length, Substr
 from django.dispatch import Signal
 from django.utils.translation import gettext_noop as _
 
-from treebeard.deprecation import RemovedInTreebeard7Warning
+from treebeard.deprecation import RemovedInTreebeard8Warning
 from treebeard.exceptions import InvalidMoveToDescendant, PathOverflow
 from treebeard.models import Node, NodeManager
 from treebeard.numconv import NumConv
@@ -962,7 +962,7 @@ class MP_AddRootHandler:
     def __init__(self, cls, **kwargs):
         warnings.warn(
             "MP_AddRootHandler is deprecated. Use Node.objects.add_root() instead.",
-            RemovedInTreebeard7Warning,
+            RemovedInTreebeard8Warning,
             stacklevel=2,
         )
         self.cls = cls
@@ -977,7 +977,7 @@ class MP_AddChildHandler:
     def __init__(self, node, creation_kwargs: dict[str, Any]):
         warnings.warn(
             "MP_AddChildHandler is deprecated. Use Node.objects.add_child() instead.",
-            RemovedInTreebeard7Warning,
+            RemovedInTreebeard8Warning,
             stacklevel=2,
         )
         self.node = node
@@ -992,7 +992,7 @@ class MP_AddSiblingHandler:
     def __init__(self, node, pos, creation_kwargs: dict[str, Any]):
         warnings.warn(
             "MP_AddSiblingHandler is deprecated. Use Node.objects.add_child() instead.",
-            RemovedInTreebeard7Warning,
+            RemovedInTreebeard8Warning,
             stacklevel=2,
         )
         self.node = node
@@ -1007,7 +1007,7 @@ class MP_AddSiblingHandler:
 class MP_MoveHandler:
     def __init__(self, node, target, pos=None):
         warnings.warn(
-            "MP_MoveHandler is deprecated. Use Node.objects.move() instead.", RemovedInTreebeard7Warning, stacklevel=2
+            "MP_MoveHandler is deprecated. Use Node.objects.move() instead.", RemovedInTreebeard8Warning, stacklevel=2
         )
         self.node = node
         self.node_cls = node.__class__
