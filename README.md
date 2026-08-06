@@ -1,6 +1,6 @@
 # django-treebeard
 
-**django-treebeard** is a library that implements efficient tree implementations for the Django Web Framework.
+django-treebeard is a library that implements efficient tree implementations for the Django Web Framework.
 
 It was written by Gustavo Picón and licensed under the Apache License 2.0.
 
@@ -29,12 +29,23 @@ django-treebeard is:
 -   **Clean**: Testable and well tested code base. Code/branch test
     coverage is above 96%.
 
-You can find the documentation at <https://django-treebeard.readthedocs.io/en/latest/>
+You can find the documentation at <https://django-treebeard.readthedocs.io/en/latest/>.
 
-### Supported versions
+## System requirements
 
-**django-treebeard** officially supports
+django-treebeard officially supports:
 
 -   Django 5.2 and higher
 -   Python 3.10 and higher
 -   PostgreSQL, MySQL, MSSQL, SQLite database back-ends.
+
+## Supported versions
+
+The following versions of Treebeard are actively maintained:
+
+- v5.x: security and bugfix support until April 2030.
+- v7.x: current stable release.
+
+Version 6 of Treebeard featured an API change that moved much of Treebeard's API
+from the model class to the model manager. To mitigate the upgrade burden, v5.x
+of Treebeard will receive security and bugfix releases until April 2030.
