@@ -490,8 +490,11 @@ class MP_NodeManager(NodeManager):
             siblings = self.get_sorted_pos_queryset(self.get_siblings(target), node)
             if first := siblings.first():
                 newpos = first._get_lastpos_in_path()
-                if node._get_lastpos_in_path() == newpos - 1:
-                    # The node is already in the right place, nothing to do
+                node_parentpath = node._get_basepath(node.path, node.depth - 1)
+                first_parentpath = first._get_basepath(first.path, first.depth - 1)
+                if node_parentpath == first_parentpath and node._get_lastpos_in_path() == newpos - 1:
+                    # The node is already in the right place (same parent,
+                    # right before the computed sibling), nothing to do
                     return
             else:
                 newpos = None
