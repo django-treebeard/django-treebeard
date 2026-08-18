@@ -3254,6 +3254,39 @@ class TestTreeSorted(TestTreeBase):
         ]
         assert self.got(sorted_model) == expected
 
+    def test_move_sorted_back_under_previous_parent(self, sorted_model):
+        # Regression test: a sorted move used to be silently skipped when the
+        # node's last path segment happened to match the computed target slot,
+        # even though the node lived under a different parent.
+        # For more information see:
+        # https://github.com/django-treebeard/django-treebeard/issues/414
+        root = sorted_model.objects.add_root({"val1": 1, "val2": 1, "desc": "rt"})
+        parent = sorted_model.objects.add_child(root, {"val1": 2, "val2": 1, "desc": "prt"})
+        for val1, desc in ((1, "ac1"), (2, "ac2"), (3, "ac3")):
+            parent = sorted_model.objects.get(pk=parent.pk)
+            sorted_model.objects.add_child(parent, {"val1": val1, "val2": 1, "desc": desc})
+
+        # Move ac1 up under the root: it sorts before its old parent, taking
+        # the position whose last path segment collides with the slot computed
+        # for the move back below.
+        ac1 = sorted_model.objects.get(desc="ac1")
+        root = sorted_model.objects.get(pk=root.pk)
+        sorted_model.objects.move(ac1, root, "sorted-child")
+
+        # ... and move it back under its old parent.
+        ac1 = sorted_model.objects.get(desc="ac1")
+        parent = sorted_model.objects.get(pk=parent.pk)
+        sorted_model.objects.move(ac1, parent, "sorted-child")
+
+        expected = [
+            (1, 1, "rt", 1, 1),
+            (2, 1, "prt", 2, 3),
+            (1, 1, "ac1", 3, 0),
+            (2, 1, "ac2", 3, 0),
+            (3, 1, "ac3", 3, 0),
+        ]
+        assert self.got(sorted_model) == expected
+
 
 @pytest.mark.django_db
 class TestInheritedModels(TestTreeBase):
