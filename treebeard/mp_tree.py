@@ -377,8 +377,11 @@ class MP_MoveHandler(MP_ComplexAddMoveHandler):
             siblings = self.node.get_sorted_pos_queryset(self.target.get_siblings(), self.node)
             if first := siblings.first():
                 newpos = first._get_lastpos_in_path()
-                if self.node._get_lastpos_in_path() == newpos - 1:
-                    # The node is already in the right place, nothing to do
+                node_parentpath = self.node._get_basepath(self.node.path, self.node.depth - 1)
+                first_parentpath = first._get_basepath(first.path, first.depth - 1)
+                if node_parentpath == first_parentpath and self.node._get_lastpos_in_path() == newpos - 1:
+                    # The node is already in the right place (same parent,
+                    # right before the computed sibling), nothing to do
                     return
             else:
                 newpos = None
