@@ -1,3 +1,10 @@
+Release 6.0.1 (Aug 19, 2026)
+----------------------------
+
+Treebeard 6.0.1 is a bugfix release.
+
+- Fixed erroneous no-op when moving `MP_Node` nodes with `node_order_by` set.
+
 
 Release 6.0.0 (Jul 20, 2026)
 ------------------------------
