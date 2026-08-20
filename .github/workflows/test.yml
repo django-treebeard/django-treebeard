@@ -172,10 +172,12 @@ jobs:
       fail-fast: true
       matrix:
         python-version: ["3.10", 3.14]
-        django-version: [52, 60]  # MSSQL doesn't support Django 6.1 yet
+        django-version: [52, 60, 61]
         exclude:
           - python-version: "3.10"
             django-version: 60
+          - python-version: "3.10"
+            django-version: 61
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2019-latest
