@@ -23,13 +23,13 @@ def create_nodes(cls):
     """
     roots = []
     for i in range(5):
-        roots.append(cls.add_root({"desc": f"root-{i}"}))
+        roots.append(cls.objects.add_root({"desc": f"root-{i}"}))
 
     for root in roots:
         depth = 1
         node = root
         while depth < 20:
-            node = node.add_child({"desc": f"{root.desc}-child-{depth}"})
+            node = cls.objects.add_child(node, {"desc": f"{root.desc}-child-{depth}"})
             depth += 1
 
 
@@ -39,11 +39,13 @@ def create_sorted_nodes(cls):
     """
     roots = []
     for i in range(5):
-        roots.append(cls.add_root({"desc": f"root-{i}", "val1": randint(0, 100), "val2": randint(0, 100)}))
+        roots.append(cls.objects.add_root({"desc": f"root-{i}", "val1": randint(0, 100), "val2": randint(0, 100)}))
 
     for root in roots:
         for n in range(20):
-            root.add_child({"desc": f"{root.desc}-child-{n}", "val1": randint(0, 100), "val2": randint(0, 100)})
+            cls.objects.add_child(
+                root, {"desc": f"{root.desc}-child-{n}", "val1": randint(0, 100), "val2": randint(0, 100)}
+            )
 
 
 def get_descendants(cls):
@@ -51,6 +53,13 @@ def get_descendants(cls):
     Get an entire subtree.
     """
     list(cls.objects.get(desc="root-2").get_descendants())
+
+
+def get_ancestors(cls):
+    """
+    Get an entire subtree.
+    """
+    list(cls.objects.get(desc="root-2-child-10").get_ancestors())
 
 
 def move(cls):
@@ -108,6 +117,12 @@ class TestBenchmarks:
             create_nodes(benchmark_model)
 
         benchmark.pedantic(get_descendants, args=[benchmark_model], rounds=10, teardown=teardown, setup=setup)
+
+    def test_get_ancestors(self, benchmark_model, benchmark):
+        def setup():
+            create_nodes(benchmark_model)
+
+        benchmark.pedantic(get_ancestors, args=[benchmark_model], rounds=10, teardown=teardown, setup=setup)
 
     def test_move(self, benchmark_model, benchmark):
         def setup():
