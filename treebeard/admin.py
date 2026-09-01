@@ -5,6 +5,7 @@ import warnings
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.templatetags.admin_list import result_list
+from django.contrib.admin.views.main import IGNORED_PARAMS, PAGE_VAR, SEARCH_VAR
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models.query import QuerySet
@@ -30,9 +31,30 @@ class TreeAdmin(admin.ModelAdmin):
             self.__class__.list_editable = ()
         super().__init__(*args, **kwargs)
 
+    def is_filtered(self, request) -> bool:
+        """
+        Whether the changelist is showing a search result or a filtered list.
+
+        The changelist normally shows one level of the tree and is drilled into
+        from there, which a search cannot work with: it would only ever match
+        the level that happens to be on screen. A filtered changelist therefore
+        drops the tree and lists every match, wherever it sits.
+        """
+        if request.GET.get(SEARCH_VAR):
+            return True
+
+        ignored = {*IGNORED_PARAMS, PAGE_VAR, SEARCH_VAR}
+
+        return any(param not in ignored for param in request.GET)
+
     def get_queryset(self, request) -> QuerySet:
         # We only filter the queryset when _treebeard_parent_id is set
         if not hasattr(request, "_treebeard_parent_id"):
+            return super().get_queryset(request)
+
+        # A search or a filter looks at the whole tree, not at one level of it.
+        if self.is_filtered(request):
+            request._treebeard_parent = None
             return super().get_queryset(request)
 
         if request._treebeard_parent_id:
@@ -77,6 +99,15 @@ class TreeAdmin(admin.ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         if request.method == "GET":
             request._treebeard_parent_id = None
+
+        extra_context = {
+            **(extra_context or {}),
+            # The template drops the tree markup and its script when the list is
+            # a flat set of matches, since neither expanding nor dragging means
+            # anything without the surrounding tree.
+            "treebeard_tree": not self.is_filtered(request),
+        }
+
         return super().changelist_view(request, extra_context)
 
     def children_view(self, request, parent_id):

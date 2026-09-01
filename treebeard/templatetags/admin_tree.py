@@ -54,11 +54,13 @@ def tree_context(cl, request):
     as the `result_list` iterator.
     """
     qs = _get_annotated_context_queryset(cl)
-    depth = request._treebeard_parent.get_depth() + 1 if request._treebeard_parent else 1
+    # Absent when the changelist was never drilled into, e.g. on a filtered list.
+    parent = getattr(request, "_treebeard_parent", None)
+    depth = parent.get_depth() + 1 if parent else 1
     return [
         {
             "node-id": str(obj.pk),
-            "parent-id": str(request._treebeard_parent.pk if request._treebeard_parent else 0),
+            "parent-id": str(parent.pk if parent else 0),
             "level": depth,
             "has-children": int(obj.treebeard_has_children),
             "can-change": int(cl.model_admin.has_change_permission(request, obj)),

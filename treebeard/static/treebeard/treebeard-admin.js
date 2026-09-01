@@ -217,8 +217,16 @@
     }
 
     $(document).ready(function () {
+        const contextElement = document.getElementById('tree-context');
+
+        // A filtered changelist is a flat list of matches with no tree to drag
+        // within, and renders no context for one.
+        if (contextElement === null) {
+            return;
+        }
+
         const $resultList = $('#result_list tbody tr');
-        const contextList = JSON.parse(document.getElementById('tree-context').textContent);
+        const contextList = JSON.parse(contextElement.textContent);
 
         setupData($resultList, contextList);
 

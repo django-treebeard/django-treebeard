@@ -10,6 +10,7 @@ from unittest.mock import patch
 import pytest
 from django.apps import apps
 from django.contrib.admin.sites import AdminSite
+from django.contrib.admin.views.main import ORDER_VAR, PAGE_VAR, SEARCH_VAR
 from django.contrib.auth.models import AnonymousUser, User
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import checks
@@ -4542,6 +4543,57 @@ class TestTreeAdmin(TestNonEmptyTree, AdminTestMixin):
         qs = admin_obj.get_queryset(request)
         # qs should only return the specific child
         assert list(qs.values_list("desc", flat=True)) == ["4"]
+
+    def test_get_queryset_searches_the_whole_tree(self, model):
+        """A search that could only ever match root nodes is not a search."""
+        admin_obj = self._get_admin_obj(model)
+        admin_obj.search_fields = ("desc",)
+        request = RequestFactory().get("/", {SEARCH_VAR: "231"})
+        request.user = self._create_user("test_search_perm", is_superuser=True)
+        request._treebeard_parent_id = None
+
+        cl = admin_obj.get_changelist_instance(request)
+
+        assert [obj.desc for obj in cl.get_queryset(request)] == ["231"]
+
+    def test_get_queryset_filters_across_the_whole_tree(self, model):
+        """A list filter reaches every level too, not just the roots."""
+        admin_obj = self._get_admin_obj(model)
+        admin_obj.list_filter = ("desc",)
+        request = RequestFactory().get("/", {"desc": "231"})
+        request.user = self._create_user("test_filter_perm", is_superuser=True)
+        request._treebeard_parent_id = None
+
+        cl = admin_obj.get_changelist_instance(request)
+
+        assert [obj.desc for obj in cl.get_queryset(request)] == ["231"]
+
+    def test_get_queryset_ignores_paging_and_ordering(self, model):
+        """Neither of those makes the list a filtered one, so the tree stays."""
+        admin_obj = self._get_admin_obj(model)
+        request = RequestFactory().get("/", {PAGE_VAR: "0", ORDER_VAR: "1"})
+        request.user = self._create_user("test_paging_perm", is_superuser=True)
+        request._treebeard_parent_id = None
+
+        qs = admin_obj.get_queryset(request)
+
+        assert list(qs.values_list("pk", flat=True)) == list(
+            model.objects.get_root_nodes().values_list("pk", flat=True)
+        )
+
+    def test_changelist_view_drops_the_tree_when_filtered(self, model):
+        """No tree markup and no tree script, since there is no tree to drag in."""
+        admin_obj = self._get_admin_obj(model)
+        admin_obj.search_fields = ("desc",)
+        request = RequestFactory().get("/", {SEARCH_VAR: "231"})
+        request.user = self._create_user("test_flat_perm", is_superuser=True)
+
+        response = admin_obj.changelist_view(request)
+        response.render()
+        content = response.content.decode()
+
+        assert '<script id="tree-context" type="application/json">' not in content
+        assert "treebeard-admin.js" not in content
 
     def test_children_view_requires_view_permission(self, model):
         admin_obj = self._get_admin_obj(model)
