@@ -41,6 +41,8 @@ and allows expanding nodes to reveal their children.
    ``TreeAdmin`` does not support ``list_editable`` fields, because of how the data is loaded. This parameter
    will be ignored if it is set.
 
+   The nested view only applies when no filtering is present on the list.
+
 
 Model Detail Pages
 ~~~~~~~~~~~~~~~~~~

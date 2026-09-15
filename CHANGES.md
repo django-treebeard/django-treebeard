@@ -1,3 +1,11 @@
+Release 7.0.2 (Sep 12, 2026)
+----------------------------
+
+Treebeard 7.0.2 is a bugfix release.
+
+- Used a non-nested view when filter/search is active in admin list views.
+
+
 Releases 5.3.1, 6.0.1 and 7.0.1 (Aug 19, 2026)
 ----------------------------------------------
 
