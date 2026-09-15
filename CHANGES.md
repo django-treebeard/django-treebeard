@@ -1,4 +1,4 @@
-Release 7.0.2 (Sep 12, 2026)
+Release 7.0.2 (Sep 15, 2026)
 ----------------------------
 
 Treebeard 7.0.2 is a bugfix release.
