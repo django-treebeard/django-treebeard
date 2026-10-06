@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 from django.apps import apps
+from django.contrib.admin.options import ShowFacets
 from django.contrib.admin.sites import AdminSite
 from django.contrib.admin.views.main import ORDER_VAR, PAGE_VAR, SEARCH_VAR
 from django.contrib.auth.models import AnonymousUser, User
@@ -4580,6 +4581,37 @@ class TestTreeAdmin(TestNonEmptyTree, AdminTestMixin):
         cl = admin_obj.get_changelist_instance(request)
 
         assert [obj.desc for obj in cl.get_queryset(request)] == ["231"]
+
+    def test_list_filter_choices_include_descendant_values(self, model):
+        """An unfiltered changelist still offers filter values from deeper nodes."""
+        admin_obj = self._get_admin_obj(model)
+        admin_obj.list_filter = ("desc",)
+        request = RequestFactory().get("/")
+        request.user = self._create_user("test_filter_choices", is_superuser=True)
+        request._treebeard_parent_id = None
+
+        cl = admin_obj.get_changelist_instance(request)
+
+        assert "231" in cl.filter_specs[0].lookup_choices
+        assert "231" not in list(cl.queryset.values_list("desc", flat=True))
+
+    def test_list_filter_facet_counts_include_descendants(self, model):
+        """Show counts must count a value that only exists below the roots."""
+        admin_obj = self._get_admin_obj(model)
+        admin_obj.list_filter = ("desc",)
+        admin_obj.show_facets = ShowFacets.ALWAYS
+        request = RequestFactory().get("/")
+        request.user = self._create_user("test_filter_facets", is_superuser=True)
+        request._treebeard_parent_id = None
+
+        cl = admin_obj.get_changelist_instance(request)
+        spec = cl.filter_specs[0]
+        choices = list(spec.lookup_choices)
+        counts = spec.get_facet_queryset(cl)
+
+        assert list(cl.queryset.values_list("desc", flat=True)) == ["1", "2", "3", "4"]
+        assert counts[f"{choices.index('231')}__c"] == 1
+        assert counts[f"{choices.index('1')}__c"] == 1
 
     def test_get_queryset_ignores_paging_and_ordering(self, model):
         """Neither of those makes the list a filtered one, so the tree stays."""
