@@ -4568,6 +4568,21 @@ class TestTreeAdmin(TestNonEmptyTree, AdminTestMixin):
 
         assert [obj.desc for obj in cl.get_queryset(request)] == ["231"]
 
+    def test_list_filter_choices_include_descendant_values(self):
+        """An unfiltered changelist still offers filter values from deeper nodes."""
+        model = models.MP_TestNode
+        model.objects.load_bulk(BASE_DATA)
+        admin_obj = self._get_admin_obj(model)
+        admin_obj.list_filter = ("desc",)
+        request = RequestFactory().get("/")
+        request.user = self._create_user("test_filter_choices", is_superuser=True)
+        request._treebeard_parent_id = None
+
+        cl = admin_obj.get_changelist_instance(request)
+
+        assert "231" in cl.filter_specs[0].lookup_choices
+        assert "231" not in [obj.desc for obj in cl.queryset]
+
     def test_get_queryset_ignores_paging_and_ordering(self, model):
         """Neither of those makes the list a filtered one, so the tree stays."""
         admin_obj = self._get_admin_obj(model)
