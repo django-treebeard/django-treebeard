@@ -5,7 +5,7 @@ import warnings
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.templatetags.admin_list import result_list
-from django.contrib.admin.views.main import IGNORED_PARAMS, PAGE_VAR, SEARCH_VAR
+from django.contrib.admin.views.main import IGNORED_PARAMS, PAGE_VAR, SEARCH_VAR, ChangeList
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models.query import QuerySet
@@ -18,6 +18,36 @@ from django.views.i18n import JavaScriptCatalog
 
 from treebeard.exceptions import InvalidMoveToDescendant, InvalidPosition, MissingNodeOrderBy, PathOverflow
 from treebeard.templatetags.admin_tree import tree_context
+
+
+class TreeChangeList(ChangeList):
+    def get_filters(self, request):
+        # When fetching filters, we need to use the original, unfiltered queryset
+        # The methods in ChangeList are not amenable to easy override, so instead we patch the
+        # request object with a sentinel that the model admin `get_queryset()` method checks for.
+        # The queryset used to render the list of results is still filtered correctly.
+        request._ignore_treebeard_filters = True
+        try:
+            return super().get_filters(request)
+        finally:
+            del request._ignore_treebeard_filters
+
+    def get_queryset(self, request, exclude_parameters=None):
+        # get_facet_queryset() requires an unfiltered queryset in order to report
+        # correct counts for filters. It supplies a non-null exclude_parameters kwarg.
+        # When this is deteted we swap out for the original, unfiltered queryset.
+        if exclude_parameters is None:
+            return super().get_queryset(request, exclude_parameters=exclude_parameters)
+
+        saved = self.root_queryset
+        request._ignore_treebeard_filters = True
+        try:
+            self.root_queryset = self.model_admin.get_queryset(request)
+            return super().get_queryset(request, exclude_parameters=exclude_parameters)
+        finally:
+            self.root_queryset = saved
+            if hasattr(request, "_ignore_treebeard_filters"):
+                del request._ignore_treebeard_filters
 
 
 class TreeAdmin(admin.ModelAdmin):
@@ -47,9 +77,13 @@ class TreeAdmin(admin.ModelAdmin):
 
         return any(param not in ignored for param in request.GET)
 
+    def get_changelist(self, request, **kwargs):
+        return TreeChangeList
+
     def get_queryset(self, request) -> QuerySet:
-        # We only filter the queryset when _treebeard_parent_id is set
-        if not hasattr(request, "_treebeard_parent_id"):
+        # We only filter the queryset when _treebeard_parent_id is set, or if explicitly told
+        # not to filter by _ignore_treebeard_filters. This is set when fetching data for filter panels etc.
+        if not hasattr(request, "_treebeard_parent_id") or getattr(request, "_ignore_treebeard_filters", False):
             return super().get_queryset(request)
 
         # A search or a filter looks at the whole tree, not at one level of it.
