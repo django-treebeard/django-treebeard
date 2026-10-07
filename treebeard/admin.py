@@ -5,7 +5,7 @@ import warnings
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.templatetags.admin_list import result_list
-from django.contrib.admin.views.main import IGNORED_PARAMS, PAGE_VAR, SEARCH_VAR
+from django.contrib.admin.views.main import IGNORED_PARAMS, PAGE_VAR, SEARCH_VAR, ChangeList
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models.query import QuerySet
@@ -18,6 +18,20 @@ from django.views.i18n import JavaScriptCatalog
 
 from treebeard.exceptions import InvalidMoveToDescendant, InvalidPosition, MissingNodeOrderBy, PathOverflow
 from treebeard.templatetags.admin_tree import tree_context
+
+
+class TreeChangeList(ChangeList):
+    def get_filters(self, request):
+        # Choice lists ask ModelAdmin.get_queryset(). That method limits the
+        # visible rows to one level, so a value that exists only deeper in the
+        # tree never becomes a filter option. Ask for the unrestricted
+        # queryset while the choices are built; the row list still uses the
+        # level that was captured before this runs.
+        request._treebeard_filter_choices = True
+        try:
+            return super().get_filters(request)
+        finally:
+            del request._treebeard_filter_choices
 
 
 class TreeAdmin(admin.ModelAdmin):
@@ -47,7 +61,13 @@ class TreeAdmin(admin.ModelAdmin):
 
         return any(param not in ignored for param in request.GET)
 
+    def get_changelist(self, request, **kwargs):
+        return TreeChangeList
+
     def get_queryset(self, request) -> QuerySet:
+        if getattr(request, "_treebeard_filter_choices", False):
+            return super().get_queryset(request)
+
         # We only filter the queryset when _treebeard_parent_id is set
         if not hasattr(request, "_treebeard_parent_id"):
             return super().get_queryset(request)
