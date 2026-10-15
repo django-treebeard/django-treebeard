@@ -175,6 +175,13 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
+            name="MP_TestNodeProtectedDep",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("node", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to="tests.mp_testnode")),
+            ],
+        ),
+        migrations.CreateModel(
             name="NS_TestNode",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),

@@ -46,6 +46,10 @@ class MP_TestNodeSomeDep(models.Model):
     node = models.ForeignKey(MP_TestNode, on_delete=models.CASCADE)
 
 
+class MP_TestNodeProtectedDep(models.Model):
+    node = models.ForeignKey(MP_TestNode, on_delete=models.PROTECT)
+
+
 class MP_TestNodeRelated(MP_Node, DescMixin, RelatedNodeMixin):
     steplen = 3
 
