@@ -1856,6 +1856,24 @@ class TestDelete(TestTreeBase):
         assert self.got(models.MP_TestNode) == UNCHANGED
         assert signals == []
 
+    def test_delete_rolls_back_if_gap_not_closed_ns(self):
+        # Equivalent of https://github.com/django-treebeard/django-treebeard/issues/422 for NS.
+        # If anything fails after the nodes are deleted but before the gaps are closed, the
+        # deletion must be rolled back so that lft/rgt values are not left inconsistent.
+        models.NS_TestNode.objects.load_bulk(BASE_DATA)
+        node = models.NS_TestNode.objects.get(desc="231")
+
+        def failing_handler(sender, **kwargs):
+            raise RuntimeError("receiver failed")
+
+        ns_nodes_deleted.connect(failing_handler, dispatch_uid="test_delete_rolls_back_ns")
+        try:
+            with pytest.raises(RuntimeError):
+                node.delete()
+        finally:
+            ns_nodes_deleted.disconnect(dispatch_uid="test_delete_rolls_back_ns")
+        assert self.got(models.NS_TestNode) == UNCHANGED
+
 
 @pytest.mark.django_db
 class TestMoveErrors(TestNonEmptyTree):
