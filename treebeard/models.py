@@ -21,7 +21,9 @@ class Node(models.Model):
     # Subclasses must override this to provide the name of a field
     # that identifies the model.
     TREEBEARD_IDENTIFYING_FIELD = None
-    # Fields to be excluded from MoveNodeForm
+    # Fields that hold the node's position in the tree. Set by each tree class; don't override
+    _TREE_FIELDS = ()
+    # Fields to be excluded from MoveNodeForm. Subclasses default to their _TREE_FIELDS
     MOVENODE_FORM_EXCLUDED_FIELDS = ()
     _cached_attributes = ()
 
@@ -622,6 +624,19 @@ class NodeManager(models.Manager):
             (some subclasses may return a list)
         """
         raise NotImplementedError
+
+    def _refresh_tree_fields(self, *nodes):
+        """
+        Reload the tree fields of in-memory nodes from the database.
+
+        Other fields are left untouched, so unsaved changes to them are kept.
+        """
+        # Sorted AL models have no sib_order field
+        fields = [
+            field.name for field in self.tree_model._meta.concrete_fields if field.name in self.tree_model._TREE_FIELDS
+        ]
+        for node in nodes:
+            node.refresh_from_db(fields=fields)
 
     def _prepare_pos_var(self, pos, method_name, valid_pos, valid_sorted_pos):
         if pos is None:

@@ -7,9 +7,10 @@ Updating objects
 The nature of tree data means that many operations (e.g., adding a child to a tree node)
 affect related objects (e.g., the parent node). 
 
-For add/move operations, Treebeard will refresh the node being moved/created and its target. 
-If you have other potentially affected nodes (e.g., siblings) in memory and plan to use them 
-after a tree modification, you may need to reload them with ``object_instance.refresh_from_db()``.
+For add/move operations, Treebeard will refresh the node being moved/created and its target.
+Only the tree fields are refreshed. If you have other potentially affected nodes (e.g., siblings)
+in memory and plan to use them after a tree modification, you may need to reload them with
+``object_instance.refresh_from_db()``.
 
 
 Inconsistent state
