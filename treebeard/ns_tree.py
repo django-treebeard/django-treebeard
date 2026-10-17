@@ -156,8 +156,7 @@ class NS_NodeManager(NodeManager):
             last_child = self.get_last_child(node)
             last_child._cached_parent_obj = node
             new_sibling = self.add_sibling(last_child, pos, create_kwargs=create_kwargs, instance=instance)
-            node.rgt += 2
-            target.rgt = node.rgt + 2  # Update the rgt of the parent object, which may be used again in a loop
+            self._update_target_after_add_child(target, node)
             return new_sibling
 
         # we're adding the first child of this node
@@ -169,8 +168,8 @@ class NS_NodeManager(NodeManager):
         newobj.lft = node.lft + 1
         newobj.rgt = node.lft + 2
 
-        # this is just to update the cache
-        target.rgt = node.rgt + 2
+        # Update the parent object, which may be used again in a loop
+        self._update_target_after_add_child(target, node)
 
         newobj._cached_parent_obj = target
 
@@ -179,12 +178,24 @@ class NS_NodeManager(NodeManager):
 
         return newobj
 
+    def _update_target_after_add_child(self, target, node):
+        """
+        Update the target of add_child() in memory from the freshly fetched node, since the
+        target's own tree fields may be out of date.
+        """
+        target.tree_id = node.tree_id
+        target.lft = node.lft
+        target.rgt = node.rgt + 2  # Widened by the gap opened for the new child
+        target.depth = node.depth
+        target._clear_cached_attributes()
+
     @transaction.atomic
     @check_create_args
     def add_sibling(self, target, pos=None, create_kwargs=None, *, instance=None):
         """Adds a new node as a sibling to the target."""
 
         pos = self._prepare_pos_var_for_add_sibling(pos)
+        original_target = target
 
         newobj = instance or self.model(**create_kwargs)
         newobj.depth = target.depth
@@ -252,6 +263,9 @@ class NS_NodeManager(NodeManager):
 
         # saving the instance before returning it
         newobj.save(using=self._db)
+
+        # The target may have been shifted to make room for the new node
+        self._refresh_tree_fields(original_target)
 
         return newobj
 
@@ -347,7 +361,7 @@ class NS_NodeManager(NodeManager):
                 self._alter_gap(target.tree_id, newpos, gap)
 
         # we refresh 'self' because lft/rgt may have changed
-        node.refresh_from_db()
+        self._refresh_tree_fields(node)
 
         depthdiff = target.depth - node.depth
         if parent:
@@ -376,8 +390,7 @@ class NS_NodeManager(NodeManager):
 
         # close the gap
         self._close_gap(node.lft, node.rgt, node.tree_id)
-        node.refresh_from_db()  # Tree params will have changed
-        original_target.refresh_from_db()
+        self._refresh_tree_fields(node, original_target)  # Tree params will have changed
 
     def get_root_nodes(self):
         """:returns: A queryset containing the root nodes in the tree."""
@@ -602,7 +615,8 @@ class NS_Node(Node):
     depth = models.PositiveIntegerField(db_index=True)
 
     TREEBEARD_IDENTIFYING_FIELD = "lft"
-    MOVENODE_FORM_EXCLUDED_FIELDS = ("depth", "lft", "rgt", "tree_id")
+    _tree_fields = ("tree_id", "lft", "rgt", "depth")
+    MOVENODE_FORM_EXCLUDED_FIELDS = _tree_fields
     _DEFAULT_TREEBEARD_MANAGER = NS_NodeManager
 
     objects = NS_NodeManager()
