@@ -103,6 +103,8 @@ class AL_NodeManager(NodeManager):
             newobj.sib_order = self._get_new_sibling_order(pos, target)
         newobj.parent_id = target.parent_id
         newobj.save(using=self._db)
+        # The target may have been shifted to make room for the new node
+        self._refresh_tree_fields(target)
         return newobj
 
     @transaction.atomic
@@ -113,6 +115,7 @@ class AL_NodeManager(NodeManager):
         """
 
         pos = self._prepare_pos_var_for_move(pos)
+        original_target = target
 
         sib_order = None
         parent = None
@@ -151,6 +154,8 @@ class AL_NodeManager(NodeManager):
             node.sib_order = sib_order or self._get_new_sibling_order(pos, target)
 
         node.save(using=self._db)
+        # The target may have been shifted to make room, and the node's cached depth is out of date
+        self._refresh_tree_fields(node, original_target)
 
     def get_root_nodes(self):
         """:returns: A queryset containing the root nodes in the tree."""
@@ -294,7 +299,8 @@ class AL_Node(Node):
     node_order_by = None
 
     TREEBEARD_IDENTIFYING_FIELD = "parent"
-    MOVENODE_FORM_EXCLUDED_FIELDS = ("sib_order", "parent")
+    _tree_fields = ("parent", "sib_order")
+    MOVENODE_FORM_EXCLUDED_FIELDS = _tree_fields
     _DEFAULT_TREEBEARD_MANAGER = AL_NodeManager
 
     _cached_attributes = (
