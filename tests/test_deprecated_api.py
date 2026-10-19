@@ -980,6 +980,8 @@ class TestAddChild(TestNonEmptyTree):
         os.getenv("DATABASE_ENGINE", "sqlite") == "sqlite",
         reason="SQLite doesn't support row-level locking",
     )
+    # Deadlocks are very common on MSSQL, so add some retries
+    @pytest.mark.flaky(retries=2, condition=os.getenv("DATABASE_ENGINE") == "mssql")
     def test_add_child_concurrent(self, model_without_data):
         # 5 threads x 5 add_child each on same parent; no IntegrityError.
         num_threads = 5
