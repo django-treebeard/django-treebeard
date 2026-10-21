@@ -9,6 +9,16 @@ Treebeard 7.0.3 is a bugfix release.
   an exception was raised during deletion.
 
 
+Release 6.0.2 (Oct 21, 2026)
+----------------------------
+
+Treebeard 6.0.2 is a bugfix release.
+
+- Fixed some instances of nodes holding stale data after a move operation.
+- Made `delete()` operations for `MP_Node` and `NS_Node` atomic to avoid inconsistent state if
+  an exception was raised during deletion.
+
+
 Release 7.0.2 (Sep 15, 2026)
 ----------------------------
 
