@@ -194,8 +194,10 @@ class LT_NodeManager(NodeManager):
         obj = self.__class__(**create_kwargs)
         ```
         """
-        # Lock parent row
-        self.tree_model.objects.filter(pk=target.pk).select_for_update().only("pk").get()
+        # Lock parent row, and use its current path in case the target object is out of date
+        target.path = (
+            self.tree_model.objects.filter(pk=target.pk).select_for_update().values_list("path", flat=True).get()
+        )
         if self.model.node_order_by and not target.is_leaf():
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
@@ -255,6 +257,8 @@ class LT_NodeManager(NodeManager):
 
         newobj.path, _ = self._get_new_path(target.path[:-1], insert_before, insert_after)
         newobj.save(using=self._db)
+        # The target may have been shifted to make room for the new node
+        self._refresh_tree_fields(target)
         return newobj
 
     @transaction.atomic
@@ -326,6 +330,8 @@ class LT_NodeManager(NodeManager):
             new_path=new_path,
             using=queryset.db,
         )
+        # The target may have been shifted to make room for the node
+        self._refresh_tree_fields(node, target)
 
     def get_root_nodes(self):
         """:returns: A queryset containing the root nodes in the tree."""
@@ -532,7 +538,8 @@ class LT_Node(Node):
     path = PathField()
 
     TREEBEARD_IDENTIFYING_FIELD = "path"
-    MOVENODE_FORM_EXCLUDED_FIELDS = ("path",)
+    _TREE_FIELDS = ("path",)
+    MOVENODE_FORM_EXCLUDED_FIELDS = _TREE_FIELDS
     _DEFAULT_TREEBEARD_MANAGER = LT_NodeManager
 
     objects = LT_NodeManager()

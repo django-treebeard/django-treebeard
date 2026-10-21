@@ -392,7 +392,7 @@ class MP_NodeManager(NodeManager):
         if self.model.node_order_by and not node.is_leaf():
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
-            target.numchild += 1
+            self._update_target_after_add_child(target, node)
             return self.add_sibling(self.get_last_child(node), "sorted-sibling", create_kwargs, instance=instance)
 
         newobj = instance or self.model(**create_kwargs)
@@ -416,13 +416,23 @@ class MP_NodeManager(NodeManager):
 
         # Increment numchild on the parent, and also update the object in memory in case the caller reuses it
         self.tree_model.objects.filter(pk=node.pk).update(numchild=F("numchild") + 1)
-        target.numchild = node.numchild + 1
+        self._update_target_after_add_child(target, node)
 
         # saving the instance before returning it
         newobj._cached_parent_obj = target
         newobj.save(using=self._db)
 
         return newobj
+
+    def _update_target_after_add_child(self, target, node):
+        """
+        Update the target of add_child() in memory from the freshly fetched node, since the
+        target's own tree fields may be out of date.
+        """
+        target.path = node.path
+        target.depth = node.depth
+        target.numchild = node.numchild + 1
+        target._clear_cached_attributes()
 
     @transaction.atomic
     @check_create_args
@@ -466,6 +476,9 @@ class MP_NodeManager(NodeManager):
         newobj.path = newpath
         newobj.save(using=self._db)
 
+        # The target may have been shifted to make room for the new node
+        self._refresh_tree_fields(target)
+
         return newobj
 
     @transaction.atomic
@@ -478,6 +491,9 @@ class MP_NodeManager(NodeManager):
            node's new position
         """
         pos = self._prepare_pos_var_for_move(pos)
+        original_target = target
+        # The paths of both nodes are used to rewrite whole branches, so they must be current
+        self._refresh_tree_fields(node, target)
 
         # initialize variables and if moving to a child, updates "move to
         # child" to become a "move to sibling" if possible (if it can't
@@ -521,8 +537,7 @@ class MP_NodeManager(NodeManager):
         )
 
         self.update_parent_counts_after_move(oldpath, newpath)
-        node.refresh_from_db()  # Node path and depth will have changed
-        target.refresh_from_db()
+        self._refresh_tree_fields(node, original_target)
 
     def update_parent_counts_after_move(self, oldpath, newpath):
         """
@@ -547,7 +562,6 @@ class MP_NodeManager(NodeManager):
                 raise InvalidMoveToDescendant(_("Can't move node to itself."))
 
             # moving to a child
-            parent = target
             newdepth += 1
             if target.is_leaf():
                 # moving as a target's first child
@@ -561,11 +575,6 @@ class MP_NodeManager(NodeManager):
                     "last-child": "last-sibling",
                     "sorted-child": "sorted-sibling",
                 }[pos]
-
-            # this is not for save(), since if needed, will be handled with a
-            # custom UPDATE, this is only here to update django's object,
-            # should be useful in loops
-            parent.numchild += 1
 
         return target, newdepth, siblings, newpos, pos
 
@@ -1018,7 +1027,8 @@ class MP_Node(Node):
     numchild = models.PositiveIntegerField(default=0)
 
     TREEBEARD_IDENTIFYING_FIELD = "path"
-    MOVENODE_FORM_EXCLUDED_FIELDS = ("path", "depth", "numchild")
+    _TREE_FIELDS = ("path", "depth", "numchild")
+    MOVENODE_FORM_EXCLUDED_FIELDS = _TREE_FIELDS
     _DEFAULT_TREEBEARD_MANAGER = MP_NodeManager
 
     objects = MP_NodeManager()
