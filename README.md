@@ -43,7 +43,7 @@ django-treebeard officially supports:
 
 The following versions of Treebeard are actively maintained:
 
-- v5.x: security and bugfix support until April 2030.
+- v5.x: security and critical bugfix support until April 2030.
 - v6.x: security and bugfix support until April 2028.
 - v7.x: current stable release.
 
