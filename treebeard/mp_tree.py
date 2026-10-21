@@ -29,6 +29,7 @@ class MP_NodeQuerySet(models.query.QuerySet):
     Needed only for the custom delete method.
     """
 
+    @transaction.atomic
     def delete(self, *args, **kwargs):
         """
         Custom delete method, will remove all descendant nodes to ensure a

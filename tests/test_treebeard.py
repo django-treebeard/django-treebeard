@@ -16,7 +16,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import checks
 from django.core.checks.model_checks import check_all_models
 from django.core.exceptions import PermissionDenied
-from django.db.models import Manager
+from django.db.models import Manager, ProtectedError
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.forms import ValidationError
@@ -1768,6 +1768,19 @@ class TestDelete(TestTreeBase):
         related_model.objects.add_root({"desc": "A", "related": related})
         num_deleted, _ = related_model.objects.prefetch_related("related_m2m").all().delete()
         assert num_deleted == 1
+
+    def test_delete_protected_node_mp(self):
+        # Regression test for https://github.com/django-treebeard/django-treebeard/issues/422
+        # If the deletion fails with a ProtectedError, any numchild updates made to ancestors
+        # must be rolled back.
+        models.MP_TestNode.objects.load_bulk(BASE_DATA)
+        node = models.MP_TestNode.objects.get(desc="231")
+        models.MP_TestNodeProtectedDep.objects.create(node=node)
+        with capture_signals() as signals:
+            with pytest.raises(ProtectedError):
+                node.delete()
+        assert self.got(models.MP_TestNode) == UNCHANGED
+        assert signals == []
 
 
 @pytest.mark.django_db
