@@ -176,13 +176,7 @@ class LT_NodeManager(NodeManager):
             return self.add_sibling(last_root, "sorted-sibling", instance=instance or self.model(**create_kwargs))
 
         newobj = instance or self.model(**create_kwargs)
-
-        if last_root:
-            # adding the new root node as the last one
-            newobj.path = generate_path(skip=self.get_root_nodes().values_list("path", flat=True))
-        else:
-            # adding the first root node
-            newobj.path = generate_path()
+        newobj.path = generate_path(after=last_root.path[-1] if last_root else None)
 
         # saving the instance before returning it
         newobj.save(using=self._db)
@@ -204,25 +198,16 @@ class LT_NodeManager(NodeManager):
         target.path = (
             self.tree_model.objects.filter(pk=target.pk).select_for_update().values_list("path", flat=True).get()
         )
-        if self.model.node_order_by and not target.is_leaf():
+
+        last_child = self.get_last_child(target)
+
+        if self.model.node_order_by and last_child:
             # there are child nodes and node_order_by has been set
             # delegate sorted insertion to add_sibling
-            return self.add_sibling(
-                self.get_last_child(target), "sorted-sibling", create_kwargs=create_kwargs, instance=instance
-            )
+            return self.add_sibling(last_child, "sorted-sibling", create_kwargs=create_kwargs, instance=instance)
 
         newobj = instance or self.model(**create_kwargs)
-
-        if target.is_leaf():
-            # the node had no children, adding the first child
-            newobj.path = generate_path(prefix=target.path)
-        else:
-            # adding the new child as the last one
-            newobj.path = generate_path(
-                prefix=target.path,
-                skip=self.get_children(target).values_list("path", flat=True),
-                after=self.get_children(target).last().path[-1],
-            )
+        newobj.path = generate_path(prefix=target.path, after=last_child.path[-1] if last_child else None)
 
         # saving the instance before returning it
         newobj.save(using=self._db)
