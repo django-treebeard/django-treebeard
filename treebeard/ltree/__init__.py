@@ -27,6 +27,16 @@ nodes_deleted = Signal()
 class InvalidLabelConstraints(Exception): ...
 
 
+# The alphabet used for path labels. Labels are compared byte by byte by Postgres, so the
+# ordering of this string is the ordering of single character labels.
+LABEL_ALPHABET = string.digits + string.ascii_uppercase
+
+# The character appended to labels to shift nodes to the right when there is no label available
+# for a new node. It has to be the lowest sorting character of the alphabet, see
+# `LT_NodeManager._move_subtree_right`.
+MOVE_RIGHT_CHAR = LABEL_ALPHABET[0]
+
+
 def generate_label(
     skip: set[str],
     before: str | None = None,
@@ -42,14 +52,18 @@ def generate_label(
 
     :raise InvalidLabelConstraints: when no label could be generated within the given constraints.
     """
-    char_choices = string.ascii_uppercase if not before and not after else string.digits + string.ascii_uppercase
+    char_choices = string.ascii_uppercase if not before and not after else LABEL_ALPHABET
 
     start = after or char_choices[0]
 
-    if (
-        before and (before <= start) or before == f"{start}0"
-    ):  # If before == {start}0 there is no semantic gap in between
-        raise InvalidLabelConstraints
+    if before:
+        if after:
+            # If before == {after}0 there is no semantic gap in between
+            if before <= after or before == f"{after}0":
+                raise InvalidLabelConstraints
+        elif before <= char_choices[0]:
+            # Nothing sorts before the first character of the alphabet
+            raise InvalidLabelConstraints
 
     # Construct sets of characters for each position, appending one at the end if we need to extend the string
     char_lists = [char_choices[idx:] for idx in [char_choices.index(char) for char in start]]
@@ -425,10 +439,17 @@ class LT_NodeManager(NodeManager):
     def _move_subtree_right(self, start_node):
         """
         Move the node and all siblings after it in the tree to the right. This is achieved simply by
-        appending an extra character (A) to the topmost label in the path.
+        appending an extra character to the topmost label in the path.
+
+        The appended character must be the first character of the label alphabet, otherwise the
+        existing labels can be reordered: appending a character to both ``X`` and the longer
+        ``Xd...`` swaps their order whenever ``d`` sorts before that character. Using the first
+        character of the alphabet makes ``X`` sort before ``Xd...`` either because ``d`` is greater
+        than it, or because ``X`` is the shorter label.
         """
         result_class = self.tree_model
         node_depth = len(start_node.path)
+        shifted_label = Text2LTree(Concat(Ltree2Text(Subpath(F("path"), node_depth - 1, 1)), Value(MOVE_RIGHT_CHAR)))
 
         if node_depth > 1:
             result_class.objects.filter(
@@ -436,7 +457,7 @@ class LT_NodeManager(NodeManager):
             ).update(
                 path=Concat(
                     Subpath(F("path"), 0, node_depth - 1),
-                    Text2LTree(Concat(Ltree2Text(Subpath(F("path"), node_depth - 1, 1)), Value("A"))),
+                    shifted_label,
                 )
             )
             queryset = result_class.objects.filter(
@@ -445,19 +466,15 @@ class LT_NodeManager(NodeManager):
             queryset.update(
                 path=Concat(
                     Subpath(F("path"), 0, node_depth - 1),
-                    Text2LTree(Concat(Ltree2Text(Subpath(F("path"), node_depth - 1, 1)), Value("A"))),
+                    shifted_label,
                     Subpath(F("path"), node_depth),
                 ),
             )
         else:
             # Moving root nodes
-            result_class.objects.filter(path__gte=start_node.path, path__depth=1).update(
-                path=Text2LTree(Concat(Ltree2Text(Subpath(F("path"), 0, 1)), Value("A")))
-            )
+            result_class.objects.filter(path__gte=start_node.path, path__depth=1).update(path=shifted_label)
             queryset = result_class.objects.filter(path__gte=start_node.path, path__depth__gt=1)
-            queryset.update(
-                path=Concat(Text2LTree(Concat(Ltree2Text(Subpath(F("path"), 0, 1)), Value("A"))), Subpath(F("path"), 1))
-            )
+            queryset.update(path=Concat(shifted_label, Subpath(F("path"), node_depth)))
 
         subtree_moved_right.send(
             sender=result_class,
