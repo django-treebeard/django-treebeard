@@ -122,10 +122,10 @@ with the tree.
       The update operation applies to the node with this path, siblings after
       it (i.e. nodes where all path elements are equal except the last, which
       is greater), and all their descendants. For the targeted node and its
-      siblings, the update operation appends an 'A' to the last element of the
-      path; for example, the path ``A.C.B`` becomes ``A.C.BA``. For their
+      siblings, the update operation appends a '0' to the last element of the
+      path; for example, the path ``A.C.B`` becomes ``A.C.B0``. For their
       descendants, the path elements following the incremented one are
-      unchanged; for example, the path ``A.C.B.D`` becomes ``A.C.BA.D``.
+      unchanged; for example, the path ``A.C.B.D`` becomes ``A.C.B0.D``.
 
    ``using``
       The database alias being used.

@@ -2,6 +2,7 @@
 
 import json
 import os
+import random
 import threading
 from contextlib import contextmanager
 from unittest import mock
@@ -246,6 +247,55 @@ def capture_signals():
         lt_subtree_moved_right.disconnect(lt_subtree_moved_right_handler)
         lt_subtree_moved.disconnect(lt_subtree_moved_handler)
         lt_nodes_deleted.disconnect(lt_nodes_deleted_handler)
+
+
+class PythonTree:
+    """
+    A tree of node names held in plain Python lists, applying the same insert and move
+    semantics as treebeard. Used as the source of truth in `TestMoveBranch`.
+    """
+
+    def __init__(self):
+        self.children = {None: []}
+
+    def load_bulk(self, data, parent=None):
+        """
+        Adds the nodes in a `load_bulk` style data structure.
+        """
+        for entry in data:
+            desc = entry["data"]["desc"]
+            self.insert(desc, parent, "last-child")
+            self.load_bulk(entry.get("children", []), desc)
+
+    def add_root(self, node):
+        self.insert(node, None, "last-child")
+
+    def insert(self, node, target, pos):
+        self.children.setdefault(node, [])
+        if pos in ("first-child", "last-child"):
+            siblings = self.children[target]
+            index = 0 if pos == "first-child" else len(siblings)
+        else:
+            siblings = next(group for group in self.children.values() if target in group)
+            index = {
+                "first-sibling": 0,
+                "last-sibling": len(siblings),
+                "left": siblings.index(target),
+                "right": siblings.index(target) + 1,
+            }[pos]
+        siblings.insert(index, node)
+
+    def move(self, node, target, pos):
+        next(group for group in self.children.values() if node in group).remove(node)
+        self.insert(node, target, pos)
+
+    def descendants(self, node=None):
+        """
+        Yields the names of the node's descendants, depth first.
+        """
+        for child in self.children[node]:
+            yield child
+            yield from self.descendants(child)
 
 
 class TestTreeBase:
@@ -3146,6 +3196,75 @@ class TestMoveBranch(TestNonEmptyTree):
                 ("subtree_moved", model, "D", "B.C.B", "default"),
             ]
 
+    def test_making_room_for_a_new_sibling_keeps_the_order_of_the_other_siblings(self, model):
+        # Insert siblings until there is no room left between 21 and the sibling after it,
+        # so that the existing siblings have to be moved to make room for a new node. The
+        # nodes that are moved must keep their relative order.
+        model.objects.add_sibling(model.objects.get(desc="22"), "right", {"desc": "22a"})
+        model.objects.add_sibling(model.objects.get(desc="21"), "right", {"desc": "21a"})
+        model.objects.add_sibling(model.objects.get(desc="21"), "right", {"desc": "21b"})
+
+        expected = [
+            ("1", 1, 0),
+            ("2", 1, 7),
+            ("21", 2, 0),
+            ("21b", 2, 0),
+            ("21a", 2, 0),
+            ("22", 2, 0),
+            ("22a", 2, 0),
+            ("23", 2, 1),
+            ("231", 3, 0),
+            ("24", 2, 0),
+            ("3", 1, 0),
+            ("4", 1, 1),
+            ("41", 2, 0),
+        ]
+        assert self.got(model) == expected
+
+    @pytest.mark.parametrize("seed", range(5))
+    def test_inserts_and_moves_match_a_plain_python_tree(self, model, seed):
+        """
+        Apply a pseudo-random (but repeatable) sequence of inserts and moves, checking the
+        resulting node order against the same operations applied to a plain Python tree.
+        """
+        sibling_positions = ["left", "right", "first-sibling", "last-sibling"]
+        child_positions = ["first-child", "last-child"]
+        rng = random.Random(seed)
+        py_tree = PythonTree()
+        py_tree.load_bulk(BASE_DATA)
+
+        for counter in range(1, 41):
+            desc = f"n{counter}"
+            nodes = list(py_tree.descendants())
+            operation = rng.choice(["root", "child", "sibling", "move"])
+
+            if operation == "root":
+                model.objects.add_root({"desc": desc})
+                py_tree.add_root(desc)
+            elif operation == "child":
+                target = rng.choice(nodes)
+                model.objects.add_child(model.objects.get(desc=target), {"desc": desc})
+                py_tree.insert(desc, target, "last-child")
+            elif operation == "sibling":
+                target = rng.choice(nodes)
+                pos = rng.choice(sibling_positions)
+                model.objects.add_sibling(model.objects.get(desc=target), pos, {"desc": desc})
+                py_tree.insert(desc, target, pos)
+            else:
+                node = rng.choice(nodes)
+                # A node can't be moved relative to itself or to one of its own descendants
+                forbidden = {node, *py_tree.descendants(node)}
+                targets = [candidate for candidate in nodes if candidate not in forbidden]
+                if not targets:
+                    continue
+                target = rng.choice(targets)
+                pos = rng.choice(sibling_positions + child_positions)
+                model.objects.move(model.objects.get(desc=node), model.objects.get(desc=target), pos)
+                py_tree.move(node, target, pos)
+
+            actual_descs = [row.desc for row in model.objects.get_tree()]
+            assert actual_descs == list(py_tree.descendants()), f"diverged at step {counter} ({operation})"
+
 
 @pytest.mark.django_db
 class TestStaleNodes(TestTreeBase):
@@ -4984,17 +5103,17 @@ class TestLT_Insertion(TestTreeBase):
 
         assert signals == []
 
-        # A sibling inserted before A.0 causes existing siblings to be moved right (i.e. 'A' appended to their labels)
+        # A sibling inserted before A.0 causes existing siblings to be moved right (i.e. '0' appended to their labels)
         with capture_signals() as signals:
             new_node_a_0 = lt_model.objects.add_sibling(node_a_0, "first-sibling", {"desc": "new A.0"})
 
         assert str(new_node_a_0.path) == "A.0"
         node_a_0.refresh_from_db()
-        assert str(node_a_0.path) == "A.0A"
+        assert str(node_a_0.path) == "A.00"
         node_a_a.refresh_from_db()
-        assert str(node_a_a.path) == "A.AA"
+        assert str(node_a_a.path) == "A.A0"
 
-        expected_paths = ["A", "A.0", "A.0A", "A.AA", "A.AA.A", "B", "B.A"]
+        expected_paths = ["A", "A.0", "A.00", "A.A0", "A.A0.A", "B", "B.A"]
         actual_paths = [str(node.path) for node in lt_model.objects.all()]
         assert actual_paths == expected_paths
 

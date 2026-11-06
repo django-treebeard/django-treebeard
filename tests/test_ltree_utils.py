@@ -15,6 +15,18 @@ class TestGenerateLabel:
             # Before is equal to after
             generate_label(before="A", after="A", skip=set())
 
+        with pytest.raises(InvalidLabelConstraints):
+            # There is no semantic gap between A and A0
+            generate_label(before="A0", after="A", skip=set())
+
+    def test_no_label_sorts_before_the_first_character_of_the_alphabet(self):
+        with pytest.raises(InvalidLabelConstraints):
+            generate_label(before="0", skip=set())
+
+        # There is still room before 00, so existing nodes don't need moving out of the way
+        assert generate_label(before="00", skip=set()) == "0"
+        assert generate_label(before="000", skip=set()) == "0"
+
     def test_no_constraint(self):
         assert generate_label(skip=set()) == "A"
 

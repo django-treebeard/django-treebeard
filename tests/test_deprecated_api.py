@@ -3329,17 +3329,17 @@ class TestLT_Insertion(TestTreeBase):
 
         assert signals == []
 
-        # A sibling inserted before A.0 causes existing siblings to be moved right (i.e. 'A' appended to their labels)
+        # A sibling inserted before A.0 causes existing siblings to be moved right (i.e. '0' appended to their labels)
         with capture_signals() as signals:
             new_node_a_0 = node_a_0.add_sibling("first-sibling", desc="new A.0")
 
         assert str(new_node_a_0.path) == "A.0"
         node_a_0.refresh_from_db()
-        assert str(node_a_0.path) == "A.0A"
+        assert str(node_a_0.path) == "A.00"
         node_a_a.refresh_from_db()
-        assert str(node_a_a.path) == "A.AA"
+        assert str(node_a_a.path) == "A.A0"
 
-        expected_paths = ["A", "A.0", "A.0A", "A.AA", "A.AA.A", "B", "B.A"]
+        expected_paths = ["A", "A.0", "A.00", "A.A0", "A.A0.A", "B", "B.A"]
         actual_paths = [str(node.path) for node in lt_model.objects.all()]
         assert actual_paths == expected_paths
 
