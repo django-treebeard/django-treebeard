@@ -5296,6 +5296,30 @@ class TestLT_Insertion(TestTreeBase):
 
 
 @pytest.mark.django_db
+class TestLT_DeferredPath(TestTreeBase):
+    @pytest.mark.parametrize("method", ["only", "defer"])
+    def test_deferred_path_is_loaded_when_read(self, lt_model, method, django_assert_num_queries):
+        lt_model.objects.add_root({"desc": "1"})
+        queryset = lt_model.objects.only("desc") if method == "only" else lt_model.objects.defer("path")
+        node = queryset.get()
+        assert node.get_deferred_fields() == {"path"}
+
+        with django_assert_num_queries(1):
+            assert str(node.path) == "A"
+
+        assert node.get_depth() == 1
+
+    def test_refresh_from_db_loads_a_deferred_path(self, lt_model):
+        lt_model.objects.add_root({"desc": "1"})
+        node = lt_model.objects.defer("path").get()
+
+        node.refresh_from_db(fields=["path"])
+
+        assert node.get_deferred_fields() == set()
+        assert str(node.path) == "A"
+
+
+@pytest.mark.django_db
 class TestChecks:
     def test_checks_warning_if_model_manager_doesnt_subclass_treebeard_manager(self, model, monkeypatch):
         configs = [apps.get_app_config("tests")]

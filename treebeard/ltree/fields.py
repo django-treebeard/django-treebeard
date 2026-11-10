@@ -7,6 +7,7 @@ from django.db.models import CharField, IntegerField
 from django.db.models.expressions import Func
 from django.db.models.fields import TextField
 from django.db.models.lookups import PostgresOperatorLookup, Transform
+from django.db.models.query_utils import DeferredAttribute
 from django.forms.widgets import TextInput
 
 # PathField implementation borrows significantly from https://github.com/mariocesar/django-ltree/blob/master/django_ltree/fields.py
@@ -37,26 +38,29 @@ class PathValue(UserList):
         return ".".join(self)
 
 
-class PathValueProxy:
-    def __init__(self, field_name):
-        self.field_name = field_name
+class PathValueProxy(DeferredAttribute):
+    """
+    Returns the path of a node as a `PathValue`, whatever type it was set as.
 
-    def __get__(self, instance, owner):
+    Subclasses `DeferredAttribute` so that a deferred path is loaded from the database when
+    it is first read.
+    """
+
+    def __get__(self, instance, cls=None):
         if instance is None:
             return self
 
-        value = instance.__dict__[self.field_name]
+        value = super().__get__(instance, cls)
 
         if value is None:
             return value
 
-        return PathValue(instance.__dict__[self.field_name])
+        return PathValue(value)
 
     def __set__(self, instance, value):
-        if instance is None:
-            return self
-
-        instance.__dict__[self.field_name] = value
+        # Defining `__set__` makes this a data descriptor, so that `__get__` is still called
+        # once the value is in the instance's `__dict__`.
+        instance.__dict__[self.field.attname] = value
 
 
 class PathFormField(forms.CharField):
@@ -65,6 +69,7 @@ class PathFormField(forms.CharField):
 
 class PathField(TextField):
     default_validators = [path_label_validator]
+    descriptor_class = PathValueProxy
 
     def db_type(self, connection):
         return "ltree"
@@ -73,10 +78,6 @@ class PathField(TextField):
         kwargs["form_class"] = PathFormField
         kwargs["widget"] = TextInput(attrs={"class": "vTextField"})
         return super().formfield(**kwargs)
-
-    def contribute_to_class(self, cls, name, private_only=False):
-        super().contribute_to_class(cls, name)
-        setattr(cls, self.name, PathValueProxy(self.name))
 
     def from_db_value(self, value, expression, connection, *args):
         if value is None:
