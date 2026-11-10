@@ -47,6 +47,31 @@ To use the ``ltree`` module, you need to create the extension in your database:
      queryset handler, you'll need to subclass
      :py:class:`~LT_NodeQuerySet`.
 
+  .. warning::
+
+     ``LT_Node`` defines database constraints on :attr:`path` in its ``Meta`` class: paths must
+     be unique, and must not be empty. A model that defines its own ``Meta`` class only keeps
+     them if that class inherits from ``LT_Node.Meta``, and if it sets ``constraints``, includes
+     the inherited ones:
+
+     .. code-block:: python
+
+        class Category(LT_Node):
+           name = models.CharField(max_length=255)
+
+           class Meta(LT_Node.Meta):
+              constraints = [
+                 *LT_Node.Meta.constraints,
+                 models.UniqueConstraint(name="unique_category_name", fields=["name"]),
+              ]
+
+     The ``treebeard.E002`` system check reports a model that is missing either constraint.
+
+     Nodes must be created with :meth:`~treebeard.models.NodeManager.add_root`,
+     :meth:`~treebeard.models.NodeManager.add_child` or
+     :meth:`~treebeard.models.NodeManager.add_sibling`. Creating one with ``objects.create()``
+     or ``save()`` leaves its path empty, which the database rejects.
+
 
   Example:
 

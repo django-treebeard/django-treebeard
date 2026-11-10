@@ -6,7 +6,7 @@ import operator
 import string
 from collections.abc import Iterable
 
-from django.core import serializers
+from django.core import checks, serializers
 from django.db import models, transaction
 from django.db.models import F, Func, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Concat
@@ -590,6 +590,47 @@ class LT_Node(Node):
         """:returns: True if the node is a leaf node (else, returns False)"""
         return not self.__class__.objects.get_children(self).exists()
 
+    @classmethod
+    def check(cls, **kwargs):
+        errors = super().check(**kwargs)
+        errors.extend(cls._check_path_constraints())
+        return errors
+
+    @classmethod
+    def _check_path_constraints(cls):
+        """
+        Check that the model has the constraints defined in `LT_Node.Meta`.
+
+        A model that defines its own `Meta` class without inheriting from `LT_Node.Meta`, or
+        that sets `constraints` without including the inherited ones, silently drops them.
+        """
+        if cls._meta.get_field("path").model is not cls:
+            # Proxy models and multi-table inheritance children use the path column, and
+            # so the constraints, of their parent model.
+            return []
+
+        def without_name(constraint):
+            path, args, kwargs = constraint.deconstruct()
+            kwargs.pop("name")
+            return path, args, kwargs
+
+        model_constraints = [without_name(constraint) for constraint in cls._meta.constraints]
+        name_context = {"app_label": cls._meta.app_label.lower(), "class": cls.__name__.lower()}
+        return [
+            checks.Error(
+                f"{cls.__name__} does not have the '{constraint.name % name_context}' constraint "
+                "that is defined in LT_Node.Meta.constraints.",
+                hint=(
+                    "If the model defines its own Meta class it must inherit from LT_Node.Meta, "
+                    "and if that sets constraints it must include LT_Node.Meta.constraints."
+                ),
+                obj=cls,
+                id="treebeard.E002",
+            )
+            for constraint in LT_Node.Meta.constraints
+            if without_name(constraint) not in model_constraints
+        ]
+
     class Meta:
         abstract = True
         constraints = [
@@ -597,5 +638,10 @@ class LT_Node(Node):
                 name="%(app_label)s_%(class)s_deferred_unique_path",
                 fields=["path"],
                 deferrable=models.Deferrable.DEFERRED,
-            )
+            ),
+            # A node with an empty path has a depth of 0, and is an ancestor of every other node
+            models.CheckConstraint(
+                name="%(app_label)s_%(class)s_path_not_empty",
+                condition=Q(path__depth__gt=0),
+            ),
         ]
