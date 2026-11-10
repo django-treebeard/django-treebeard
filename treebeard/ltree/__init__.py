@@ -249,6 +249,9 @@ class LT_NodeManager(NodeManager):
             insert_before = self.get_sorted_pos_queryset(self.get_siblings(target), newobj).first()
             if insert_before:
                 insert_after = self.get_prev_sibling(insert_before)
+            else:
+                # Nothing sorts after the new node, so it goes after the last sibling
+                insert_after = self.get_last_sibling(target)
         elif pos == "first-sibling":
             insert_before = self.get_first_sibling(target)
         elif pos == "left":
@@ -289,10 +292,16 @@ class LT_NodeManager(NodeManager):
             insert_before = self.get_sorted_pos_queryset(self.get_siblings(target), node).first()
             if insert_before:
                 insert_after = self.get_prev_sibling(insert_before)
+            else:
+                # Nothing sorts after the node, so it goes after the last sibling
+                insert_after = self.get_siblings(target).last()
         elif pos == "sorted-child":
             insert_before = self.get_sorted_pos_queryset(self.get_children(target), node).first()
             if insert_before:
                 insert_after = self.get_prev_sibling(insert_before)
+            else:
+                # Nothing sorts after the node, so it goes after the last child
+                insert_after = self.get_children(target).last()
             prefix = target.path
         elif pos == "first-sibling":
             insert_before = self.get_siblings(target).first()
