@@ -619,6 +619,23 @@ class TestClassMethods(TestNonEmptyTree):
         assert got.desc == "5"
         assert isinstance(got, model)
 
+    def test_add_root_keeps_insertion_order_beyond_a_single_character_label(self, model):
+        # LT_Node labels are drawn from a 26 letter alphabet, so the 27th root is the first
+        # one that needs a longer label. It must still sort after the 26th.
+        for number in range(5, 31):
+            model.objects.add_root({"desc": str(number)})
+
+        expected = [str(number) for number in range(1, 31)]
+        assert [node.desc for node in model.objects.get_root_nodes()] == expected
+
+    def test_add_root_after_deleting_the_first_root_is_added_last(self, model):
+        model.objects.get(desc="1").delete()
+
+        # The new root must not reuse the position freed by the deleted root
+        model.objects.add_root({"desc": "5"})
+
+        assert [node.desc for node in model.objects.get_root_nodes()] == ["2", "3", "4", "5"]
+
     def test_add_root_with_passed_instance(self, model):
         obj = model(desc="5")
         result = model.objects.add_root(instance=obj)
@@ -3578,6 +3595,162 @@ class TestTreeSorted(TestTreeBase):
             (3, 1, "ac3", 3, 0),
         ]
         assert self.got(sorted_model) == expected
+
+    def test_add_root_sorted_last_after_deleting_first_root(self, sorted_model):
+        first = sorted_model.objects.add_root({"val1": 1, "val2": 1, "desc": "a"})
+        sorted_model.objects.add_root({"val1": 2, "val2": 1, "desc": "b"})
+        sorted_model.objects.add_root({"val1": 3, "val2": 1, "desc": "c"})
+        first.delete()
+
+        # Nothing sorts after the new root, so it must be added after the existing roots
+        sorted_model.objects.add_root({"val1": 4, "val2": 1, "desc": "d"})
+
+        expected = [
+            (2, 1, "b", 1, 0),
+            (3, 1, "c", 1, 0),
+            (4, 1, "d", 1, 0),
+        ]
+        assert self.got(sorted_model) == expected
+
+    def test_add_child_sorted_last_after_deleting_first_child(self, sorted_model):
+        root = sorted_model.objects.add_root({"val1": 0, "val2": 0, "desc": "root"})
+        first = sorted_model.objects.add_child(root, {"val1": 1, "val2": 1, "desc": "a"})
+        sorted_model.objects.add_child(root, {"val1": 2, "val2": 1, "desc": "b"})
+        sorted_model.objects.add_child(root, {"val1": 3, "val2": 1, "desc": "c"})
+        first.delete()
+
+        root = sorted_model.objects.get(pk=root.pk)
+        sorted_model.objects.add_child(root, {"val1": 4, "val2": 1, "desc": "d"})
+
+        expected = [
+            (0, 0, "root", 1, 3),
+            (2, 1, "b", 2, 0),
+            (3, 1, "c", 2, 0),
+            (4, 1, "d", 2, 0),
+        ]
+        assert self.got(sorted_model) == expected
+
+    def test_add_sibling_sorted_last_after_inserts_at_the_front(self, sorted_model):
+        # No node is deleted here: adding two nodes at the front is enough to leave a
+        # position free in front of the existing siblings.
+        node = sorted_model.objects.add_root({"val1": 3, "val2": 1, "desc": "c"})
+        sorted_model.objects.add_sibling(node, "sorted-sibling", {"val1": 2, "val2": 1, "desc": "b"})
+        sorted_model.objects.add_sibling(node, "sorted-sibling", {"val1": 1, "val2": 1, "desc": "a"})
+
+        sorted_model.objects.add_sibling(node, "sorted-sibling", {"val1": 4, "val2": 1, "desc": "d"})
+
+        expected = [
+            (1, 1, "a", 1, 0),
+            (2, 1, "b", 1, 0),
+            (3, 1, "c", 1, 0),
+            (4, 1, "d", 1, 0),
+        ]
+        assert self.got(sorted_model) == expected
+
+    @pytest.mark.parametrize("pos", ["sorted-sibling", "sorted-child"])
+    def test_move_sorted_last_after_deleting_first_sibling(self, sorted_model, pos):
+        root = sorted_model.objects.add_root({"val1": 0, "val2": 0, "desc": "root"})
+        first = sorted_model.objects.add_child(root, {"val1": 1, "val2": 1, "desc": "a"})
+        sibling = sorted_model.objects.add_child(root, {"val1": 2, "val2": 1, "desc": "b"})
+        sorted_model.objects.add_child(root, {"val1": 3, "val2": 1, "desc": "c"})
+        node = sorted_model.objects.add_root({"val1": 4, "val2": 1, "desc": "d"})
+        first.delete()
+
+        target = sibling if pos == "sorted-sibling" else root
+        sorted_model.objects.move(sorted_model.objects.get(pk=node.pk), sorted_model.objects.get(pk=target.pk), pos)
+
+        expected = [
+            (0, 0, "root", 1, 3),
+            (2, 1, "b", 2, 0),
+            (3, 1, "c", 2, 0),
+            (4, 1, "d", 2, 0),
+        ]
+        assert self.got(sorted_model) == expected
+
+    @pytest.mark.parametrize("seed", range(5))
+    def test_sorted_inserts_moves_and_deletes_match_a_plain_python_tree(self, sorted_model, seed):
+        """
+        Apply a pseudo-random (but repeatable) sequence of sorted inserts, sorted moves and
+        deletes, checking the resulting node order against the same operations applied to
+        sorted Python lists.
+        """
+        rng = random.Random(seed)
+        children = {None: []}  # Parent name -> names of its children, in order
+        values = {}  # Name -> (val1, val2, desc)
+
+        def sort_key(name):
+            val1, val2, desc = values[name]
+            # node_order_by is ["val1", "val2", "-desc"]
+            return val1, val2, [-ord(char) for char in desc]
+
+        def parent_of(name):
+            return next(parent for parent, group in children.items() if name in group)
+
+        def insert_sorted(name, parent):
+            # A node goes in front of the first sibling that sorts after it, so after any
+            # siblings it ties with.
+            group = children[parent]
+            index = next((i for i, other in enumerate(group) if sort_key(other) > sort_key(name)), len(group))
+            group.insert(index, name)
+
+        def descendants(name=None):
+            for child in children[name]:
+                yield child
+                yield from descendants(child)
+
+        def get(name):
+            return sorted_model.objects.get(pk=pks[name])
+
+        pks = {}
+        for counter in range(1, 41):
+            name = f"n{counter}"
+            names = list(descendants())
+            operation = rng.choice(["root", "child", "sibling", "move-sibling", "move-child", "delete"])
+            if not names:
+                operation = "root"
+
+            if operation in ("root", "child", "sibling"):
+                # The name makes every node sort differently: AL_Node has no defined order
+                # for siblings that tie on node_order_by.
+                values[name] = (rng.randint(1, 4), rng.randint(1, 3), name)
+                val1, val2, desc = values[name]
+                create_kwargs = {"val1": val1, "val2": val2, "desc": desc}
+                if operation == "root":
+                    parent = None
+                    node = sorted_model.objects.add_root(create_kwargs)
+                elif operation == "child":
+                    parent = rng.choice(names)
+                    node = sorted_model.objects.add_child(get(parent), create_kwargs)
+                else:
+                    target = rng.choice(names)
+                    parent = parent_of(target)
+                    node = sorted_model.objects.add_sibling(get(target), "sorted-sibling", create_kwargs)
+                pks[name] = node.pk
+                children[name] = []
+                insert_sorted(name, parent)
+            elif operation == "delete":
+                target = rng.choice(names)
+                for removed in [target, *descendants(target)]:
+                    del children[removed]
+                children[parent_of(target)].remove(target)
+                get(target).delete()
+            else:
+                node = rng.choice(names)
+                # A node can't be moved relative to itself or to one of its own descendants
+                forbidden = {node, *descendants(node)}
+                targets = [candidate for candidate in names if candidate not in forbidden]
+                if not targets:
+                    continue
+                target = rng.choice(targets)
+                pos = "sorted-sibling" if operation == "move-sibling" else "sorted-child"
+                sorted_model.objects.move(get(node), get(target), pos)
+                new_parent = parent_of(target) if pos == "sorted-sibling" else target
+                children[parent_of(node)].remove(node)
+                insert_sorted(node, new_parent)
+
+            names_by_pk = {pk: name for name, pk in pks.items()}
+            actual = [names_by_pk[node.pk] for node in sorted_model.objects.get_tree()]
+            assert actual == list(descendants()), f"diverged at step {counter} ({operation})"
 
 
 @pytest.mark.django_db
