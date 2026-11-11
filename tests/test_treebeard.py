@@ -18,11 +18,13 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import checks
 from django.core.checks.model_checks import check_all_models
 from django.core.exceptions import PermissionDenied
-from django.db.models import Manager, ProtectedError
+from django.db import IntegrityError, transaction
+from django.db.models import CheckConstraint, Deferrable, Manager, ProtectedError, Q, UniqueConstraint
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.forms import ValidationError
 from django.test.client import RequestFactory
+from django.test.utils import isolate_apps
 from django.utils.timezone import now
 
 from tests import models
@@ -5132,4 +5134,58 @@ class TestChecks:
         errors = check_all_models(configs)
         assert len(errors) == 1
         assert isinstance(errors[0], checks.Error)
+        assert errors[0].id == "treebeard.E001"
         assert "does not subclass treebeard." in errors[0].msg
+
+    def test_checks_error_if_lt_model_is_missing_the_path_constraints(self):
+        with isolate_apps("tests"):
+            # A Meta that doesn't inherit from LT_Node.Meta drops its constraints
+            class NodeWithOwnMeta(LT_Node):
+                class Meta:
+                    verbose_name = "node"
+
+            # As does a Meta that sets its own constraints without including the inherited ones
+            class NodeWithOwnConstraints(LT_Node):
+                class Meta(LT_Node.Meta):
+                    constraints = [
+                        UniqueConstraint(name="unique_path", fields=["path"], deferrable=Deferrable.DEFERRED),
+                    ]
+
+            class NodeWithInheritedMeta(LT_Node):
+                class Meta(LT_Node.Meta):
+                    verbose_name = "node"
+
+            class NodeWithExtraConstraints(LT_Node):
+                class Meta(LT_Node.Meta):
+                    constraints = [
+                        *LT_Node.Meta.constraints,
+                        CheckConstraint(name="pk_not_zero", condition=~Q(pk=0)),
+                    ]
+
+            # The path column and its constraints belong to the parent model
+            class NodeChild(NodeWithInheritedMeta):
+                class Meta:
+                    constraints = []
+
+        assert NodeWithInheritedMeta.check() == []
+        assert NodeWithExtraConstraints.check() == []
+        assert NodeChild.check() == []
+
+        errors = NodeWithOwnMeta.check()
+        assert [error.id for error in errors] == ["treebeard.E002", "treebeard.E002"]
+        assert all(isinstance(error, checks.Error) for error in errors)
+        assert "'tests_nodewithownmeta_deferred_unique_path'" in errors[0].msg
+        assert "'tests_nodewithownmeta_path_not_empty'" in errors[1].msg
+
+        errors = NodeWithOwnConstraints.check()
+        assert [error.id for error in errors] == ["treebeard.E002"]
+        assert "'tests_nodewithownconstraints_path_not_empty'" in errors[0].msg
+
+
+@pytest.mark.django_db
+class TestLT_EmptyPath(TestTreeBase):
+    def test_create_without_a_path_is_rejected(self, lt_model):
+        # Nodes must be created with add_root(), add_child() or add_sibling(). A node saved
+        # with an empty path has a depth of 0, and is the ancestor of every other node.
+        with pytest.raises(IntegrityError), transaction.atomic():
+            lt_model.objects.create(desc="1")

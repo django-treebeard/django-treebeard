@@ -429,7 +429,11 @@ if os.environ.get("DATABASE_ENGINE") == "psql":
                             name="tests_lt_testnode_deferred_unique_path",
                             fields=["path"],
                             deferrable=models.Deferrable.DEFERRED,
-                        )
+                        ),
+                        models.CheckConstraint(
+                            name="tests_lt_testnode_path_not_empty",
+                            condition=models.Q(("path__depth__gt", 0)),
+                        ),
                     ],
                 },
             ),
@@ -486,7 +490,11 @@ if os.environ.get("DATABASE_ENGINE") == "psql":
                             deferrable=django.db.models.constraints.Deferrable["DEFERRED"],
                             fields=("path",),
                             name="tests_lt_testnoderelated_deferred_unique_path",
-                        )
+                        ),
+                        models.CheckConstraint(
+                            name="tests_lt_testnoderelated_path_not_empty",
+                            condition=models.Q(("path__depth__gt", 0)),
+                        ),
                     ],
                 },
             ),
@@ -519,7 +527,11 @@ if os.environ.get("DATABASE_ENGINE") == "psql":
                             name="tests_lt_testnodesorted_deferred_unique_path",
                             fields=["path"],
                             deferrable=models.Deferrable.DEFERRED,
-                        )
+                        ),
+                        models.CheckConstraint(
+                            name="tests_lt_testnodesorted_path_not_empty",
+                            condition=models.Q(("path__depth__gt", 0)),
+                        ),
                     ],
                 },
             ),
